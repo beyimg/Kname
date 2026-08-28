@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ d.full_hangul }} ({{ d.full_rom }}) — your Korean name</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── 카드 ─────────────────────────────────────────── -->
+  <div class="card-wrap"><div class="flipper" id="flipper">
+
+    <div class="face face-front"><div id="shareCard">
+      <div class="inset-border"></div>
+      <div class="content">
+        <div class="eyebrow">Your Korean Name</div>
+        <div class="orig-name">{{ d.input }}</div>
+        <div class="kr-name">
+          {% for s in d.syllables %}
+          <span class="kn-col">
+            <span class="kn-kr">{{ s.ch }}</span>
+            {% if s.hanja %}<span class="kn-hj">{{ s.hanja }}</span>{% endif %}
+            <span class="kn-rom">{{ s.rom }}</span>
+          </span>
+          {% endfor %}
+        </div>
+        <div class="romanized">{{ d.full_rom }}</div>
+        <div class="divider"></div>
+        {% if d.meaning_short %}<div class="meaning">&ldquo;{{ d.meaning_short }}&rdquo;</div>{% endif %}
+        {% if d.is_native %}
+        <div class="meaning-detail">
+          <span class="line native-tag">{% if d.native_with_hanja %}a native Korean name, also written with hanja{% else %}a native Korean name &mdash; written without Chinese characters{% endif %}</span>
+        </div>
+        {% endif %}
+        <div class="flip-hint no-share">&#8634; tap for the story behind it</div>
+        <div class="brand">mykoreanname.cc</div>
+      </div>
+      {% if d.surname_hanja %}<div class="seal">{{ d.surname_hanja }}</div>{% endif %}
+    </div></div>
+
+    <div class="face face-back"><div class="card-back-inner">
+      <div class="inset-border" style="z-index:4;"></div>
+      <div class="back-scroll" id="backScroll">
+        <div class="back-title"><span class="bt-name">{{ d.full_hangul }}{% if d.surname_hanja %}<span class="bt-seal">{{ d.surname_hanja }}</span>{% endif %}</span><span class="bt-rom">{{ d.full_rom }}</span></div>
+        {% if d.surname_desc %}
+        <div class="back-section" style="margin-top:8px;">
+          <div class="back-section-label"><span>Your Korean surname</span></div>
+          <div class="back-surname">{{ d.surname_desc }}</div>
+        </div>
+        <div class="back-divider"></div>
+        {% endif %}
+        <div class="back-section">
+          <div class="back-section-label"><span>What your name means</span></div>
+          {% if d.hanja_lines %}
+          <div class="back-gloss">
+            {% for h in d.hanja_lines %}
+            <div class="bg-row">
+              <span class="bg-key"><span class="k-syl">{{ h.syl }}</span><span class="k-sub">(<span class="k-hj">{{ h.hanja }}</span>, {{ h.rom }})</span></span>
+              <span class="bg-mean">{{ h.gloss }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if d.meaning_unavailable %}
+          <div class="back-meaning meaning-pending">
+            {% if d.meaning_error == 'credit' or d.meaning_error == 'auth' %}
+            The full meaning isn&rsquo;t available right now. Everything else about
+            your name &mdash; the hanja, the sounds, and why it was chosen &mdash;
+            is on the front and below.
+            {% else %}
+            We&rsquo;re getting more requests than usual, so the full meaning is
+            taking a moment. Your name is ready &mdash; tap below to fetch the meaning.
+            {% endif %}
+          </div>
+          <button type="button" class="btn-retry" id="retryMeaning">Try again</button>
+          {% else %}
+          <div class="back-meaning">{{ d.meaning_en }}</div>
+          {% endif %}
+        </div>
+        <div class="brand" style="margin-top:22px;">&#8634; tap to flip back</div>
+      </div>
+      <div class="scroll-fade" id="scrollFade"></div>
+    </div></div>
+
+  </div></div>
+
+  <!-- ── 버튼 ─────────────────────────────────────────── -->
+  <div class="actions">
+    <button class="btn btn-primary" id="shareBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+      <span class="btn-label">Share</span>
+    </button>
+    <button class="btn btn-secondary" id="downloadBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      Save image
+    </button>
+    <button class="btn btn-ghost" id="ttsBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+      Hear pronunciation
+    </button>
+  </div>
+  <div class="hint" id="shareHint">Opens your phone&rsquo;s share sheet — Instagram, KakaoTalk, Messages, and more.</div>
+
+  <!-- ── 변환 이유 ────────────────────────────────────── -->
+  <div class="reason-section">
+    <div class="inset-border"></div>
+    <div class="reason-inner">
+      <div class="reason-eyebrow">Why this name</div>
+      <div class="reason-title">{{ d.first_en }} &rarr; {{ d.given }}</div>
+      <div class="reason-sub">How your name became {{ d.given }} ({{ d.given_rom }})</div>
+      <div id="reasonBody"></div>
+    </div>
+  </div>
+
+  <a class="back-link" href="{{ url_for('index') }}">&larr; Try another name</a>
+</div>
+
+<div class="toast" id="toast">Saved!</div>
+
+<script src="{{ url_for('static', filename='html-to-image.js') }}"></script>
+<script>
+window.REASON = {{ reason_json|safe }};
+window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
+</script>
+<script src="{{ url_for('static', filename='reason.js') }}"></script>
+<script>
+(function(){
+  var card = document.getElementById('shareCard');
+  var flipper = document.getElementById('flipper');
+  var krName = {{ d.full_hangul|tojson }};
+
+  function toast(m){
+    var t=document.getElementById('toast');
+    t.textContent=m; t.classList.add('show');
+    setTimeout(function(){t.classList.remove('show');},2200);
+  }
+
+  flipper.addEventListener('click',function(){flipper.classList.toggle('flipped');});
+
+  var backScroll=document.getElementById('backScroll');
+  var scrollFade=document.getElementById('scrollFade');
+  if(backScroll&&scrollFade){
+    function upd(){
+      var atBottom = backScroll.scrollHeight-backScroll.scrollTop-backScroll.clientHeight<8;
+      scrollFade.style.opacity = atBottom ? '0' : '1';
+    }
+    backScroll.addEventListener('scroll',upd); upd();
+  }
+
+  // 공유 이미지에는 '탭하면 뒷면' 안내(.no-share)를 포함하지 않는다
+  function render(){
+    return window.htmlToImage.toBlob(card,{
+      pixelRatio:2, backgroundColor:'#fdfaf2',
+      filter:function(node){
+        return !(node.classList && node.classList.contains('no-share'));
+      }
+    });
+  }
+  function dl(b){
+    var u=URL.createObjectURL(b);
+    var a=document.createElement('a');
+    a.href=u; a.download='my-korean-name.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(u);},1000);
+  }
+
+  // ── 공유 ─────────────────────────────────────────────
+  // navigator.share로 iOS/Android 네이티브 공유 시트를 띄운다.
+  // (인스타그램·카카오톡·메시지·에어드롭 등 설치된 앱이 모두 나타남)
+  // 지원하지 않는 데스크톱 브라우저에서는 이미지 저장으로 대체한다.
+  var shareBtn = document.getElementById('shareBtn');
+  var SHARE_TEXT = '{{ d.full_rom }} ({{ d.full_hangul }}) — my Korean name';
+
+  // 파일 공유를 지원하지 않는 환경이면 버튼 라벨을 바꿔 오해를 줄인다
+  (function(){
+    var probe = new File([new Blob([''])], 't.png', {type:'image/png'});
+    var canFiles = !!(navigator.canShare && navigator.canShare({files:[probe]}));
+    var dlBtn = document.getElementById('downloadBtn');
+    if(canFiles){
+      // 공유 시트를 쓸 수 있는 기기 — 저장은 시트 안에 "이미지 저장"으로 들어 있다
+      if(dlBtn) dlBtn.style.display = 'none';
+    } else {
+      // 데스크톱 등 — 공유가 안 되므로 저장 버튼으로 바꾸고 중복 버튼은 숨긴다
+      var label = shareBtn.querySelector('.btn-label');
+      if(label) label.textContent = 'Save image';
+      if(dlBtn) dlBtn.style.display = 'none';
+      var hint = document.getElementById('shareHint');
+      if(hint) hint.textContent = 'Tip: open this page on your phone to share straight to Instagram, KakaoTalk, or Messages.';
+    }
+  })();
+
+  shareBtn.addEventListener('click', async function(){
+    shareBtn.disabled = true;
+    try{
+      var blob = await render();
+      var file = new File([blob], 'my-korean-name.png', {type:'image/png'});
+
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        // 네이티브 공유 시트
+        await navigator.share({
+          files: [file],
+          title: 'My Korean Name',
+          text : SHARE_TEXT + '\nGet yours at mykoreanname.cc'
+        });
+      } else {
+        dl(blob);
+        toast('Saved!');
+      }
+    } catch(e){
+      // 사용자가 공유창을 닫은 경우는 오류가 아니다
+      if(e && (e.name === 'AbortError' || e.name === 'NotAllowedError')) {
+        shareBtn.disabled = false;
+        return;
+      }
+      try { dl(await render()); toast('Saved!'); }
+      catch(_) { toast('Could not save'); }
+    } finally {
+      shareBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('downloadBtn').addEventListener('click',async function(){
+    try{ dl(await render()); toast('Saved!'); }catch(e){ toast('Could not save'); }
+  });
+
+  // ── 발음 듣기 ────────────────────────────────────────
+  // 1순위: 서버가 만든 풀네임 mp3 (모든 기기에서 같은 품질·같은 목소리)
+  // 2순위: 브라우저 내장 한국어 음성
+  var koVoice = null;
+
+  function pickKoreanVoice(){
+    if(!('speechSynthesis' in window)) return null;
+    var vs = window.speechSynthesis.getVoices() || [];
+    return vs.filter(function(v){
+      return v.lang && v.lang.replace('_','-').toLowerCase().indexOf('ko') === 0;
+    })[0] || null;
+  }
+  if('speechSynthesis' in window){
+    koVoice = pickKoreanVoice();
+    window.speechSynthesis.onvoiceschanged = function(){ koVoice = pickKoreanVoice(); };
+  }
+
+  var AUDIO = window.AUDIO || {};
+  var fullAudio = null;
+  if(AUDIO.full){
+    fullAudio = new Audio(AUDIO.full);
+    fullAudio.preload = 'auto';
+  }
+
+  var ttsBtn = document.getElementById('ttsBtn');
+  if(!AUDIO.full && !koVoice && !('speechSynthesis' in window)){
+    ttsBtn.style.display = 'none';
+  }
+
+  function useBrowserVoice(done){
+    if('speechSynthesis' in window) window.speechSynthesis.cancel();
+    if(!koVoice) koVoice = pickKoreanVoice();
+    if(!koVoice){ toast('No Korean voice on this device'); done(); return; }
+    var u = new SpeechSynthesisUtterance(krName);
+    u.voice = koVoice;
+    u.lang  = koVoice.lang || 'ko-KR';
+    u.rate  = 0.85;
+    u.onend = u.onerror = done;
+    window.speechSynthesis.speak(u);
+  }
+
+  function playFile(audio, done){
+    try { audio.currentTime = 0; } catch(e){}
+    audio.volume = 1;
+    var settled = false;
+    function fin(){ if(!settled){ settled = true; done(); } }
+    audio.onended = fin;
+    audio.onerror = function(){ if(!settled){ settled = true; useBrowserVoice(done); } };
+    var pr = audio.play();
+    if(pr && pr.catch){
+      pr.catch(function(){ if(!settled){ settled = true; useBrowserVoice(done); } });
+    }
+  }
+
+  ttsBtn.addEventListener('click', function(){
+    ttsBtn.disabled = true;
+    var done = function(){ ttsBtn.disabled = false; };
+    toast('\u{1F50A} ' + krName);
+
+    // 이미 만들어진 파일이 있으면 바로 재생
+    if(fullAudio){ playFile(fullAudio, done); return; }
+
+    // 없으면 서버에 생성을 요청한다. 페이지 로딩과 분리돼 있어
+    // 카드 자체는 이미 떠 있는 상태다.
+    fetch('/api/tts?name=' + encodeURIComponent(krName))
+      .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+      .then(function(d){
+        if(!d || !d.url) return Promise.reject();
+        fullAudio = new Audio(d.url);
+        playFile(fullAudio, done);
+      })
+      .catch(function(){ useBrowserVoice(done); });
+  });
+
+  renderConversionReason(document.getElementById('reasonBody'), window.REASON);
+})();
+</script>
+</body>
+</html>

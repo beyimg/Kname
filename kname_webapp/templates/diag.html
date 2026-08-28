@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오디오 진단</title>
+<style>
+  body{font-family:-apple-system,'Segoe UI',sans-serif;max-width:640px;margin:0 auto;
+       padding:24px 18px 60px;background:#f4f1e8;color:#1a1a1a;line-height:1.6;}
+  h1{font-size:20px;margin:0 0 4px;}
+  .sub{color:#777;font-size:13px;margin-bottom:20px;}
+  .card{background:#fff;border:1px solid #e0e0e0;border-radius:6px;padding:16px 18px;margin-bottom:14px;}
+  .card h2{font-size:14px;margin:0 0 10px;letter-spacing:.5px;text-transform:uppercase;color:#888;}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #f2f2f2;font-size:13.5px;}
+  .row:last-child{border-bottom:0;}
+  .k{color:#666;}
+  .v{font-family:ui-monospace,Consolas,monospace;text-align:right;word-break:break-all;}
+  .ok{color:#1D9E75;font-weight:600;}
+  .bad{color:#c2543c;font-weight:600;}
+  button{font-family:inherit;font-size:14px;padding:11px 18px;margin:6px 6px 0 0;
+         border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;}
+  button:hover{border-color:#1a1a1a;}
+  button.primary{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+  #log{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:#1a1a1a;color:#e8e8e8;
+       padding:12px;border-radius:6px;max-height:280px;overflow:auto;white-space:pre-wrap;margin-top:10px;}
+  .hint{font-size:12.5px;color:#777;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<h1>오디오 진단</h1>
+<div class="sub">풀네임을 통째로 합성합니다. 결과를 알려주시면 원인을 찾을 수 있습니다.</div>
+
+<div class="card">
+  <h2>1. TTS 상태</h2>
+  <div class="row"><span class="k">Google 인증</span>
+    <span class="v {{ 'ok' if tts_ready else 'bad' }}">{{ '설정됨' if tts_ready else '없음 — 생성 불가' }}</span></div>
+  <div class="row"><span class="k">음성</span><span class="v">{{ voice }}</span></div>
+  <div class="row"><span class="k">어조 지시</span><span class="v">{{ style_prompt or '(없음)' }}</span></div>
+  <div class="row"><span class="k">모델</span><span class="v">{{ model or 'Chirp 3 기본' }}</span></div>
+  <div class="row"><span class="k">마지막 오류</span>
+    <span class="v {{ 'bad' if last_error else 'ok' }}">{{ last_error or '없음' }}</span></div>
+  <div class="row"><span class="k">실제 합성 방식</span>
+    <span class="v {{ 'ok' if last_mode and 'Gemini' in last_mode else '' }}">{{ last_mode or '아직 생성 안 함' }}</span></div>
+  <div class="row"><span class="k">캐시된 파일</span><span class="v">{{ stats.count }}개 · {{ (stats.bytes/1024)|round|int }} KB</span></div>
+</div>
+
+<div class="card">
+  <h2>2. 예시 (Sophia Hernandez)</h2>
+  <div class="row"><span class="k">한국 이름</span><span class="v">{{ sample.full }}</span></div>
+  <div class="row"><span class="k">음성 파일</span>
+    <span class="v {{ 'ok' if sample.url else 'bad' }}">{{ sample.url or '생성 실패' }}</span></div>
+  <div id="fileRows"></div>
+</div>
+
+<div class="card">
+  <h2>3. 재생 테스트</h2>
+  <div class="hint">아래 버튼을 눌러 실제로 소리가 나는지 확인하세요.</div>
+  <button class="primary" onclick="testFull()">풀네임 재생</button>
+  <button onclick="testVoices()">브라우저 음성 확인</button>
+  <div id="log">준비됨. 버튼을 눌러주세요.</div>
+</div>
+
+<script>
+var A = {{ audio_json|safe }};
+var F = {{ files_json|safe }};
+var LOG = document.getElementById('log');
+function log(s){ LOG.textContent += '\n' + s; LOG.scrollTop = LOG.scrollHeight; }
+function clear(){ LOG.textContent = ''; }
+
+(function renderFiles(){
+  var box = document.getElementById('fileRows');
+  if(!box) return;
+  F.forEach(function(f, idx){
+    var d = document.createElement('div');
+    d.className = 'row';
+    var sizeTxt = f.size ? (f.size + ' B') : '없음';
+    var cls = !f.size ? 'bad' : (f.size < 1000 ? 'bad' : 'ok');
+    d.innerHTML = '<span class="k">' + f.label + ' · ' + f.name + '</span>' +
+                  '<span class="v"><span class="' + cls + '">' + sizeTxt + '</span> ' +
+                  '<span id="dur' + idx + '" style="color:#999"></span></span>';
+    box.appendChild(d);
+    if(f.url){
+      var probe = new Audio(f.url);
+      probe.addEventListener('loadedmetadata', function(){
+        var el = document.getElementById('dur' + idx);
+        if(el) el.textContent = '· ' + probe.duration.toFixed(2) + '초';
+      });
+      probe.addEventListener('error', function(){
+        var el = document.getElementById('dur' + idx);
+        if(el){ el.textContent = '· 읽기 실패'; el.className = 'bad'; }
+      });
+    }
+  });
+})();
+
+function playOne(url, label){
+  return new Promise(function(resolve){
+    log('▶ ' + label + '  ' + url);
+    var a = new Audio(url);
+    var settled = false;
+    function fin(how){ if(!settled){ settled = true; log('   → ' + how); resolve(how); } }
+    a.addEventListener('ended', function(){ fin('재생 완료'); });
+    a.addEventListener('error', function(){
+      fin('오류: code=' + (a.error ? a.error.code : '?') + ' (4=파일 못읽음)');
+    });
+    var p = a.play();
+    if(p && p.catch){ p.catch(function(e){ fin('play() 거부: ' + e.name); }); }
+    setTimeout(function(){ fin('시간초과'); }, 6000);
+  });
+}
+
+async function testFull(){
+  clear(); log('[풀네임 재생]');
+  if(!A.full){ log('✗ 음성 파일이 없습니다. Google 인증을 확인하세요.'); return; }
+  await playOne(A.full, '풀네임');
+  log('완료.');
+}
+
+function testVoices(){
+  clear(); log('[브라우저 음성 목록]');
+  if(!('speechSynthesis' in window)){ log('✗ speechSynthesis 미지원'); return; }
+  var vs = window.speechSynthesis.getVoices() || [];
+  log('전체 ' + vs.length + '개');
+  var ko = vs.filter(function(v){ return v.lang && v.lang.toLowerCase().indexOf('ko')===0; });
+  log('한국어 ' + ko.length + '개');
+  ko.forEach(function(v){ log('  · ' + v.name + '  (' + v.lang + ')'); });
+}
+</script>
+</body>
+</html>

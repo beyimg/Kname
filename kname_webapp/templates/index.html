@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find your Korean name — mykoreanname.cc</title>
+<meta name="description" content="Turn your name into a real Korean name — with hanja, meaning, and the reason behind every syllable.">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="hero-eyebrow">mykoreanname.cc</div>
+    <h1 class="hero-title">Find your<br>Korean name</h1>
+    <p class="hero-sub">A real Korean name that sounds like yours &mdash;<br>with the hanja, the meaning, and the reason<br>behind every syllable.</p>
+  </header>
+
+  <!-- ===== 한국 이름 안내 인트로 ===== -->
+  <section class="intro" aria-label="About Korean names">
+    <div class="intro-head">First, three things about Korean names</div>
+
+    <div class="intro-card">
+      <div class="ic-label">The family name comes first</div>
+      <p class="ic-text">K-pop&rsquo;s Jungkook is really <span class="kr">전</span> <b>Jeon</b> Jung-kook &mdash; the family name leads. A Korean name is usually three syllables: a one-syllable family name + a two-syllable given name. And there&rsquo;s no middle name.</p>
+    </div>
+
+    <div class="intro-card">
+      <div class="ic-label">A name is a wish</div>
+      <p class="ic-text">Most names are written in <b>hanja</b> &mdash; Chinese characters chosen for their meaning: light, wisdom, grace. Parents pick them like a blessing. Some names skip hanja and use pure Korean words, like <span class="kr">하늘</span> Ha-neul (&ldquo;sky&rdquo;).</p>
+    </div>
+
+    <div class="intro-card">
+      <div class="ic-label">Almost everyone is a Kim, Lee or Park</div>
+      <p class="ic-text">Just three family names cover <b>nearly half</b> of all Koreans. Three of BTS&rsquo;s seven members are named Kim &mdash; and they aren&rsquo;t even related. Korea uses only about 300 family names in all.</p>
+    </div>
+
+    <details class="learn">
+      <summary>Learn more about Korean names <span class="chev">&#9662;</span></summary>
+      <div class="learn-list">
+
+        <details class="li-item">
+          <summary><span class="li-title"><span class="li-num">01</span> Two Kims usually aren&rsquo;t related</span><span class="li-plus">+</span></summary>
+          <div class="li-body">A Korean surname isn&rsquo;t a single family. Each one splits into <em>clans</em>, identified by an ancestral hometown (<em>bon-gwan</em>). The Gimhae Kim and the Gyeongju Kim are completely separate lineages that just happen to share the sound &ldquo;Kim.&rdquo; Kim Ji-soo of BLACKPINK and Kim Tae-hyung of BTS are both Kims &mdash; and no relation at all. For much of Korean history, two people with the same surname <b>and</b> the same clan seat were considered kin and couldn&rsquo;t marry. It&rsquo;s why the surname card you&rsquo;ll get names a specific clan, not just &ldquo;Kim.&rdquo;</div>
+        </details>
+
+        <details class="li-item">
+          <summary><span class="li-title"><span class="li-num">02</span> How names are built from meanings</span><span class="li-plus">+</span></summary>
+          <div class="li-body">In a Sino-Korean name, each of the two given-name syllables is a Chinese character with its own meaning, and parents combine them into a wish &mdash; brightness, wisdom, grace, a soaring path. Some families consult a professional naming specialist or check the baby&rsquo;s birth chart (<em>saju</em>) for balance and good fortune. Others skip Chinese characters entirely and use pure Korean words, like <span class="kr">하늘</span> Ha-neul (&ldquo;sky&rdquo;) or <span class="kr">이슬</span> I-seul (&ldquo;dew&rdquo;). Either way, a Korean name is meant to <b>say</b> something.</div>
+        </details>
+
+        <details class="li-item">
+          <summary><span class="li-title"><span class="li-num">03</span> Why siblings share a syllable</span><span class="li-plus">+</span></summary>
+          <div class="li-body">In many families, everyone of the same generation shares one fixed syllable in their given name &mdash; a &ldquo;generation marker&rdquo; (<em>dollimja</em>) handed down by the clan, often following a sequence tied to the five elements. Brothers might be Min-<b>jun</b>, Min-<b>seo</b>, Min-<b>jae</b>, or cousins spread across a family all carry the same middle syllable. It lets relatives instantly place which generation someone belongs to. It&rsquo;s looser in younger families today, but still very much alive.</div>
+        </details>
+
+        <details class="li-item">
+          <summary><span class="li-title"><span class="li-num">04</span> One name, many spellings</span><span class="li-plus">+</span></summary>
+          <div class="li-body">Romanization of Korean names was never standardized, so one surname can be spelled many ways. <span class="kr">이</span> becomes Lee, Yi, or Rhee; <span class="kr">박</span> becomes Park, Pak, or Bak; <span class="kr">최</span> becomes Choi or Choe. Families simply chose a spelling and kept it. That&rsquo;s also why &ldquo;Choi&rdquo; sounds more like &ldquo;Chweh&rdquo; than &ldquo;Choy&rdquo; &mdash; the spelling is a historical accident, not a pronunciation guide.</div>
+        </details>
+
+        <details class="li-item">
+          <summary><span class="li-title"><span class="li-num">05</span> Wives keep their own surname</span><span class="li-plus">+</span></summary>
+          <div class="li-body">A Korean woman keeps her own family name for life &mdash; marriage doesn&rsquo;t change it. The children, though, take their father&rsquo;s surname. So at home a married couple usually has two different surnames, while the kids share dad&rsquo;s. For anyone expecting the Western &ldquo;Mrs. His-Name&rdquo; pattern, this is often a surprise.</div>
+        </details>
+
+        <details class="li-item">
+          <summary><span class="li-title"><span class="li-num">06</span> Name trends change with the decade</span><span class="li-plus">+</span></summary>
+          <div class="li-body">Popular names cycle by era, just like anywhere. Mid-20th-century women&rsquo;s names often ended in <em>-ja</em> (Young-ja, Sun-ja), and you&rsquo;d be hard-pressed to find a baby named that today. Now the favorites are soft, flowing names like Seo-yeon, Ji-woo, and Ha-eun, and hit K-dramas and idols visibly nudge what parents pick. A Korean name quietly carries the decade it was born in.</div>
+        </details>
+
+      </div>
+    </details>
+  </section>
+  <!-- ===== /인트로 ===== -->
+
+  {% if error %}
+  <div class="alert" role="alert">{{ error }}</div>
+  {% endif %}
+
+  <form class="form" method="post" action="{{ url_for('result') }}" id="nameForm" novalidate>
+    <div class="inset-border"></div>
+    <div class="form-inner">
+
+      <div class="field">
+        <label for="first_name">First name</label>
+        <input type="text" id="first_name" name="first_name" placeholder="Sophia"
+               value="{{ first_name or '' }}" autocomplete="given-name"
+               autocapitalize="words" spellcheck="false" required>
+      </div>
+
+      <div class="field">
+        <label for="last_name">Last name</label>
+        <input type="text" id="last_name" name="last_name" placeholder="Hernandez"
+               value="{{ last_name or '' }}" autocomplete="family-name"
+               autocapitalize="words" spellcheck="false" required>
+      </div>
+
+      <div class="field field-last">
+        <label id="sexLabel">Name style</label>
+        <div class="seg seg-3" role="radiogroup" aria-labelledby="sexLabel">
+          <input type="radio" id="sex-m" name="sex" value="남" {% if sex == '남' %}checked{% endif %}>
+          <label for="sex-m">Masculine</label>
+
+          <input type="radio" id="sex-f" name="sex" value="여" {% if sex == '여' or not sex %}checked{% endif %}>
+          <label for="sex-f">Feminine</label>
+
+          <input type="radio" id="sex-x" name="sex" value="other" {% if sex == 'other' %}checked{% endif %}>
+          <label for="sex-x">Either</label>
+        </div>
+        <p class="field-help">Korean names aren&rsquo;t always gendered &mdash; pick <b>Either</b> and we&rsquo;ll favor a name used for anyone.</p>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-in-form">
+        Get my Korean name
+      </button>
+
+    </div>
+  </form>
+
+  <div class="examples">
+    <span class="examples-label">Try one</span>
+    <div class="chips">
+      <button type="button" class="chip" data-f="Sophia" data-l="Hernandez" data-s="여">Sophia Hernandez</button>
+      <button type="button" class="chip" data-f="Noah"   data-l="Wilson"    data-s="남">Noah Wilson</button>
+      <button type="button" class="chip" data-f="Byron"  data-l="Smith"     data-s="other">Byron Smith</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  var first = document.getElementById('first_name');
+  var last  = document.getElementById('last_name');
+
+  document.querySelectorAll('.chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      first.value = c.dataset.f;
+      last.value  = c.dataset.l;
+      var id = c.dataset.s === '남' ? 'sex-m' : (c.dataset.s === 'other' ? 'sex-x' : 'sex-f');
+      document.getElementById(id).checked = true;
+      first.focus({ preventScroll: true });
+    });
+  });
+
+  document.getElementById('nameForm').addEventListener('submit', function (e) {
+    var bad = null;
+    if (!last.value.trim())  { last.classList.add('is-invalid');  bad = last; }
+    if (!first.value.trim()) { first.classList.add('is-invalid'); bad = first; }
+    if (bad) { e.preventDefault(); bad.focus(); }
+  });
+  [first, last].forEach(function (el) {
+    el.addEventListener('input', function () { el.classList.remove('is-invalid'); });
+  });
+
+  // 더 알아보기: 한 항목을 열면 나머지는 닫는다(아코디언)
+  document.querySelectorAll('.learn-list .li-item').forEach(function (d) {
+    d.addEventListener('toggle', function () {
+      if (d.open) {
+        document.querySelectorAll('.learn-list .li-item').forEach(function (o) {
+          if (o !== d) o.open = false;
+        });
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
