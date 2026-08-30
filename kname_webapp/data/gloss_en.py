@@ -441,3 +441,7 @@ GLOSS_EN.update({
 GLOSS_EN.update({
     "가락": "melody",
 })
+
+GLOSS_EN.update({
+    "준걸": "gifted",
+})

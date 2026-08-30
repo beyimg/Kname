@@ -480,7 +480,7 @@ _ABSTRACT = {
     'wisdom', 'grace', 'virtue', 'merit', 'fortune', 'happiness', 'joy',
     'love', 'kindness', 'sincerity', 'history', 'law', 'order', 'strength',
     'dignity', 'authority', 'reverence', 'propriety', 'foundation', 'origin',
-    'essence', 'achievement', 'responsibility', 'duty',
+    'essence', 'achievement', 'responsibility', 'duty', 'eloquence',
 }
 # 관사를 붙이지 않는 명사 (물질·자연·복수 개념)
 _NO_ARTICLE = {
@@ -553,7 +553,13 @@ def _adj_noun(adj, noun):
         return f'A name of {n} and {a}'
     if n in _ABSTRACT:
         return f'Someone {a}, with {n}'
-    art = '' if n.split()[0] in _NO_ARTICLE else ('an ' if n[0] in 'aeiou' else 'a ')
+    first = n.split()[0]
+    if first in ('a', 'an', 'the'):
+        art = ''                      # 뜻에 이미 관사가 있으면 덧붙이지 않는다
+    elif first in _NO_ARTICLE:
+        art = ''
+    else:
+        art = 'an ' if n[0] in 'aeiou' else 'a '
     return f'Someone {a} as {art}{n}'
 
 
