@@ -202,7 +202,6 @@ class MeaningEnGenerator:
             resp = client.messages.create(
                 model=self.model,
                 max_tokens=self.max_tokens,
-                temperature=self.temperature,
                 messages=[{'role': 'user', 'content': prompt}],
             )
             text = ''.join(b.text for b in resp.content if hasattr(b, 'text')).strip()

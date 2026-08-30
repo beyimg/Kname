@@ -532,7 +532,6 @@ class NameMeaning:
         response = client.messages.create(
             model=self.model,
             max_tokens=self.max_tokens,
-            temperature=self.temperature,
             messages=[{"role": "user", "content": prompt}],
         )
         # response.content: List[ContentBlock]
