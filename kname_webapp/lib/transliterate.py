@@ -236,7 +236,10 @@ class Transliterator:
         try:
             raw = self._call_llm(self._build_prompt(name.strip(), kind))
             out = self._clean(raw)
-        except Exception:
+        except Exception as e:
+            import sys
+            print(f"[translit] LLM error ({name}/{kind}): {type(e).__name__}: {e}",
+                  file=sys.stderr, flush=True)
             return None
         if not out:
             return None

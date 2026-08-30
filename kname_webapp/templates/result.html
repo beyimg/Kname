@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ d.full_hangul }} ({{ d.full_rom }}) — your Korean name</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -158,10 +162,31 @@ window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
       }
     });
   }
-  function dl(b){
+  // 뒷면(이야기)을 통째로 이미지로 — 스크롤 잘림 없이 전체 내용을 담기 위해
+  // 화면 밖에 복제본을 만들어 높이를 자동으로 펼친 뒤 캡처한다.
+  function renderBack(){
+    var src = document.querySelector('.card-back-inner');
+    if(!src) return Promise.resolve(null);
+    var holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed;left:-9999px;top:0;width:340px;z-index:-1;';
+    var clone = src.cloneNode(true);
+    clone.style.height='auto'; clone.style.position='relative';
+    var bs = clone.querySelector('.back-scroll');
+    if(bs){ bs.style.height='auto'; bs.style.overflow='visible'; }
+    var fade = clone.querySelector('#scrollFade'); if(fade) fade.parentNode.removeChild(fade);
+    // '탭하면 앞면' 안내는 이미지에서 제외
+    clone.querySelectorAll('.brand').forEach(function(b){
+      if(/flip/i.test(b.textContent)) b.parentNode.removeChild(b);
+    });
+    holder.appendChild(clone); document.body.appendChild(holder);
+    return window.htmlToImage.toBlob(clone,{pixelRatio:2,backgroundColor:'#fdfaf2'})
+      .then(function(b){ document.body.removeChild(holder); return b; })
+      .catch(function(e){ if(holder.parentNode) document.body.removeChild(holder); throw e; });
+  }
+  function dl(b,name){
     var u=URL.createObjectURL(b);
     var a=document.createElement('a');
-    a.href=u; a.download='my-korean-name.png';
+    a.href=u; a.download=name||'my-korean-name.png';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function(){URL.revokeObjectURL(u);},1000);
   }
@@ -194,18 +219,21 @@ window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
   shareBtn.addEventListener('click', async function(){
     shareBtn.disabled = true;
     try{
-      var blob = await render();
-      var file = new File([blob], 'my-korean-name.png', {type:'image/png'});
+      var frontBlob = await render();
+      var backBlob  = await renderBack();
+      var files = [ new File([frontBlob],'my-korean-name-front.png',{type:'image/png'}) ];
+      if(backBlob) files.push(new File([backBlob],'my-korean-name-back.png',{type:'image/png'}));
 
-      if(navigator.canShare && navigator.canShare({files:[file]})){
-        // 네이티브 공유 시트
+      if(navigator.canShare && navigator.canShare({files:files})){
+        // 네이티브 공유 시트 — 앞면·뒷면 이미지 모두 공유
         await navigator.share({
-          files: [file],
+          files: files,
           title: 'My Korean Name',
           text : SHARE_TEXT + '\nGet yours at mykoreanname.cc'
         });
       } else {
-        dl(blob);
+        dl(frontBlob,'my-korean-name-front.png');
+        if(backBlob) dl(backBlob,'my-korean-name-back.png');
         toast('Saved!');
       }
     } catch(e){
@@ -214,15 +242,22 @@ window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
         shareBtn.disabled = false;
         return;
       }
-      try { dl(await render()); toast('Saved!'); }
-      catch(_) { toast('Could not save'); }
+      try {
+        dl(await render(),'my-korean-name-front.png');
+        var bb = await renderBack(); if(bb) dl(bb,'my-korean-name-back.png');
+        toast('Saved!');
+      } catch(_) { toast('Could not save'); }
     } finally {
       shareBtn.disabled = false;
     }
   });
 
   document.getElementById('downloadBtn').addEventListener('click',async function(){
-    try{ dl(await render()); toast('Saved!'); }catch(e){ toast('Could not save'); }
+    try{
+      dl(await render(),'my-korean-name-front.png');
+      var bb = await renderBack(); if(bb) dl(bb,'my-korean-name-back.png');
+      toast('Saved!');
+    }catch(e){ toast('Could not save'); }
   });
 
   // ── 발음 듣기 ────────────────────────────────────────

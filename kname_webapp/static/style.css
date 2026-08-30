@@ -117,13 +117,16 @@ html,body{
   box-shadow:0 14px 46px rgba(60,50,30,0.14);border-radius:5px;
 }
 .flipper.flipped{transform:rotateY(180deg);}
-.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:5px;overflow:hidden;}
+/* overflow:hidden 을 .face 에서 빼야 일부 모바일 브라우저에서 3D(preserve-3d)가
+   납작해지지 않는다. 모서리 클리핑은 안쪽 카드(#shareCard/.card-back-inner)로 옮긴다. */
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:5px;}
 .face-back{transform:rotateY(180deg);}
 #shareCard{
   width:100%;height:100%;background:var(--paper);
   background-image:radial-gradient(circle at 30% 12%, #fffefb 0%, #fdfaf2 58%, #f9f4e9 100%);
   padding:46px 38px 32px;display:flex;flex-direction:column;
   align-items:center;text-align:center;position:relative;
+  overflow:hidden;border-radius:5px;
 }
 .card-back-inner{
   width:100%;height:100%;background:var(--paper);
