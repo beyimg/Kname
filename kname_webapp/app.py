@@ -162,6 +162,33 @@ try:
 except Exception:
     _NATIVE_HANJA_OK, _NATIVE_HANJA_HIDE = {}, {}
 
+# 교정된 순우리말 이름 사전 (DB 유형 오분류·LLM 신호에 의존하지 않는 정본).
+# 여기 있으면 무조건 순우리말로 취급해 한자를 감추고 그 뜻을 쓴다.
+try:
+    from native_names import NATIVE_NAMES as _NATIVE_NAMES
+except Exception:
+    _NATIVE_NAMES = {}
+
+
+def _native_desc(given, meaning_en):
+    """순우리말 이름 설명(영어). 순우리말 신호와 한줄의미 훅을 담는다."""
+    rom = romanize_hyphen(given)
+    m = (meaning_en or '').strip().rstrip('.')
+    return (f'{given} ({rom}) is a native Korean name — the native Korean word for "{m}." '
+            f'It carries no Chinese characters; the meaning lives right in the sound. '
+            f'{_sound_note(given)}')
+
+
+def _sound_note(given):
+    def _b(c):
+        return ('가' <= c <= '힣') and (ord(c) - 0xAC00) % 28 != 0
+    b = [_b(c) for c in given]
+    if not any(b):
+        return 'Soft and open, with no hard stops, it flows gently and travels easily in any language.'
+    if all(b):
+        return 'It sounds firm and grounded, each syllable landing on a clear consonant.'
+    return 'It moves with an easy rise and fall, one syllable open and the next settling softly.'
+
 
 def _is_native_name(hanja, meaning_en):
     """순우리말 이름인지. 한자가 붙어 있어도 순우리말일 수 있다."""
@@ -847,17 +874,30 @@ def convert_name(first_en, last_en, sex):
         first_tr = TRANSLIT.transliterate(first_key, sexk)
         if not first_tr:
             return {'error': _translit_error(first_en)}
-        # 2) 변환 (엔진)
-        result = _convert_quiet(first_tr, last_tr, sex)
-        given = result.get('first_1')
-        quality = result.get('given_quality', 'Q1')
-        is_unisex = given in UNISEX_NAMES if given else False
-        if not given:
-            return {'error': 'Conversion failed. Please try a different name.'}
+        # 2) 순우리말 이름이면 한자 매칭 엔진을 건너뛰고 소리 그대로 쓴다
+        if first_tr in _NATIVE_NAMES:
+            given = first_tr
+            quality = 'Q1'
+            is_unisex = given in UNISEX_NAMES
+            result = None
+        else:
+            # 3) 변환 (엔진)
+            result = _convert_quiet(first_tr, last_tr, sex)
+            given = result.get('first_1')
+            quality = result.get('given_quality', 'Q1')
+            is_unisex = given in UNISEX_NAMES if given else False
+            if not given:
+                return {'error': 'Conversion failed. Please try a different name.'}
 
     # 3) 이름 결과 상세 (한자·의미설명)
     #    사전 밖 음차면 변환된 한국이름(given)으로 역조회한다.
     gres = TRANSLIT_TO_RESULT['given'][sexk].get(first_tr)
+    # 미리 만든 결과가 있으면 그 이름을 정본으로 삼는다.
+    # (엔진의 실시간 매칭이 미리 만든 이름과 다를 수 있어, 표시 이름과
+    #  한자·뜻이 어긋나는 것을 막는다. 예: 오언 → 온유(溫愈)로 통일)
+    if gres and gres.get('given'):
+        given = gres['given']
+        is_unisex = given in UNISEX_NAMES
     if not gres:
         gres = GIVEN_INFO.get((sexk, given)) or GIVEN_INFO.get(('male', given)) \
                or GIVEN_INFO.get(('female', given)) or {}
@@ -878,6 +918,17 @@ def convert_name(first_en, last_en, sex):
             meaning_unavailable = bool(gen.get('meaning_unavailable'))
             meaning_error = gen.get('meaning_error')
             meaning_raw = gen.get('meaning_raw') or ''
+
+    # 순우리말 정본 사전에 있으면: 한자를 감추고 그 뜻을 쓴다.
+    # (DB 오분류·LLM 신호 여부와 무관하게 순우리말을 보장. HANJA_OK 이름은 한자 병기 허용)
+    if given in _NATIVE_NAMES and given not in _NATIVE_HANJA_OK:
+        hanja = ''
+        hanja_detail = []
+        if not _NATIVE_SIG.search(meaning_en or ''):
+            meaning_en = _native_desc(given, _NATIVE_NAMES[given])
+        meaning_unavailable = False
+        meaning_error = None
+        meaning_raw = ''
 
     # 4) 성씨 결과
     #    사전에 있는 음차면 미리 만든 결과를, 없으면 엔진이 매칭한 성씨를 사용한다.
