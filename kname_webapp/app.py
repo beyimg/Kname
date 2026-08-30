@@ -370,7 +370,7 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False):
             # chars: [(음, 한자, 뜻), ...]
             detail = []
             for c in chars:
-                en = _gloss_to_en(c[2])
+                en = HANJA_EN.get(c[1]) or _gloss_to_en(c[2])
                 if en:
                     detail.append([c[0], c[1], en])
             # 번역 못 한 글자는 그 줄만 빼고, 나머지는 그대로 보여준다.
@@ -431,6 +431,19 @@ try:
     from gloss_en import GLOSS_EN as _KR_GLOSS_TO_EN
 except Exception:
     _KR_GLOSS_TO_EN = {}
+
+# 한자별 영어 뜻 — hanja_dict.xlsx '영어뜻' 열에서 직접 로드한다.
+# 한국어 뜻을 거치지 않으므로 동음이의(해=year/sun, 말=horse/words) 오역이 없다.
+HANJA_EN = {}
+try:
+    import pandas as _pd_he
+    _he_df = _pd_he.read_excel(os.path.join(DATA, 'hanja_dict.xlsx'))
+    if '영어뜻' in _he_df.columns:
+        for _h, _e in zip(_he_df['한자'], _he_df['영어뜻']):
+            if isinstance(_h, str) and isinstance(_e, str) and _e.strip():
+                HANJA_EN[_h] = _e.strip()
+except Exception:
+    HANJA_EN = {}
 
 
 def _gloss_to_en(kr_meaning):
@@ -497,6 +510,9 @@ _ADJ_OK = {
     'great','foremost','lofty','towering','abundant','broad','wide','warm','clever',
     'shining','radiant','dignified','steadfast','flourishing','distinct','sparkling',
     'strong','mighty','reverent','serene','generous','fragrant','vast','white',
+    'refined','elegant','gifted','valiant','fierce','tender','delicate','stern',
+    'calm','tranquil','holy','boundless','keen','sharp','brilliant','fine','deep',
+    'even','noble','cultured','sagely',
 }
 
 _DANGLING = (',', ' and', ' or', ' as', ' of', ' with', ' to', ' for', ' in', ' the', ' a')
