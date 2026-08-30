@@ -539,7 +539,7 @@ _ADJ_OK = {
     'strong','mighty','reverent','serene','generous','fragrant','vast','white',
     'refined','elegant','gifted','valiant','fierce','tender','delicate','stern',
     'calm','tranquil','holy','boundless','keen','sharp','brilliant','fine','deep',
-    'even','noble','cultured','sagely',
+    'even','noble','cultured','sagely','lustrous','auspicious','gracious','regal',
 }
 
 _DANGLING = (',', ' and', ' or', ' as', ' of', ' with', ' to', ' for', ' in', ' the', ' a')
