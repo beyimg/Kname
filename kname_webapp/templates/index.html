@@ -85,14 +85,14 @@
       <div class="field">
         <label for="first_name">First name</label>
         <input type="text" id="first_name" name="first_name" placeholder="Sophia"
-               value="{{ first_name or '' }}" autocomplete="given-name"
+               value="{{ first_name or '' }}" autocomplete="given-name" maxlength="40"
                autocapitalize="words" spellcheck="false" required>
       </div>
 
       <div class="field">
         <label for="last_name">Last name</label>
         <input type="text" id="last_name" name="last_name" placeholder="Hernandez"
-               value="{{ last_name or '' }}" autocomplete="family-name"
+               value="{{ last_name or '' }}" autocomplete="family-name" maxlength="40"
                autocapitalize="words" spellcheck="false" required>
       </div>
 
@@ -126,6 +126,8 @@
       <button type="button" class="chip" data-f="Byron"  data-l="Smith"     data-s="other">Byron Smith</button>
     </div>
   </div>
+
+  <p class="privacy-note">Your name is sent to our AI to create the result and saved briefly to speed up repeat lookups. It isn&rsquo;t used for anything else.</p>
 
 </div>
 

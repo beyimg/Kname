@@ -805,6 +805,9 @@ def convert_name(first_en, last_en, sex):
     if not last_key:
         return {'error': 'Please enter your last name — a Korean name needs a family name '
                          'to be complete, and it comes first (like 이수아, Lee Su-a).'}
+    # 입력 길이 제한 — 너무 긴/이상한 값으로 AI 프롬프트를 흔드는 것 방지
+    if len(first_key) > 40 or len(last_key) > 40:
+        return {'error': 'Please enter a shorter name.'}
 
     last_tr = TRANSLIT.transliterate(last_key, 'surname')
     if not last_tr:
@@ -1016,6 +1019,11 @@ BUDGET = DailyBudget(
     os.path.join(CACHE_DIR, 'daily_budget.json'),
     daily_max=int(os.environ.get('DAILY_NEW_NAME_MAX', 1500)),
 )
+# 발음(TTS) 하루 생성 상한 — 봇이 발음을 무한 생성하는 것 방지
+TTS_BUDGET = DailyBudget(
+    os.path.join(CACHE_DIR, 'tts_budget.json'),
+    daily_max=int(os.environ.get('TTS_DAILY_MAX', 1000)),
+)
 
 _BUSY_RATE = ("You&rsquo;re going a little fast — please wait a moment and try again.")
 _BUSY_BUDGET = ("We&rsquo;re getting a lot of requests right now. "
@@ -1097,7 +1105,10 @@ def api_convert():
 
 @app.route('/diag')
 def diag():
-    """오디오 진단 페이지 — 브라우저에서 원인을 바로 확인한다."""
+    """오디오 진단 페이지 — 내부 설정이 보이므로 기본은 숨김.
+    확인이 필요할 때만 환경변수 ENABLE_DIAG=1 로 잠깐 켠다."""
+    if os.environ.get('ENABLE_DIAG', '').lower() not in ('1', 'true', 'yes'):
+        return ('Not found', 404)
     d = convert_name('Sophia', 'Hernandez', '여')
     if 'error' in d:
         sample = {'full': d['error'][:40], 'url': None}
@@ -1144,11 +1155,19 @@ def api_tts():
     if not RATE.check(_client_ip()):
         return jsonify({'error': 'rate_limited'}), 429
     name = (request.args.get('name') or '').strip()
-    if not name:
+    if not name or len(name) > 20:
         return jsonify({'error': 'name is required'}), 400
+    # 이미 만들어둔 발음은 그대로 제공(무료)
+    cached = TTS_FULL.cached_url(name)
+    if cached:
+        return jsonify({'url': cached})
+    # 새로 만들어야 하면 하루 상한 확인
+    if not TTS_BUDGET.allow():
+        return jsonify({'error': 'busy'}), 503
     url = TTS_FULL.url_for(name)
     if not url:
         return jsonify({'error': 'unavailable'}), 503
+    TTS_BUDGET.record()
     return jsonify({'url': url})
 
 

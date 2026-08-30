@@ -315,3 +315,4 @@ html,body{
 .li-body{padding:14px 16px 16px;font-size:13px;line-height:1.7;color:var(--ink-soft);text-align:left;}
 .li-body .kr{font-family:var(--kr);color:var(--ink);}
 .li-body b{color:var(--ink);font-weight:400;}
+.privacy-note{font-family:var(--sans);font-size:10.5px;line-height:1.55;color:var(--ink-faint);text-align:center;max-width:320px;margin:2px auto 0;}

@@ -26,7 +26,7 @@ import re
 import threading
 from typing import Dict, Optional
 
-DEFAULT_MODEL = "claude-sonnet-4-5"
+DEFAULT_MODEL = "claude-sonnet-5"
 
 # 국립국어원 외래어 표기법에 기반한 음차 지침 + 실제 사전에서 뽑은 예시.
 # 어원이 다양하므로(스페인어·베트남어·인도·아일랜드계 등) 철자가 아니라

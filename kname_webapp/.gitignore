@@ -1,0 +1,25 @@
+# 파이썬 자동 생성물
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 앱이 자동으로 만드는 캐시·예산 파일 (서버에서 새로 생김)
+translit_cache.json
+meaning_cache.json
+meaning_en_cache.json
+daily_budget.json
+tts_budget.json
+
+# 생성된 발음(TTS) 오디오
+static/audio/
+
+# 테스트·개발 산출물 (배포에 불필요)
+batch_result.json
+batch_result.txt
+kname_anglo_test_*.xlsx
+
+# OS·에디터 부산물
+.DS_Store
+Thumbs.db

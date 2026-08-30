@@ -437,3 +437,7 @@ GLOSS_EN.update({
     '운': 'fortune',
     '물흐르다': 'flowing water',
 })
+
+GLOSS_EN.update({
+    "가락": "melody",
+})

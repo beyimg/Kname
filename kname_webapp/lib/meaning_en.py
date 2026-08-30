@@ -19,7 +19,7 @@ import re
 import threading
 from typing import Dict, List, Optional, Tuple
 
-DEFAULT_MODEL = "claude-sonnet-4-5"
+DEFAULT_MODEL = "claude-sonnet-5"
 
 # 라틴 확장 문자 → 기본 알파벳. LLM이 한국어 로마자에 발음기호를
 # 붙이는 경우가 있어(Hořim), 표기를 정규화한다.

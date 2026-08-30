@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # ============================================================
 # 설정 상수 (외부에서 주입 가능)
 # ============================================================
-DEFAULT_MODEL = "claude-sonnet-4-5"
+DEFAULT_MODEL = "claude-sonnet-5"
 DEFAULT_MAX_TOKENS = 1500
 DEFAULT_TEMPERATURE = 0.7  # 약간의 다양성 (창의성)
 
