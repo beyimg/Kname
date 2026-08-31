@@ -9,7 +9,9 @@
   --ink-faint:#a8a8a8;
   --line:#dcdcdc;
   --paper:#fefefe;
-  --bg:#faf6ec;          /* 밝은 미색 */
+  --bg:#e5dabf;          /* 아이보리 — 약 15% 더 어둡게 */
+  /* 종이 질감 텍스처: 외부 파일 없이 SVG 노이즈(데이터 URI)로 은은한 결을 준다 */
+  --paper-tex:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.075'/%3E%3C/svg%3E");
   --serif:'EngSerif','Noto Serif KR',-apple-system,Georgia,serif;
   --kr:'Noto Serif KR','AppleMyungjo','Nanum Myeongjo','Apple SD Gothic Neo','Malgun Gothic',serif;
   --hanja:'Noto Serif KR','AppleMyungjo','Nanum Myeongjo','Apple SD Gothic Neo',serif;
@@ -38,7 +40,8 @@ html,body{
 
 .form{
   width:100%;background:var(--paper);
-  background-image:radial-gradient(circle at 30% 12%, #fffefb 0%, #fdfaf2 62%, #f9f4e9 100%);
+  background-image:var(--paper-tex),radial-gradient(circle at 30% 12%, #fffefb 0%, #fdfaf2 62%, #f9f4e9 100%);
+  background-size:200px 200px,cover;background-repeat:repeat,no-repeat;
   border-radius:4px;padding:30px 26px;
   box-shadow:0 12px 40px rgba(60,50,30,0.12);
   position:relative;
@@ -130,14 +133,16 @@ html,body{
 .flipper.flipped .face-front{opacity:0;}
 #shareCard{
   width:100%;height:100%;background:var(--paper);
-  background-image:radial-gradient(circle at 30% 12%, #fffefb 0%, #fdfaf2 58%, #f9f4e9 100%);
+  background-image:var(--paper-tex),radial-gradient(circle at 30% 12%, #fffefb 0%, #fdfaf2 58%, #f9f4e9 100%);
+  background-size:200px 200px,cover;background-repeat:repeat,no-repeat;
   padding:46px 38px 32px;display:flex;flex-direction:column;
   align-items:center;text-align:center;position:relative;
   overflow:hidden;border-radius:5px;
 }
 .card-back-inner{
   width:100%;height:100%;background:var(--paper);
-  background-image:radial-gradient(circle at 70% 10%, #fffefb 0%, #fdfaf2 60%, #f9f4e9 100%);
+  background-image:var(--paper-tex),radial-gradient(circle at 70% 10%, #fffefb 0%, #fdfaf2 60%, #f9f4e9 100%);
+  background-size:200px 200px,cover;background-repeat:repeat,no-repeat;
   position:relative;overflow:hidden;border-radius:5px;
 }
 .inset-border{position:absolute;inset:13px;border:1px solid #e0d8c7;border-radius:3px;pointer-events:none;}
@@ -229,7 +234,8 @@ html,body{
 /* ---------- 변환 이유 ---------- */
 .reason-section{
   width:100%;max-width:400px;background:var(--paper);
-  background-image:radial-gradient(circle at 30% 8%, #fffefb 0%, #fdfaf2 62%, #f9f4e9 100%);
+  background-image:var(--paper-tex),radial-gradient(circle at 30% 8%, #fffefb 0%, #fdfaf2 62%, #f9f4e9 100%);
+  background-size:200px 200px,cover;background-repeat:repeat,no-repeat;
   border-radius:4px;padding:36px 30px;position:relative;
   box-shadow:0 12px 40px rgba(60,50,30,0.12);
 }
@@ -285,7 +291,8 @@ html,body{
 
 .intro-card{
   background:var(--paper);
-  background-image:radial-gradient(circle at 30% 12%, #fffefb 0%, #fdfaf2 70%, #f9f4e9 100%);
+  background-image:var(--paper-tex),radial-gradient(circle at 30% 12%, #fffefb 0%, #fdfaf2 70%, #f9f4e9 100%);
+  background-size:200px 200px,cover;background-repeat:repeat,no-repeat;
   border-radius:4px;padding:15px 17px;
   box-shadow:0 5px 20px rgba(60,50,30,0.07);
   border:1px solid #ece7da;position:relative;text-align:left;
