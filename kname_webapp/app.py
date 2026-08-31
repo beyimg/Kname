@@ -34,6 +34,28 @@ from pronounce_guide import romanize_hyphen, romanize_syllable
 
 app = Flask(__name__)
 
+# ---------------------------------------------------------------- 에러 모니터링
+# Sentry: SENTRY_DSN 환경변수가 있을 때만 켜진다. 앱 어딘가에서 예외가 터지면
+# 자동으로 잡아 스택 트레이스·발생 빈도·맥락과 함께 이메일로 알려준다.
+# 키가 없으면 아무 일도 하지 않으므로 로컬/미설정 환경에서도 안전하다.
+_SENTRY_ON = False
+if os.environ.get('SENTRY_DSN'):
+    try:
+        import sentry_sdk
+        sentry_sdk.init(
+            dsn=os.environ['SENTRY_DSN'],
+            traces_sample_rate=0.0,        # 성능 추적은 끔(비용 절약, 에러만 수집)
+            send_default_pii=False,        # 개인정보는 보내지 않음
+            environment=os.environ.get('RENDER_SERVICE_NAME', 'production'),
+        )
+        _SENTRY_ON = True
+    except Exception as _e:
+        print(f'[sentry] init failed: {_e}', file=sys.stderr, flush=True)
+
+# 가동 시각 — /status 에서 업타임 계산에 쓴다
+import time as _time
+_BOOT_TS = _time.time()
+
 # ---------------------------------------------------------------- 데이터 로드
 DATA = os.path.join(BASE, 'data')
 with open(os.path.join(DATA, 'dict_name_to_translit.json'), encoding='utf-8') as f:
@@ -1247,6 +1269,51 @@ def api_tts():
 @app.route('/health')
 def health():
     return jsonify({'status': 'ok'})
+
+
+def _status_token_ok(tok):
+    """심층 점검은 STATUS_TOKEN 이 일치할 때만 허용(크레딧 남용 방지)."""
+    want = os.environ.get('STATUS_TOKEN')
+    return bool(want) and tok == want
+
+
+@app.route('/status')
+def status():
+    """
+    가벼운 상태 점검용 JSON. 정기 모니터링이 주기적으로 호출한다.
+      - 기본(누구나): 살아있는지 + 핵심 설정 여부 + 업타임.
+      - ?deep=1&token=... : 사전 밖 이름을 실제로 변환해 파이프라인 전체
+        (LLM 음차 포함)가 정상인지까지 확인한다. 실패하면 ok=false, 503.
+        고정된 테스트 이름이라 첫 1회만 LLM을 쓰고 이후는 캐시로 처리된다.
+    """
+    body = {
+        'ok': True,
+        'llm': bool(TRANSLIT.llm_available),   # ANTHROPIC_API_KEY 설정 여부
+        'sentry': _SENTRY_ON,
+        'uptime_s': int(_time.time() - _BOOT_TS),
+        'ts': int(_time.time()),
+    }
+    if request.args.get('deep'):
+        if not _status_token_ok(request.args.get('token', '')):
+            body['deep'] = {'ok': None, 'skipped': 'unauthorized'}
+        else:
+            t0 = _time.time()
+            try:
+                d = convert_name('Thessaly', 'Brzezinski', '여')
+                deep_ok = ('error' not in d) and bool(d.get('full_hangul'))
+                body['deep'] = {
+                    'ok': deep_ok,
+                    'latency_ms': int((_time.time() - t0) * 1000),
+                    'sample': d.get('full_hangul') if deep_ok else None,
+                    'error': (d.get('error') if not deep_ok else None),
+                }
+                if not deep_ok:
+                    body['ok'] = False
+            except Exception as e:
+                body['ok'] = False
+                body['deep'] = {'ok': False,
+                                'error': f'{type(e).__name__}: {e}'}
+    return jsonify(body), (200 if body['ok'] else 503)
 
 
 if __name__ == '__main__':

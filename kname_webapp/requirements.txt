@@ -3,3 +3,4 @@ pandas
 openpyxl
 anthropic
 gunicorn
+sentry-sdk[flask]
