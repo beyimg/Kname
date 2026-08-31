@@ -11,8 +11,8 @@
   --paper:#fefefe;
   --bg:#faf6ec;          /* 밝은 미색 */
   --serif:'EngSerif',-apple-system,Georgia,serif;
-  --kr:'Noto Serif KR','Apple SD Gothic Neo','Malgun Gothic',serif;
-  --hanja:'Noto Serif KR','Apple SD Gothic Neo',serif;
+  --kr:'Noto Serif KR','AppleMyungjo','Nanum Myeongjo','Apple SD Gothic Neo','Malgun Gothic',serif;
+  --hanja:'Noto Serif KR','AppleMyungjo','Nanum Myeongjo','Apple SD Gothic Neo',serif;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
 
@@ -113,14 +113,21 @@ html,body{
 .flipper{
   position:relative;width:100%;aspect-ratio:9/16;
   transition:transform .7s cubic-bezier(0.4,0.2,0.2,1);
-  transform-style:preserve-3d;cursor:pointer;
+  transform-style:preserve-3d;-webkit-transform-style:preserve-3d;cursor:pointer;
   box-shadow:0 14px 46px rgba(60,50,30,0.14);border-radius:5px;
 }
 .flipper.flipped{transform:rotateY(180deg);}
 /* overflow:hidden 을 .face 에서 빼야 일부 모바일 브라우저에서 3D(preserve-3d)가
    납작해지지 않는다. 모서리 클리핑은 안쪽 카드(#shareCard/.card-back-inner)로 옮긴다. */
-.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:5px;}
+/* 일부 모바일/인앱 브라우저는 preserve-3d 를 무시(납작하게)해서 backface-visibility
+   가 듣지 않고 뒷면에 앞면 글자가 '반전되어 겹쳐' 보인다. 이를 원천 차단하기 위해
+   뒤집힘 상태에 따라 비활성 면을 불투명도로 완전히 숨긴다(전환 중간 .35s 에 교체).
+   3D가 정상 동작하는 브라우저에서는 뒤집힘 중간에 교체되어 기존 애니메이션 그대로 보인다. */
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:5px;
+  transition:opacity 0s linear .35s;}
 .face-back{transform:rotateY(180deg);}
+.flipper:not(.flipped) .face-back{opacity:0;}
+.flipper.flipped .face-front{opacity:0;}
 #shareCard{
   width:100%;height:100%;background:var(--paper);
   background-image:radial-gradient(circle at 30% 12%, #fffefb 0%, #fdfaf2 58%, #f9f4e9 100%);

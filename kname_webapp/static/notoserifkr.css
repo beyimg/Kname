@@ -1,0 +1,13 @@
+/* 한글·한자 세리프를 사이트에서 직접 제공(self-host)한다.
+   구글 폰트(Noto Serif KR)는 파일이 커서 모바일·인앱 브라우저에서
+   로딩이 실패/차단되는 경우가 있어 한글이 기본 고딕으로 떨어졌다.
+   아래 woff2 하나에 한글 11,172자 전체 + 한자 4,883자를 담아 같은 서버에서
+   불러오므로, 외부 의존 없이 어느 기기에서나 안정적으로 적용된다.
+   가중치는 하나의 파일로 100~900 범위를 모두 담당해 가짜 볼드(faux-bold)를 막는다. */
+@font-face{
+  font-family:'Noto Serif KR';
+  font-style:normal;
+  font-display:swap;
+  font-weight:100 900;
+  src:url(notoserifkr-app.woff2) format('woff2');
+}
