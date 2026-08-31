@@ -10,7 +10,7 @@
   --line:#dcdcdc;
   --paper:#fefefe;
   --bg:#faf6ec;          /* 밝은 미색 */
-  --serif:'EngSerif',-apple-system,Georgia,serif;
+  --serif:'EngSerif','Noto Serif KR',-apple-system,Georgia,serif;
   --kr:'Noto Serif KR','AppleMyungjo','Nanum Myeongjo','Apple SD Gothic Neo','Malgun Gothic',serif;
   --hanja:'Noto Serif KR','AppleMyungjo','Nanum Myeongjo','Apple SD Gothic Neo',serif;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
