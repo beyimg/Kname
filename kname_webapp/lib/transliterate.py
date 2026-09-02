@@ -232,29 +232,43 @@ class Transliterator:
         # 3) LLM
         if not (allow_llm and self.api_key):
             return None
-        try:
-            raw = self._call_llm(self._build_prompt(name.strip(), kind))
-            out = self._clean(raw)
-        except Exception as e:
-            import sys
-            print(f"[translit] LLM error ({name}/{kind}): {type(e).__name__}: {e}",
-                  file=sys.stderr, flush=True)
-            return None
-        if not out:
-            return None
-        if not self._plausible(name, out):
-            # 길이가 터무니없으면 한 번 더 시도한다
+
+        import sys
+        prompt = self._build_prompt(name.strip(), kind)
+        cleaned = []          # 한글은 뽑혔지만 길이가 애매한(implausible) 후보들
+        for attempt in range(2):
             try:
-                raw2 = self._call_llm(self._build_prompt(name.strip(), kind))
-                out2 = self._clean(raw2)
-            except Exception:
-                out2 = None
-            if out2 and self._plausible(name, out2):
-                out = out2
-        with self._lock:
-            self._cache[ck] = out
-            self._save_cache()
-        return out
+                raw = self._call_llm(prompt)
+            except Exception as e:
+                print(f"[translit] LLM error ({name}/{kind}) try{attempt}: "
+                      f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
+                continue
+            out = self._clean(raw)
+            if not out:
+                # 한글을 못 뽑음 — 모델이 실제로 뭐라고 답했는지 남긴다(진단 핵심)
+                print(f"[translit] no-hangul ({name}/{kind}) try{attempt}: "
+                      f"raw={raw!r:.160}", file=sys.stderr, flush=True)
+                continue
+            if self._plausible(name, out):
+                with self._lock:
+                    self._cache[ck] = out
+                    self._save_cache()
+                return out
+            # 한글은 나왔지만 길이가 애매 — 후보로 두고 한 번 더 시도
+            print(f"[translit] implausible ({name}/{kind}) try{attempt}: "
+                  f"{out!r} (len {len(out)})", file=sys.stderr, flush=True)
+            cleaned.append(out)
+
+        # 그럴듯한 답은 없었지만 한글 후보가 있으면 하드 에러 대신 그걸 쓴다
+        if cleaned:
+            out = cleaned[0]
+            print(f"[translit] fallback-use ({name}/{kind}): {out!r}",
+                  file=sys.stderr, flush=True)
+            with self._lock:
+                self._cache[ck] = out
+                self._save_cache()
+            return out
+        return None
 
     @property
     def llm_available(self) -> bool:
