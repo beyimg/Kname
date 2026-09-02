@@ -75,6 +75,10 @@ try:
 except Exception:
     CACHE_DIR = BASE
 
+# 변환 통계 저장소(SQLite) — /admin 대시보드가 읽는다. 캐시와 같은 수명.
+from stats import Stats
+STATS = Stats(os.path.join(CACHE_DIR, 'stats.db'))
+
 # 사전에 없는 이름/성씨는 LLM으로 실시간 음차 (ANTHROPIC_API_KEY 필요)
 TRANSLIT = Transliterator(
     name_dict_path=os.path.join(DATA, 'dict_name_to_translit.json'),
@@ -1144,6 +1148,24 @@ def _needs_llm(first_key, last_key, sex):
     return TRANSLIT.transliterate(first_key, sexk, allow_llm=False) is None
 
 
+def _log_conv(first_en, last_en, sex, is_new, data):
+    """변환 1건을 통계에 기록(성공/실패 모두). 빈 입력은 제외."""
+    if not (str(first_en).strip() and str(last_en).strip()):
+        return
+    ok = 'error' not in data
+    STATS.record(
+        ok=ok,
+        is_new=is_new,
+        native=bool(data.get('is_native')) if ok else False,
+        quality=(data.get('quality') or '') if ok else '',
+        sex=sex,
+        first_en=first_en,
+        last_en=last_en,
+        given=data.get('given', '') if ok else '',
+        hangul=data.get('full_hangul', '') if ok else '',
+    )
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -1168,6 +1190,7 @@ def result():
                                first_name=first_en, last_name=last_en, sex=sex), 503
 
     data = convert_name(first_en, last_en, sex)
+    _log_conv(first_en, last_en, sex, is_new, data)
     if 'error' in data:
         return render_template('index.html', error=data['error'],
                                first_name=first_en, last_name=last_en, sex=sex)
@@ -1192,6 +1215,7 @@ def api_convert():
                         'message': 'High traffic right now — try again later '
                                    'or use a more common name.'}), 503
     data = convert_name(first_en, last_en, sex)
+    _log_conv(first_en, last_en, sex, is_new, data)
     if 'error' not in data and is_new:
         BUDGET.record()
     status = 400 if 'error' in data else 200
@@ -1314,6 +1338,44 @@ def status():
                 body['deep'] = {'ok': False,
                                 'error': f'{type(e).__name__}: {e}'}
     return jsonify(body), (200 if body['ok'] else 503)
+
+
+def _admin_token_ok(tok):
+    want = os.environ.get('ADMIN_TOKEN')
+    return bool(want) and tok == want
+
+
+@app.route('/admin')
+def admin():
+    """운영 + 제품 지표 시각 대시보드. ADMIN_TOKEN 으로 보호(미설정 시 404)."""
+    tok = request.args.get('token', '')
+    if not _admin_token_ok(tok):
+        return ('Not found', 404)
+    s = STATS.summary()
+    daily_max = int(os.environ.get('DAILY_NEW_NAME_MAX', 1500))
+    est_per = float(os.environ.get('EST_COST_PER_NEW', 0.02))
+    try:
+        with open(os.path.join(CACHE_DIR, 'translit_cache.json'),
+                  encoding='utf-8') as f:
+            cache_entries = len(json.load(f))
+    except Exception:
+        cache_entries = None
+    op = {
+        'uptime_s': int(_time.time() - _BOOT_TS),
+        'llm': bool(TRANSLIT.llm_available),
+        'sentry': _SENTRY_ON,
+        'new_today': s.get('new_today', 0),
+        'daily_max': daily_max,
+        'cache_entries': cache_entries,
+        'est_per': est_per,
+        'est_today': round(s.get('new_today', 0) * est_per, 2),
+        'est_total': round(s.get('new', 0) * est_per, 2),
+        'daily_peak': max([d['count'] for d in s.get('daily', [])] or [0]) or 1,
+        'q_peak': max(list(s.get('quality', {}).values()) or [0]) or 1,
+        'top_peak': max([t['count'] for t in s.get('top_first', [])] or [0]) or 1,
+        'toph_peak': max([t['count'] for t in s.get('top_hangul', [])] or [0]) or 1,
+    }
+    return render_template('admin.html', s=s, op=op, token=tok)
 
 
 if __name__ == '__main__':

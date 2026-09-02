@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin · mykoreanname.cc</title>
+<style>
+  :root{
+    --bg:#f4efe4; --panel:#fffdf8; --ink:#2b2622; --soft:#7a7266; --faint:#a89f90;
+    --line:#e7dfce; --accent:#3f6f5f; --accent2:#8a6a26; --bad:#b0433a; --ok:#3f8f5f;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Malgun Gothic',Roboto,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+       font-size:14px;line-height:1.5;padding:22px 16px 60px;}
+  .wrap{max-width:960px;margin:0 auto;}
+  h1{font-size:20px;font-weight:700;letter-spacing:-.3px;}
+  .subttl{color:var(--soft);font-size:12.5px;margin-top:3px;}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+        flex-wrap:wrap;margin-bottom:18px;}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+        padding:5px 11px;border-radius:99px;background:#eaf5ef;color:var(--ok);border:1px solid #cfe7db;}
+  .pill.off{background:#fbeceb;color:var(--bad);border-color:#f0d3cf;}
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
+  .sec-label{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);
+             font-weight:700;margin:26px 0 11px;}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 16px;
+        box-shadow:0 4px 14px rgba(70,55,25,.05);}
+  .card .k{font-size:11.5px;color:var(--soft);font-weight:600;letter-spacing:.2px;}
+  .card .v{font-size:26px;font-weight:700;letter-spacing:-.5px;margin-top:6px;line-height:1.1;}
+  .card .v small{font-size:13px;font-weight:600;color:var(--faint);}
+  .card .sub{font-size:11.5px;color:var(--faint);margin-top:3px;}
+  .bar{height:7px;border-radius:99px;background:#eee7d8;overflow:hidden;margin-top:10px;}
+  .bar > span{display:block;height:100%;border-radius:99px;background:var(--accent);}
+  .bar.warn > span{background:var(--accent2);}
+  .two{display:grid;gap:12px;grid-template-columns:1fr 1fr;}
+  @media(max-width:640px){.two{grid-template-columns:1fr;}}
+  .list{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 6px;
+        box-shadow:0 4px 14px rgba(70,55,25,.05);}
+  .row{display:flex;align-items:center;gap:10px;padding:7px 10px;}
+  .row .rank{width:18px;color:var(--faint);font-size:12px;font-weight:700;text-align:right;flex:none;}
+  .row .nm{flex:none;width:120px;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;
+           text-overflow:ellipsis;}
+  .row .rb{flex:1;height:9px;border-radius:99px;background:#eee7d8;overflow:hidden;}
+  .row .rb > span{display:block;height:100%;background:var(--accent);border-radius:99px;}
+  .row .ct{flex:none;width:34px;text-align:right;font-variant-numeric:tabular-nums;color:var(--soft);
+           font-size:12.5px;font-weight:700;}
+  .chart{display:flex;align-items:flex-end;gap:8px;height:130px;padding:6px 4px 0;
+         background:var(--panel);border:1px solid var(--line);border-radius:12px;
+         box-shadow:0 4px 14px rgba(70,55,25,.05);}
+  .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;}
+  .col .cbar{width:60%;max-width:34px;background:var(--accent);border-radius:5px 5px 0 0;min-height:2px;
+             transition:height .3s;}
+  .col .cnum{font-size:11px;font-weight:700;color:var(--soft);}
+  .col .cday{font-size:10.5px;color:var(--faint);}
+  .qgrid{display:grid;gap:9px;}
+  .qrow{display:flex;align-items:center;gap:10px;}
+  .qrow .ql{width:34px;font-weight:700;font-size:12.5px;color:var(--soft);}
+  .qrow .qb{flex:1;height:11px;border-radius:99px;background:#eee7d8;overflow:hidden;}
+  .qrow .qb>span{display:block;height:100%;border-radius:99px;background:var(--accent);}
+  .qrow .qc{width:38px;text-align:right;font-size:12.5px;font-weight:700;color:var(--soft);}
+  .empty{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:26px;
+         text-align:center;color:var(--soft);}
+  .foot{margin-top:26px;font-size:11.5px;color:var(--faint);line-height:1.7;}
+  .foot a{color:var(--accent);}
+  .refresh{font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--line);
+           padding:6px 12px;border-radius:8px;background:var(--panel);font-weight:600;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div>
+      <h1>mykoreanname.cc · 관리자</h1>
+      <div class="subttl">운영 상태 &amp; 제품 지표 · 가동 {{ (op.uptime_s // 3600) }}시간 {{ ((op.uptime_s % 3600)//60) }}분</div>
+    </div>
+    <a class="refresh" href="{{ url_for('admin', token=token) }}">↻ 새로고침</a>
+  </div>
+
+  <!-- ── 운영 지표 ── -->
+  <div class="sec-label">운영 상태</div>
+  <div class="grid">
+    <div class="card">
+      <div class="k">서비스</div>
+      <div class="v" style="color:var(--ok)">정상</div>
+      <div class="sub">응답 중 · 200 OK</div>
+    </div>
+    <div class="card">
+      <div class="k">AI 음차(LLM)</div>
+      <div class="v" style="font-size:20px;color:{{ 'var(--ok)' if op.llm else 'var(--bad)' }}">
+        {{ '연결됨' if op.llm else '끊김' }}</div>
+      <div class="sub">{{ 'ANTHROPIC_API_KEY 설정됨' if op.llm else '키 미설정 — 사전 이름만 변환' }}</div>
+    </div>
+    <div class="card">
+      <div class="k">에러 모니터링</div>
+      <div class="v" style="font-size:20px;color:{{ 'var(--ok)' if op.sentry else 'var(--faint)' }}">
+        {{ 'Sentry 켜짐' if op.sentry else '미연결' }}</div>
+      <div class="sub">{{ '예외 자동 수집 중' if op.sentry else 'SENTRY_DSN 설정 시 켜짐' }}</div>
+    </div>
+    <div class="card">
+      <div class="k">오늘 신규(AI) 변환</div>
+      <div class="v">{{ op.new_today }} <small>/ {{ op.daily_max }}</small></div>
+      {% set nb = (100 * op.new_today / op.daily_max) if op.daily_max else 0 %}
+      <div class="bar {{ 'warn' if nb > 80 else '' }}"><span style="width:{{ nb if nb<100 else 100 }}%"></span></div>
+    </div>
+    <div class="card">
+      <div class="k">예상 비용(추정)</div>
+      <div class="v">${{ '%.2f'|format(op.est_today) }}</div>
+      <div class="sub">오늘 · 누적 ${{ '%.2f'|format(op.est_total) }} · 건당 ${{ '%.3f'|format(op.est_per) }} 가정</div>
+    </div>
+    <div class="card">
+      <div class="k">음차 캐시</div>
+      <div class="v">{{ op.cache_entries if op.cache_entries is not none else '—' }}</div>
+      <div class="sub">저장된 이름 수(재사용 = 무료)</div>
+    </div>
+  </div>
+
+  {% if not s.total %}
+  <div class="sec-label">제품 지표</div>
+  <div class="empty">
+    아직 변환 데이터가 없습니다.<br>
+    사용자가 이름을 변환하기 시작하면 여기에 성공률·인기 이름·순우리말 비율 등이 쌓입니다.
+  </div>
+  {% else %}
+
+  <!-- ── 제품 지표 요약 ── -->
+  <div class="sec-label">제품 지표</div>
+  <div class="grid">
+    <div class="card">
+      <div class="k">총 변환</div>
+      <div class="v">{{ '{:,}'.format(s.total) }}</div>
+      <div class="sub">오늘 {{ s.today }}건</div>
+    </div>
+    <div class="card">
+      <div class="k">변환 성공률</div>
+      <div class="v">{{ s.success_rate if s.success_rate is not none else '—' }}<small>%</small></div>
+      <div class="bar"><span style="width:{{ s.success_rate or 0 }}%"></span></div>
+      <div class="sub">성공 {{ s.success }} · 실패 {{ s.fail }}</div>
+    </div>
+    <div class="card">
+      <div class="k">순우리말 매칭 비율</div>
+      <div class="v">{{ s.native_rate if s.native_rate is not none else '—' }}<small>%</small></div>
+      <div class="bar warn"><span style="width:{{ s.native_rate or 0 }}%"></span></div>
+      <div class="sub">순우리말 {{ s.native }}건 / 성공 {{ s.success }}건</div>
+    </div>
+    <div class="card">
+      <div class="k">캐시·사전 처리 비율</div>
+      <div class="v">{{ s.cache_rate if s.cache_rate is not none else '—' }}<small>%</small></div>
+      <div class="bar"><span style="width:{{ s.cache_rate or 0 }}%"></span></div>
+      <div class="sub">무료 처리 {{ s.known }} · 신규(AI) {{ s.new }}</div>
+    </div>
+  </div>
+
+  <!-- ── 7일 추이 + 품질 ── -->
+  <div class="two" style="margin-top:12px;">
+    <div>
+      <div class="sec-label" style="margin-top:14px;">최근 7일 변환 추이</div>
+      <div class="chart">
+        {% for d in s.daily %}
+        <div class="col">
+          <div class="cnum">{{ d.count }}</div>
+          <div class="cbar" style="height:{{ (92 * d.count / op.daily_peak)|round(0,'floor') }}%"></div>
+          <div class="cday">{{ d.day }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <div class="sec-label" style="margin-top:14px;">품질 분포(성공 건)</div>
+      <div class="card">
+        <div class="qgrid">
+          {% for q in ['Q1','Q2','Q3'] %}
+          {% set qc = s.quality.get(q, 0) %}
+          <div class="qrow">
+            <div class="ql">{{ q }}</div>
+            <div class="qb"><span style="width:{{ (100 * qc / op.q_peak) if op.q_peak else 0 }}%"></span></div>
+            <div class="qc">{{ qc }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="sub" style="color:var(--faint);font-size:11px;margin-top:10px;">
+          Q1 = 소리·의미가 가장 잘 맞은 매칭, Q3 = 근사 매칭</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 인기 이름 ── -->
+  <div class="two" style="margin-top:4px;">
+    <div>
+      <div class="sec-label">인기 입력 이름 (원본)</div>
+      {% if s.top_first %}
+      <div class="list">
+        {% for t in s.top_first %}
+        <div class="row">
+          <div class="rank">{{ loop.index }}</div>
+          <div class="nm">{{ t.name }}</div>
+          <div class="rb"><span style="width:{{ (100 * t.count / op.top_peak) if op.top_peak else 0 }}%"></span></div>
+          <div class="ct">{{ t.count }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty">데이터 없음</div>{% endif %}
+    </div>
+    <div>
+      <div class="sec-label">인기 결과 한국 이름</div>
+      {% if s.top_hangul %}
+      <div class="list">
+        {% for t in s.top_hangul %}
+        <div class="row">
+          <div class="rank">{{ loop.index }}</div>
+          <div class="nm">{{ t.name }}</div>
+          <div class="rb"><span style="width:{{ (100 * t.count / op.toph_peak) if op.toph_peak else 0 }}%"></span></div>
+          <div class="ct">{{ t.count }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty">데이터 없음</div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="foot">
+    · 비용은 <b>추정치</b>입니다 — 정확한 청구는
+    <a href="https://console.anthropic.com" target="_blank" rel="noopener">Anthropic 콘솔</a> ·
+    <a href="https://sentry.io" target="_blank" rel="noopener">Sentry</a> 에서 확인하세요.<br>
+    · 통계는 서버의 CACHE_DIR 에 저장됩니다. 영구 디스크가 없으면 재배포 시 초기화됩니다.<br>
+    · 이 페이지는 ADMIN_TOKEN 으로 보호됩니다. 링크(토큰 포함)를 공유하지 마세요.
+  </div>
+
+</div>
+</body>
+</html>
