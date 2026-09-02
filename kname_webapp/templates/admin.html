@@ -76,7 +76,7 @@
       <h1>mykoreanname.cc · 관리자</h1>
       <div class="subttl">운영 상태 &amp; 제품 지표 · 가동 {{ (op.uptime_s // 3600) }}시간 {{ ((op.uptime_s % 3600)//60) }}분</div>
     </div>
-    <a class="refresh" href="{{ url_for('admin', token=token) }}">↻ 새로고침</a>
+    <a class="refresh" href="{{ url_for('admin') }}">↻ 새로고침</a>
   </div>
 
   <!-- ── 운영 지표 ── -->
@@ -98,6 +98,12 @@
       <div class="v" style="font-size:20px;color:{{ 'var(--ok)' if op.sentry else 'var(--faint)' }}">
         {{ 'Sentry 켜짐' if op.sentry else '미연결' }}</div>
       <div class="sub">{{ '예외 자동 수집 중' if op.sentry else 'SENTRY_DSN 설정 시 켜짐' }}</div>
+    </div>
+    <div class="card">
+      <div class="k">발음(TTS)</div>
+      <div class="v" style="font-size:18px;color:{{ 'var(--ok)' if op.tts_ok else 'var(--bad)' }}">
+        {{ 'Google 작동' if op.tts_ok else '미설정→브라우저음성' }}</div>
+      <div class="sub">{{ op.tts_mode or ('Google 자격증명 없음 — 로봇 음성으로 대체됨' if not op.tts_ok else '아직 호출 없음') }}</div>
     </div>
     <div class="card">
       <div class="k">오늘 신규(AI) 변환</div>

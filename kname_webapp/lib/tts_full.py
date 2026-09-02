@@ -20,19 +20,28 @@ import threading
 
 # 음성 생성이 늦어지면 페이지 응답이 그만큼 막히므로 짧게 끊는다.
 # 실패해도 브라우저 내장 음성으로 대체되므로 서비스는 계속된다.
-REQUEST_TIMEOUT = 8.0
+# (요청은 /api/tts 로 비동기 처리되므로 페이지 로딩은 막지 않는다.)
+REQUEST_TIMEOUT = float(os.environ.get('TTS_TIMEOUT', 10.0))
 
-DEFAULT_VOICE = 'ko-KR-Chirp3-HD-Laomedeia'
+# 목소리·모델·어조는 코드 수정 없이 환경변수로 바꿀 수 있다.
+DEFAULT_VOICE = os.environ.get('TTS_VOICE', 'ko-KR-Chirp3-HD-Laomedeia')
 
 # 어조 지시(Style instructions). Gemini-TTS 모델에서만 동작하는 prompt 필드다.
 # Chirp 3: HD 에는 해당 필드가 없어 자동으로 무시된다.
-STYLE_PROMPT = 'Read aloud in a warm and plain tone'
+# 이름은 짧아서 어조 프롬프트가 자연스러움을 좌우한다 — 풍부하게 지시한다.
+STYLE_PROMPT = os.environ.get('TTS_STYLE_PROMPT') or (
+    "Say this Korean person's name warmly and naturally, the way a friendly "
+    "native Korean speaker would gently introduce someone. Use the soft, "
+    "gently falling intonation of a real Korean given name — clear and "
+    "unhurried, never flat, robotic, or rising like a question."
+)
 
-# Gemini-TTS 모델. None 이면 Chirp 3 방식으로만 합성한다.
+# Gemini-TTS 모델. None(빈 문자열) 이면 Chirp 3 방식으로만 합성한다.
+# 더 자연스러운 'gemini-2.5-pro-tts' 로 올리려면 TTS_MODEL 환경변수로 바꾼다.
 # Gemini-TTS 는 음성 이름을 'Laomedeia' 처럼 접두사 없이 써야 한다
 # (ko-KR-Chirp3-HD- 를 붙이면 "Gemini models cannot be used with
 #  non-Gemini voices" 오류가 난다). 아래에서 자동으로 떼어낸다.
-GEMINI_MODEL = 'gemini-2.5-flash-tts'
+GEMINI_MODEL = os.environ.get('TTS_MODEL', 'gemini-2.5-flash-tts') or None
 
 # 속도는 지정하지 않는다(요청에 따라 무시).
 SPEAKING_RATE = None

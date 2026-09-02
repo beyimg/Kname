@@ -19,7 +19,8 @@ import sys
 import json
 import contextlib
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import (Flask, render_template, request, jsonify, redirect,
+                   url_for, make_response)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(BASE, 'lib'))
@@ -1314,6 +1315,13 @@ def status():
         'ok': True,
         'llm': bool(TRANSLIT.llm_available),   # ANTHROPIC_API_KEY 설정 여부
         'sentry': _SENTRY_ON,
+        'tts': {
+            'configured': bool(TTS_FULL.available),   # GOOGLE_APPLICATION_CREDENTIALS 여부
+            'voice': TTS_FULL.voice,
+            'model': TTS_FULL.model,
+            'last_mode': TTS_FULL.last_mode,          # 최근 실제 사용 엔진(호출 후 채워짐)
+            'last_error': getattr(TTS_FULL, 'last_error', None),
+        },
         'uptime_s': int(_time.time() - _BOOT_TS),
         'ts': int(_time.time()),
     }
@@ -1340,17 +1348,26 @@ def status():
     return jsonify(body), (200 if body['ok'] else 503)
 
 
-def _admin_token_ok(tok):
-    want = os.environ.get('ADMIN_TOKEN')
-    return bool(want) and tok == want
-
-
 @app.route('/admin')
 def admin():
-    """운영 + 제품 지표 시각 대시보드. ADMIN_TOKEN 으로 보호(미설정 시 404)."""
-    tok = request.args.get('token', '')
-    if not _admin_token_ok(tok):
-        return ('Not found', 404)
+    """
+    운영 + 제품 지표 시각 대시보드. ADMIN_TOKEN 으로 보호(미설정/미인증 시 404).
+    최초 1회 ?token=... 로 들어오면 쿠키(admin_auth)를 심고 깔끔한 /admin 으로
+    리다이렉트한다. 이후에는 같은 브라우저에서 그냥 /admin 으로 접속하면 된다.
+    """
+    want = os.environ.get('ADMIN_TOKEN')
+    q = request.args.get('token', '')
+    ck = request.cookies.get('admin_auth', '')
+    if not (want and (q == want or ck == want)):
+        return ('Not found', 404)   # 존재 자체를 숨김
+
+    # 쿼리로 인증됐고 아직 쿠키가 없으면 → 쿠키 저장 후 토큰 없는 URL 로 이동
+    if q == want and ck != want:
+        resp = make_response(redirect(url_for('admin')))
+        resp.set_cookie('admin_auth', want, max_age=60 * 60 * 24 * 60,
+                        httponly=True, secure=True, samesite='Lax')
+        return resp
+
     s = STATS.summary()
     daily_max = int(os.environ.get('DAILY_NEW_NAME_MAX', 1500))
     est_per = float(os.environ.get('EST_COST_PER_NEW', 0.02))
@@ -1364,6 +1381,9 @@ def admin():
         'uptime_s': int(_time.time() - _BOOT_TS),
         'llm': bool(TRANSLIT.llm_available),
         'sentry': _SENTRY_ON,
+        'tts_ok': bool(TTS_FULL.available),
+        'tts_mode': TTS_FULL.last_mode,
+        'tts_error': getattr(TTS_FULL, 'last_error', None),
         'new_today': s.get('new_today', 0),
         'daily_max': daily_max,
         'cache_entries': cache_entries,
@@ -1375,7 +1395,7 @@ def admin():
         'top_peak': max([t['count'] for t in s.get('top_first', [])] or [0]) or 1,
         'toph_peak': max([t['count'] for t in s.get('top_hangul', [])] or [0]) or 1,
     }
-    return render_template('admin.html', s=s, op=op, token=tok)
+    return render_template('admin.html', s=s, op=op)
 
 
 if __name__ == '__main__':
