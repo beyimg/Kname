@@ -23,8 +23,25 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 import threading
 from typing import Dict, Optional
+
+# 사용자가 겪는 오류/이상 결과 보고 헬퍼(Sentry+stderr). 없으면 no-op.
+try:
+    from monitor import report
+except Exception:
+    def report(*a, **k):
+        pass
+
+
+def _report(msg, file=None, flush=True):
+    """진단용 stderr 로그(개별 시도 — Sentry 로는 보내지 않아 노이즈를 줄인다)."""
+    try:
+        print(msg, file=file or sys.stderr, flush=flush)
+    except Exception:
+        pass
+
 
 DEFAULT_MODEL = "claude-sonnet-5"
 
@@ -233,41 +250,54 @@ class Transliterator:
         if not (allow_llm and self.api_key):
             return None
 
-        import sys
         prompt = self._build_prompt(name.strip(), kind)
         cleaned = []          # 한글은 뽑혔지만 길이가 애매한(implausible) 후보들
+        errors = []           # LLM 호출 예외 기록
+        last_raw = ''         # 마지막 원문(진단용)
         for attempt in range(2):
             try:
                 raw = self._call_llm(prompt)
             except Exception as e:
-                print(f"[translit] LLM error ({name}/{kind}) try{attempt}: "
-                      f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
+                errors.append(f'{type(e).__name__}: {e}')
+                _report(f'[translit] LLM error ({name}/{kind}) try{attempt}: '
+                        f'{errors[-1]}', file=sys.stderr, flush=True)
                 continue
+            last_raw = raw
             out = self._clean(raw)
             if not out:
-                # 한글을 못 뽑음 — 모델이 실제로 뭐라고 답했는지 남긴다(진단 핵심)
-                print(f"[translit] no-hangul ({name}/{kind}) try{attempt}: "
-                      f"raw={raw!r:.160}", file=sys.stderr, flush=True)
+                _report(f'[translit] no-hangul ({name}/{kind}) try{attempt}: '
+                        f'raw={raw!r:.160}', file=sys.stderr, flush=True)
                 continue
             if self._plausible(name, out):
                 with self._lock:
                     self._cache[ck] = out
                     self._save_cache()
-                return out
-            # 한글은 나왔지만 길이가 애매 — 후보로 두고 한 번 더 시도
-            print(f"[translit] implausible ({name}/{kind}) try{attempt}: "
-                  f"{out!r} (len {len(out)})", file=sys.stderr, flush=True)
+                return out          # 정상 — 보고할 것 없음
+            _report(f'[translit] implausible ({name}/{kind}) try{attempt}: '
+                    f'{out!r} (len {len(out)})', file=sys.stderr, flush=True)
             cleaned.append(out)
 
-        # 그럴듯한 답은 없었지만 한글 후보가 있으면 하드 에러 대신 그걸 쓴다
+        # 그럴듯한 답은 없었지만 한글 후보가 있으면 하드 에러 대신 그걸 쓴다.
+        # 단, 사용자가 '이상적이지 않은' 결과를 받은 것이므로 경고로 보고한다.
         if cleaned:
             out = cleaned[0]
-            print(f"[translit] fallback-use ({name}/{kind}): {out!r}",
-                  file=sys.stderr, flush=True)
+            report('transliteration used an approximate reading',
+                   level='warning', fingerprint=['translit', 'approximate'],
+                   name=name, kind=kind, result=out)
             with self._lock:
                 self._cache[ck] = out
                 self._save_cache()
             return out
+
+        # 아무 결과도 못 얻음 — 사용자는 변환 실패를 겪는다. 원인별로 보고.
+        if errors:
+            report('transliteration failed: LLM call error', level='error',
+                   fingerprint=['translit', 'llm-error'],
+                   name=name, kind=kind, detail=errors[-1])
+        else:
+            report('transliteration failed: no Hangul in LLM output',
+                   level='error', fingerprint=['translit', 'no-hangul'],
+                   name=name, kind=kind, raw=last_raw[:160])
         return None
 
     @property

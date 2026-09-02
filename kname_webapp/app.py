@@ -33,6 +33,16 @@ from meaning_en import MeaningEnGenerator
 from tts_full import FullNameTTS
 from pronounce_guide import romanize_hyphen, romanize_syllable
 
+# 사용자가 겪는 오류/이상 결과 보고 헬퍼(Sentry+stderr). 없으면 no-op.
+try:
+    from monitor import report
+except Exception:
+    def report(*a, **k):
+        pass
+
+# 시스템 오류가 아니라 사용자 입력 실수(빈칸·너무 긴 값)인 에러 — 보고하지 않는다.
+_INPUT_ERR_HINTS = ('enter your first', 'enter your last', 'shorter name')
+
 app = Flask(__name__)
 
 # ---------------------------------------------------------------- 에러 모니터링
@@ -1165,6 +1175,16 @@ def _log_conv(first_en, last_en, sex, is_new, data):
         given=data.get('given', '') if ok else '',
         hangul=data.get('full_hangul', '') if ok else '',
     )
+    # 사용자가 실패를 겪은 경우 보고(입력 실수는 제외). 원인별로 묶는다.
+    if not ok:
+        err = str(data.get('error', ''))
+        if not any(h in err.lower() for h in _INPUT_ERR_HINTS):
+            reason = ('transliteration' if 'sounds' in err.lower()
+                      or 'dictionary' in err.lower() else 'conversion')
+            report('user could not get a Korean name', level='error',
+                   fingerprint=['conv-fail', reason], reason=reason,
+                   name=f'{first_en} {last_en}'.strip(), sex=sex,
+                   detail=err[:140])
 
 
 @app.route('/')
@@ -1182,11 +1202,15 @@ def result():
 
     # ① 속도 제한(연타·봇 차단)
     if not RATE.check(_client_ip()):
+        report('user hit rate limit', level='warning',
+               fingerprint=['rate-limit'])
         return render_template('index.html', error=_BUSY_RATE,
                                first_name=first_en, last_name=last_en, sex=sex), 429
     # ② 하루 예산: 새 이름인데 한도를 넘었으면 생성하지 않고 안내
     is_new = _needs_llm(first_en.strip().lower(), last_en.strip().lower(), sex)
     if is_new and not BUDGET.allow():
+        report('daily new-name budget exhausted (users turned away)',
+               level='warning', fingerprint=['budget-exhausted'])
         return render_template('index.html', error=_BUSY_BUDGET,
                                first_name=first_en, last_name=last_en, sex=sex), 503
 
@@ -1283,9 +1307,16 @@ def api_tts():
         return jsonify({'url': cached})
     # 새로 만들어야 하면 하루 상한 확인
     if not TTS_BUDGET.allow():
+        report('TTS daily budget exhausted', level='warning',
+               fingerprint=['tts', 'budget'])
         return jsonify({'error': 'busy'}), 503
     url = TTS_FULL.url_for(name)
     if not url:
+        # available=False 면 구글 미설정(브라우저 음성으로 대체됨) — 설정 문제로 묶음.
+        # available=True 인데 실패면 tts_full 이 이미 synth-error 로 보고함.
+        if not TTS_FULL.available:
+            report('server TTS not configured — user got browser robot voice',
+                   level='warning', fingerprint=['tts', 'not-configured'])
         return jsonify({'error': 'unavailable'}), 503
     TTS_BUDGET.record()
     return jsonify({'url': url})

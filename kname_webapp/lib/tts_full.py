@@ -18,6 +18,13 @@ import os
 import re
 import threading
 
+# 사용자가 겪는 TTS 오류 보고 헬퍼(Sentry+stderr). 없으면 no-op.
+try:
+    from monitor import report
+except Exception:
+    def report(*a, **k):
+        pass
+
 # 음성 생성이 늦어지면 페이지 응답이 그만큼 막히므로 짧게 끊는다.
 # 실패해도 브라우저 내장 음성으로 대체되므로 서비스는 계속된다.
 # (요청은 /api/tts 로 비동기 처리되므로 페이지 로딩은 막지 않는다.)
@@ -180,6 +187,9 @@ class FullNameTTS:
             except Exception as e:
                 # 조용히 삼키면 원인을 알 수 없다. 첫 실패는 반드시 알린다.
                 self.last_error = f'{type(e).__name__}: {str(e)[:160]}'
+                report('TTS synthesis failed (user got no server voice)',
+                       level='error', fingerprint=['tts', 'synth-error'],
+                       name=name, detail=self.last_error, mode=self.last_mode)
                 if not self._err_warned:
                     self._err_warned = True
                     print(f'[TTS] 음성 생성 실패 ({name})')
