@@ -80,6 +80,11 @@ class FullNameTTS:
         self._client = None
         self._lock = threading.Lock()
         os.makedirs(out_dir, exist_ok=True)
+        # 설정(목소리·모델·어조)별로 캐시를 분리한다. 설정이 바뀌면 태그가 바뀌어
+        # 기존 캐시를 포함한 모든 발음이 새 설정으로 다시 생성된다.
+        import hashlib
+        sig = f'{self.voice}|{self.model}|{self.style_prompt}|{self.flatten}'
+        self.tag = hashlib.md5(sig.encode('utf-8')).hexdigest()[:8]
 
     # ------------------------------------------------------------ 내부
     def _get_client(self):
@@ -89,7 +94,10 @@ class FullNameTTS:
         return self._client
 
     def _path(self, name: str) -> str:
-        return os.path.join(self.out_dir, f'{name}.mp3')
+        return os.path.join(self.out_dir, self.tag, f'{name}.mp3')
+
+    def _url(self, name: str) -> str:
+        return f'/static/audio/full/{self.tag}/{name}.mp3'
 
     def _synthesize(self, name: str) -> bytes:
         client, tts = self._get_client()
@@ -160,7 +168,7 @@ class FullNameTTS:
             return None
         path = self._path(name)
         if os.path.exists(path) and os.path.getsize(path) > 900:
-            return f'/static/audio/full/{name}.mp3'
+            return self._url(name)
         return None
 
     def url_for(self, name: str) -> str | None:
@@ -173,7 +181,7 @@ class FullNameTTS:
 
         path = self._path(name)
         if os.path.exists(path) and os.path.getsize(path) > 900:
-            return f'/static/audio/full/{name}.mp3'
+            return self._url(name)
 
         if not self.available:
             return None
@@ -181,7 +189,8 @@ class FullNameTTS:
         # 같은 이름에 대한 동시 요청이 겹치지 않도록
         with self._lock:
             if os.path.exists(path) and os.path.getsize(path) > 900:
-                return f'/static/audio/full/{name}.mp3'
+                return self._url(name)
+            os.makedirs(os.path.dirname(path), exist_ok=True)   # 태그 폴더 보장
             try:
                 audio = self._synthesize(name)
             except Exception as e:
@@ -215,12 +224,13 @@ class FullNameTTS:
                 f.write(audio)
             os.replace(tmp, path)
 
-        return f'/static/audio/full/{name}.mp3'
+        return self._url(name)
 
     def stats(self) -> dict:
         try:
-            files = [f for f in os.listdir(self.out_dir) if f.endswith('.mp3')]
-            size = sum(os.path.getsize(os.path.join(self.out_dir, f)) for f in files)
+            d = os.path.join(self.out_dir, self.tag)
+            files = [f for f in os.listdir(d) if f.endswith('.mp3')]
+            size = sum(os.path.getsize(os.path.join(d, f)) for f in files)
             return {'count': len(files), 'bytes': size}
         except Exception:
             return {'count': 0, 'bytes': 0}

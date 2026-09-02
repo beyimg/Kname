@@ -4,3 +4,4 @@ openpyxl
 anthropic
 gunicorn
 sentry-sdk[flask]
+google-cloud-texttospeech
