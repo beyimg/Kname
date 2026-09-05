@@ -41,7 +41,29 @@ except Exception:
         pass
 
 # 시스템 오류가 아니라 사용자 입력 실수(빈칸·너무 긴 값)인 에러 — 보고하지 않는다.
-_INPUT_ERR_HINTS = ('enter your first', 'enter your last', 'shorter name')
+_INPUT_ERR_HINTS = ('enter your first', 'enter your last', 'shorter name',
+                    'english letters')
+
+# 라틴 알파벳이 하나도 없는 입력에 대한 안내(시스템 오류가 아닌 입력 오류).
+_LETTERS_ERR = 'Please write your name in English letters.'
+
+
+def _no_reading_error(name, kind):
+    """
+    음차가 비어서 돌아온 경우의 처리.
+
+    음차는 사전 → 캐시 → LLM → 규칙 폴백으로 이어지므로, 알파벳이 있는
+    이름이 여기까지 오는 것은 정상이 아니다. 거의 확실히 lib/fallback_translit.py
+    가 배포되지 않은 것이다. 사용자에게 보이는 문구는 같지만, 그 경우
+    원인을 알 수 있도록 시스템 오류로 따로 보고한다.
+    """
+    if not any(c.isalpha() and c.isascii() for c in str(name or '')):
+        return _LETTERS_ERR          # 숫자·기호만 입력 — 입력 오류가 맞다
+    report('no reading produced for a valid name — '
+           'is lib/fallback_translit.py deployed?',
+           level='error', fingerprint=['translit', 'fallback-missing'],
+           name=name, kind=kind)
+    return _LETTERS_ERR
 
 app = Flask(__name__)
 
@@ -407,14 +429,10 @@ def _compose_meaning_en(given, hanja_detail, native_meaning=None,
     return opening + image + sound + close
 
 
-def _translit_error(name):
-    """음차 실패 안내. 키가 없어서인지 LLM이 실패한 것인지 구분한다."""
-    if not TRANSLIT.llm_available:
-        return (f'"{name}" is not in our dictionary yet. '
-                f'The site can only handle listed names right now — '
-                f'try a more common spelling.')
-    return (f'Sorry, we couldn\'t work out how "{name}" sounds in Korean. '
-            f'Try another spelling.')
+# 음차 실패 안내문(_translit_error)은 제거했다.
+# 음차가 사전 → 캐시 → LLM → 규칙 폴백으로 이어져 더 이상 실패하지 않으므로
+# "we couldn't work out how ... sounds in Korean" 메시지는 나올 수 없다.
+# 문구 자체를 남겨두면 언젠가 다시 쓰이게 되므로 코드에서 지운다.
 
 
 def _generate_meaning(given, sex, english_first, translit, neutral=False):
@@ -895,22 +913,30 @@ def convert_name(first_en, last_en, sex):
     if len(first_key) > 40 or len(last_key) > 40:
         return {'error': 'Please enter a shorter name.'}
 
+    # 음차는 사전 → 캐시 → LLM → 규칙 기반 폴백까지 이어져 실패하지 않는다.
+    # 여기서 None 이 나오는 유일한 경우는 라틴 알파벳이 한 글자도 없는
+    # 입력(숫자·기호만)이며, 이는 시스템 오류가 아니라 입력 오류다.
     last_tr = TRANSLIT.transliterate(last_key, 'surname')
     if not last_tr:
-        return {'error': _translit_error(last_en)}
+        return {'error': _no_reading_error(last_en, 'surname')}
 
-    if neutral:
-        picked = _pick_neutral(first_key, last_tr)
-        if not picked:
-            return {'error': f'Sorry, "{first_en}" is not in our name dictionary yet. '
-                             f'Try another spelling or a more common name.'}
+    picked = _pick_neutral(first_key, last_tr) if neutral else None
+    if neutral and not picked:
+        # 남녀 공용 후보를 찾지 못했다 — 사용자에게 실패를 보이는 대신
+        # 여성 경로로 이어서 진행한다.
+        report('neutral pick failed — continued with a gendered result',
+               level='warning', fingerprint=['conv-fallback', 'neutral'],
+               name=first_en)
+        sex, sexk = '여', 'female'
+
+    if picked:
         sexk, first_tr, given, quality, is_unisex = picked
         sex = '남' if sexk == 'male' else '여'
     else:
-        # 1) 음차 (사전 → 없으면 LLM)
+        # 1) 음차 (사전 → 캐시 → LLM → 규칙 폴백)
         first_tr = TRANSLIT.transliterate(first_key, sexk)
         if not first_tr:
-            return {'error': _translit_error(first_en)}
+            return {'error': _no_reading_error(first_en, sexk)}
         # 2) 순우리말 이름이면 한자 매칭 엔진을 건너뛰고 소리 그대로 쓴다
         if first_tr in _NATIVE_NAMES:
             given = first_tr
@@ -924,7 +950,16 @@ def convert_name(first_en, last_en, sex):
             quality = result.get('given_quality', 'Q1')
             is_unisex = given in UNISEX_NAMES if given else False
             if not given:
-                return {'error': 'Conversion failed. Please try a different name.'}
+                # 엔진이 후보를 하나도 만들지 못한 경우.
+                # 순우리말 경로와 같은 방식으로 음차를 그대로 이름으로 쓴다.
+                # 품질은 낮지만 사용자가 실패 화면을 보는 일은 없다.
+                report('engine produced no given name — used the reading itself',
+                       level='warning', fingerprint=['conv-fallback', 'engine'],
+                       name=first_en, reading=first_tr)
+                given = first_tr[:3]
+                quality = 'Q3'
+                is_unisex = given in UNISEX_NAMES
+                result = None
 
     # 3) 이름 결과 상세 (한자·의미설명)
     #    사전 밖 음차면 변환된 한국이름(given)으로 역조회한다.

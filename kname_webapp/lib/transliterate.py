@@ -69,6 +69,8 @@ Language-specific traps (these are the ones most often gotten wrong):
   Takumi → 다쿠미 (not 타쿠미)   Kenjiro → 겐지로 (not 켄지로)
   Kazuo → 가즈오   Taro → 다로   Keiko → 게이코
   But medial/final positions keep the aspirated form: Hasegawa → 하세가와
+  つ (tsu) is always written 쓰 — this is the one sanctioned tense syllable.
+  Natsuki → 나쓰키   Tsubasa → 쓰바사   Mitsuki → 미쓰키   Tetsuya → 데쓰야
 
 · Basque / Spanish / Catalan — read as Spanish, never as English.
   Iker → 이케르 (not 아이커)    Etxeberria → 에체베리아 (tx = "ch")
@@ -101,7 +103,8 @@ Language-specific traps (these are the ones most often gotten wrong):
 General rules:
 - [kw] uses ㅋ + 와/우, never ㄱ.
 - Use 으 only for unreleased consonant clusters: Kowalski → 코발스키
-- Never use tense consonants (쓰/쯔/뻐); loanword rules use plain ones.
+- Never use tense consonants (쯔/뻐/찌); loanword rules use plain ones.
+  The sole exception is Japanese つ, which is always 쓰.
 - Do not pad with extra syllables. Smith → 스미스, Singh → 싱
 
 Ordinary English names stay straightforward:
@@ -121,7 +124,7 @@ class Transliterator:
         api_key: Optional[str] = None,
         model: str = DEFAULT_MODEL,
         cache_path: Optional[str] = 'translit_cache.json',
-        max_tokens: int = 64,
+        max_tokens: int = 256,
         temperature: float = 0.0,
     ):
         with open(name_dict_path, encoding='utf-8') as f:
@@ -133,6 +136,7 @@ class Transliterator:
         self.cache_path = cache_path
         self._client = None
         self._lock = threading.Lock()
+        self.last_stop_reason = None
         self._cache: Dict[str, str] = {}
         if cache_path and os.path.exists(cache_path):
             try:
@@ -164,8 +168,11 @@ class Transliterator:
         except Exception:
             pass
 
-    # 외래어 표기법에서 쓰지 않는 글자 — 나오면 LLM이 규칙을 벗어난 것
-    _BAD_SYLLABLE = re.compile(r'[쓰쯔뻐껴쌰쎄찌똑빡]')
+    # 외래어 표기법에서 쓰지 않는 글자 — 나오면 LLM이 규칙을 벗어난 것.
+    # '쓰'는 제외한다. 일본어 つ의 정규 표기가 '쓰'이기 때문에
+    # (쓰나미·쓰시마·미쓰비시) 여기에 넣으면 나쓰키·쓰바사 같은
+    # 정답을 코드가 걷어내 버린다.
+    _BAD_SYLLABLE = re.compile(r'[쯔뻐껴쌰쎄찌똑빡]')
 
     @staticmethod
     def _clean(text: str) -> Optional[str]:
@@ -199,11 +206,25 @@ class Transliterator:
         # 여유 있게: 알파벳 2~12자 → 한글 1~10음절 범위에서 극단만 거른다
         return max(1, n // 4) <= k <= max(3, n)
 
-    def _build_prompt(self, name: str, kind: str) -> str:
-        what = 'family name (surname)' if kind == 'surname' else 'given name'
+    def _build_prompt(self, name: str, kind: str = '', short: bool = False) -> str:
+        """
+        음차는 순수하게 '소리'의 문제다. 이름이 어느 언어에서 왔는지,
+        성인지 이름인지는 결과를 바꾸지 않는다(Shizuku는 성 칸에 있든
+        이름 칸에 있든 시즈쿠다). 그래서 프롬프트는 그런 전제를 단정하지
+        않는다 — 'this English surname'처럼 단정하면, 실제로는 영어도
+        성씨도 아닌 이름이 들어왔을 때 모델이 전제를 의심하느라 답을
+        내놓지 못한다.
+
+        short=True 는 재시도용 최소 프롬프트다. 1차 시도가 빈 응답으로
+        끝났을 때 같은 프롬프트를 반복해봐야 같은 결과만 나오므로,
+        가이드를 걷어내고 질문만 남긴다.
+        """
+        if short:
+            return (f'Write this personal name in Korean Hangul: "{name}"\n'
+                    f'Reply with Hangul characters only — nothing else.')
         return (
             f'{_GUIDE}\n'
-            f'Transliterate this English {what} into Hangul: "{name}"\n\n'
+            f'Transliterate this personal name into Hangul: "{name}"\n\n'
             f'Answer with the Hangul only.'
         )
 
@@ -214,8 +235,34 @@ class Transliterator:
             max_tokens=self.max_tokens,
             messages=[{'role': 'user', 'content': prompt}],
         )
+        # 빈 응답의 원인을 알려면 stop_reason 이 필요하다
+        # (max_tokens 면 출력 한도에 걸린 것).
+        self.last_stop_reason = getattr(resp, 'stop_reason', None)
         parts = [b.text for b in resp.content if hasattr(b, 'text')]
         return ''.join(parts)
+
+    def _rule_fallback(self, name: str, kind: str) -> Optional[str]:
+        """
+        규칙 기반 최종 음차. 사전·캐시·LLM이 모두 실패해도 사용자가
+        변환 실패 화면을 보지 않도록 하는 마지막 안전망이다.
+
+        결과를 캐시에 저장하지 않는 것이 중요하다. 저장해 버리면 일시적인
+        LLM 장애 때 만들어진 낮은 품질의 음차가 영구히 남아, 나중에 LLM이
+        정상으로 돌아와도 그 이름은 계속 낮은 품질로 서빙된다.
+        """
+        try:
+            from fallback_translit import to_hangul
+            out = to_hangul(name)
+        except Exception as e:
+            _report(f'[translit] rule-fallback error ({name}): '
+                    f'{type(e).__name__}: {e}', file=sys.stderr, flush=True)
+            return None
+        if not out:
+            return None
+        report('transliteration fell back to a rule-based reading',
+               level='warning', fingerprint=['translit', 'rule-fallback'],
+               name=name, kind=kind, result=out)
+        return out
 
     # ------------------------------------------------------------ 공개 API
     def lookup(self, name: str, kind: str) -> Optional[str]:
@@ -247,14 +294,22 @@ class Transliterator:
             return self._cache[ck]
 
         # 3) LLM
-        if not (allow_llm and self.api_key):
+        # allow_llm=False 는 '사전·캐시에 있는가'를 판정하는 용도로도 쓰이므로
+        # (app.py의 _needs_llm) 여기서는 폴백 없이 None을 돌려줘야 한다.
+        if not allow_llm:
             return None
+        # 키가 없어도 서비스는 계속된다 — 규칙 기반 음차로 넘긴다.
+        if not self.api_key:
+            return self._rule_fallback(name, kind)
 
-        prompt = self._build_prompt(name.strip(), kind)
         cleaned = []          # 한글은 뽑혔지만 길이가 애매한(implausible) 후보들
         errors = []           # LLM 호출 예외 기록
+        empties = 0           # 응답은 성공했으나 텍스트가 비어 있던 횟수
         last_raw = ''         # 마지막 원문(진단용)
         for attempt in range(2):
+            # 1차가 빈 응답이면 같은 프롬프트를 반복해도 같은 결과다.
+            # 2차는 가이드를 걷어낸 최소 프롬프트로 바꿔 시도한다.
+            prompt = self._build_prompt(name.strip(), kind, short=(attempt > 0))
             try:
                 raw = self._call_llm(prompt)
             except Exception as e:
@@ -263,6 +318,15 @@ class Transliterator:
                         f'{errors[-1]}', file=sys.stderr, flush=True)
                 continue
             last_raw = raw
+            # 호출은 성공했는데 텍스트가 하나도 없는 경우.
+            # max_tokens 한도에 걸리면 이렇게 된다 — 원인을 남긴다.
+            if not raw.strip():
+                empties += 1
+                _report(f'[translit] empty-response ({name}/{kind}) '
+                        f'try{attempt}: stop_reason='
+                        f'{getattr(self, "last_stop_reason", None)}',
+                        file=sys.stderr, flush=True)
+                continue
             out = self._clean(raw)
             if not out:
                 _report(f'[translit] no-hangul ({name}/{kind}) try{attempt}: '
@@ -289,8 +353,14 @@ class Transliterator:
                 self._save_cache()
             return out
 
-        # 아무 결과도 못 얻음 — 사용자는 변환 실패를 겪는다. 원인별로 보고.
-        if errors:
+        # LLM에서 아무 결과도 얻지 못했다. 원인별로 보고하되,
+        # 사용자에게는 실패를 보이지 않고 규칙 기반 음차로 넘긴다.
+        if empties:
+            report('transliteration: LLM returned an empty response',
+                   level='error', fingerprint=['translit', 'empty-response'],
+                   name=name, kind=kind,
+                   stop_reason=getattr(self, 'last_stop_reason', None))
+        elif errors:
             report('transliteration failed: LLM call error', level='error',
                    fingerprint=['translit', 'llm-error'],
                    name=name, kind=kind, detail=errors[-1])
@@ -298,7 +368,7 @@ class Transliterator:
             report('transliteration failed: no Hangul in LLM output',
                    level='error', fingerprint=['translit', 'no-hangul'],
                    name=name, kind=kind, raw=last_raw[:160])
-        return None
+        return self._rule_fallback(name, kind)
 
     @property
     def llm_available(self) -> bool:
