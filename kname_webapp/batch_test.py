@@ -79,17 +79,16 @@ def main():
 
     # 의미 설명의 출처를 판정한다. 이게 없으면 "설명이 나왔다"는 사실만 알 뿐
     # 그게 LLM 이 쓴 것인지 사전에서 꺼낸 것인지 구분할 수 없다.
-    # 최후 템플릿(_compose_meaning_en)에만 나오는 문구.
-    # 주의: 'It pictures someone' 은 여기 넣으면 안 된다 — 602개 사전 설명 중
-    # 272개가 같은 문구를 쓰기 때문에 사전 결과가 전부 템플릿으로 오판된다.
-    # 템플릿은 사전과 같은 문체로 쓰였으므로 문체로는 구분되지 않는다.
-    # 확실한 판정 근거는 app.py 가 채워 주는 meaning_error 다.
+    # 확실한 판정 근거는 app.py 가 채워 주는 meaning_error 다. 아래 문구 목록은
+    # 그것이 없을 때를 위한 보조 신호일 뿐이며, 넣으면 안 되는 것이 두 종류 있다.
+    #   · 'It pictures someone'  — 602개 사전 설명 중 272개가 쓴다
+    #   · _sound_note() 의 세 문구('Balanced in sound…', 'Firm and grounded…',
+    #     'Soft and open…') — 순우리말 이름 설명(_native_desc)이 템플릿과
+    #     같은 헬퍼를 공유해 정상 결과에도 그대로 나온다
+    # 템플릿은 사전과 같은 문체로 쓰였으므로 문체만으로는 구분되지 않는다.
     _TPL = ('Together they picture', 'Together they bring',
             'Together they speak of', 'It speaks of one who',
-            'The whole name reads calm and considered',
-            'Balanced in sound, one syllable open',
-            'Firm and grounded, with a consonant closing',
-            'Soft and open, with no final consonants')
+            'The whole name reads calm and considered')
 
     def _norm(s):
         """성별 치환(boy↔girl, he↔she)을 무시하고 비교하기 위한 정규화."""
@@ -97,12 +96,22 @@ def main():
         return re.sub(r'\b(boys?|girls?|his|her|hers|he|she|him|sons?|'
                       r'daughters?|men|women)\b', '~', s, flags=re.I)
 
-    def meaning_source(given, text, err):
+    # 순우리말 이름 설명(_native_desc)만 쓰는 문구. LLM 도 사전도 아닌
+    # 로컬 생성이므로 따로 센다(602 사전·템플릿 어디에도 나오지 않는다).
+    _NATIVE = ('the meaning lives right in the sound',            # _native_desc
+               'Unlike Sino-Korean names, it is built from a Korean word')
+
+    def meaning_source(given, text, err, declared=None):
+        # ★ app.py 가 알려주는 출처가 있으면 그대로 쓴다(추측 없음).
+        #   문체로 되짚는 아래 경로는 구버전 app.py 를 위한 보조일 뿐이다.
+        if declared:
+            return declared
         if not text:
             return 'none'
-        # ① 확실한 신호 — app.py 가 템플릿으로 떨어질 때만 채운다
         if err or any(s in text for s in _TPL):
             return 'template'
+        if any(x in text for x in _NATIVE):
+            return 'native'
         # ② 미리 작성된 602개 원문과 일치하는가 (성별 치환분은 무시하고 비교)
         nt = _norm(text)
         for sx in ('male', 'female'):
@@ -159,7 +168,8 @@ def main():
         short = d.get('meaning_short') or ''
         meaning = d.get('meaning_en') or ''
 
-        src = meaning_source(d.get('given'), meaning, d.get('meaning_error'))
+        src = meaning_source(d.get('given'), meaning, d.get('meaning_error'),
+                             d.get('meaning_source'))
 
         # 눈에 띄는 문제만 표시
         flags = []
@@ -174,7 +184,7 @@ def main():
         if not d.get('surname_desc'): flags.append('성씨유래없음')
         if flags: warn += 1
 
-        label = {'llm': 'LLM', 'dict': '사전602',
+        label = {'llm': 'LLM', 'dict': '사전602', 'native': '순우리말',
                  'template': '템플릿', 'none': '없음'}.get(src, src)
         say(f'\n{i:3d}. {first} {last} ({sex}){"  ⚠ " + ", ".join(flags) if flags else ""}')
         say(f'     음차   : {r["translit"]["hangul"]}')
@@ -215,6 +225,8 @@ def main():
         '   <- 이 값이 나와야 LLM 경로가 검증된 것')
     say(f'  사전 602   {cnt.get("dict", 0):4d}건  {100*cnt.get("dict",0)/n:5.1f}%'
         '   (미리 작성된 설명, LLM 검증 아님)')
+    say(f'  순우리말   {cnt.get("native", 0):4d}건  {100*cnt.get("native",0)/n:5.1f}%'
+        '   (한자가 없어 로컬 생성, 정상)')
     say(f'  템플릿     {cnt.get("template", 0):4d}건  '
         f'{100*cnt.get("template",0)/n:5.1f}%   <- 0 이어야 정상')
     say('')
@@ -268,7 +280,7 @@ XL_COLS = [
     ('품질', 7), ('의미 출처', 10), ('한 줄 의미', 30),
     ('의미 설명', 70), ('성씨 유래', 40), ('음절 매칭', 26), ('확인 플래그', 20),
 ]
-SRC_KO = {'llm': 'LLM', 'dict': '사전602', 'template': '템플릿',
+SRC_KO = {'llm': 'LLM', 'dict': '사전602', 'native': '순우리말', 'template': '템플릿',
           'none': '없음', 'error': '오류'}
 
 
@@ -287,6 +299,7 @@ def write_xlsx(path, rows, cnt, n, warn):
     head_f = Font(name='Arial', size=10, bold=True, color='FFFFFF')
     head_fill = PatternFill('solid', fgColor='4A4038')
     fills = {'llm': PatternFill('solid', fgColor='D9F2E9'),
+             'native': PatternFill('solid', fgColor='EFF3D9'),
              'dict': PatternFill('solid', fgColor='E4EDFA'),
              'template': PatternFill('solid', fgColor='FBE0DD'),
              'error': PatternFill('solid', fgColor='EEEEEE')}

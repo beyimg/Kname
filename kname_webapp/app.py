@@ -480,6 +480,11 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False):
             if isinstance(res, dict):
                 en = res.get('meaning_en', '') or ''
 
+        # 설명이 어디서 나왔는지 여기서 기록해 둔다.
+        # 나중에 텍스트 문체로 되짚으면 사전(602)·순우리말 설명과 구분되지 않는다
+        # — 셋이 같은 형식으로 쓰였기 때문에 오판이 반드시 생긴다.
+        out['meaning_source'] = 'llm' if en else ''
+
         if True:
             # meaning.py는 LLM 실패 시 한국어 뜻이 섞인 폴백 문구를 돌려준다.
             #   예: "'광민' is a Sino-Korean name; the characters mean: 광(光, '빛나다')..."
@@ -498,6 +503,7 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False):
                 en = _compose_meaning_en(given, out.get('hanja_detail'), nm,
                                          sex=sex, romanized=romanize_hyphen(given))
                 out['meaning_unavailable'] = not bool(en)
+                out['meaning_source'] = 'template' if en else 'none'
                 out['meaning_error'] = (
                     getattr(MEANING_EN, 'last_error', None) or 'other'
                 )
@@ -990,6 +996,10 @@ def convert_name(first_en, last_en, sex):
     meaning_unavailable = False
     meaning_error = None
     meaning_raw = ''
+    # 설명의 출처를 끝까지 따라간다: dict(미리 작성된 602개) / llm / template /
+    # native(순우리말 로컬 설명). 점검 도구가 이 값을 그대로 읽으면 되므로,
+    # 문체로 되짚다가 오판하는 일이 없어진다.
+    meaning_source = 'dict' if meaning_en else ''
 
     # 602개 밖 이름이면 meaning.py로 한자·의미설명을 실시간 생성
     if (not meaning_en or not hanja) and MEANING is not None:
@@ -997,7 +1007,10 @@ def convert_name(first_en, last_en, sex):
         if gen:
             hanja = hanja or gen.get('hanja', '')
             hanja_detail = hanja_detail or gen.get('hanja_detail', [])
-            meaning_en = meaning_en or gen.get('meaning_en', '')
+            # 미리 작성된 설명이 이미 있으면 그것을 쓴다(출처도 그대로 dict).
+            if not meaning_en and gen.get('meaning_en'):
+                meaning_en = gen['meaning_en']
+                meaning_source = gen.get('meaning_source') or 'llm'
             meaning_unavailable = bool(gen.get('meaning_unavailable'))
             meaning_error = gen.get('meaning_error')
             meaning_raw = gen.get('meaning_raw') or ''
@@ -1009,6 +1022,11 @@ def convert_name(first_en, last_en, sex):
         hanja_detail = []
         if not _NATIVE_SIG.search(meaning_en or ''):
             meaning_en = _native_desc(given, _NATIVE_NAMES[given])
+            meaning_source = 'native'
+        elif meaning_source in ('template', 'none', ''):
+            # 템플릿이 만든 순우리말 문구를 그대로 쓰는 경우도 실패가 아니다
+            # (뜻은 순우리말 정본 사전에서 온다). 아래에서 오류 표시를 지운다.
+            meaning_source = 'native'
         meaning_unavailable = False
         meaning_error = None
         meaning_raw = ''
@@ -1157,6 +1175,8 @@ def convert_name(first_en, last_en, sex):
         'audio': {'full': TTS_FULL.cached_url((surname or '') + given)},
         'meaning_unavailable': meaning_unavailable,
         'meaning_error': meaning_error,
+        # 설명 출처(dict / llm / native / template) — 점검 도구가 그대로 읽는다
+        'meaning_source': meaning_source or ('dict' if meaning_en else 'none'),
         'neutral_request': bool(neutral),
         'reason': reason,
     }
