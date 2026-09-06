@@ -1,0 +1,617 @@
+==========================================================================
+배치 테스트 100건
+==========================================================================
+
+  1. Siti Wijaya (여)
+     음차   : 시티
+     이름   : 이신비 (Lee Sin-bi)  李晨丕  [Q2]
+     한 줄  : Someone great as dawn
+     의미   : [사전602] 신비 (晨丕, Sinbi) joins 신 (晨, sin), "dawn, morning," with 비 (丕, bi), "great and grand." Above all, 신비 means "mystery," so a mysterious charm shines through directly. K-pop fans know it as SinB of GFRIEND — a dreamy, lovable
+
+  2. Dewi Santoso (여)
+     음차   : 데위
+     이름   : 서제인 (Seo Je-in)  徐帝仁  [Q1]
+     한 줄  : Someone with regal poise and a kind heart
+     의미   : [사전602] 제인 (帝仁, Jein) pairs 제 (帝, je), "sovereign, foremost," with 인 (仁, in), "benevolent and kind." It pictures someone with regal poise and a kind heart. Neat and stylish, it matches the Western "Jane" perfectly. Nobility and 
+
+  3. Ayu Kusuma (여)
+     음차   : 아유
+     이름   : 권아윤 (Kwon A-yun)  權雅潤  [Q1]
+     한 줄  : A refined and lustrous person
+     의미   : [LLM] Ayun blends 雅 (clear, elegant) with 潤 (lustrous, glowing), painting the image of someone whose grace catches light like polished stone. Spoken aloud, it opens softly on "ah," rounds gently through "yoo," and settles on a
+
+  4. Putri Hidayat (여)
+     음차   : 푸트리
+     이름   : 이부경 (Lee Bu-gyeong)  李芙冏  [Q2]
+     한 줄  : Someone noble as a lotus and brightly shining
+     의미   : [사전602] 부경 (芙冏, Bugyeong) joins 부 (芙, bu), "lotus blossom," with 경 (冏, gyeong), "bright and radiant." It's a girl's name meaning someone noble as a lotus and brightly shining. 부 lends a lotus's grace; 경 lends radiance — a subtle
+
+  5. Intan Saputra (여)
+     음차   : 인탄
+     이름   : 서이담 (Seo I-dam)  徐利潭  [Q2]
+     한 줄  : A name of beneficial and pond
+     의미   : [LLM] Idam carries a quiet kind of beauty: 利 for benefit and blessing, 潭 for a deep, still pond. Together they suggest a life that nourishes those around it, calm on the surface but full underneath. Spoken aloud, Idam is soft 
+
+  6. Melati Pratama (여)
+     음차   : 멜라티
+     이름   : 박미나 (Park Mi-na)  朴美娜  [Q2]
+     한 줄  : A beautiful and graceful person
+     의미   : [사전602] 미나 (美娜, Mina) joins 미 (美, mi), "beautiful," with 나 (娜, na), "graceful and beautiful" — beauty doubled. It matches "Mina," familiar in the West and Japan, so it travels effortlessly. K-pop fans may recall Mina of TWICE — 
+
+  7. Sari Nugraha (여)
+     음차   : 사리
+     이름   : 우서린 (Woo Seo-rin)  禹瑞璘  [Q1]
+     한 줄  : Someone auspicious with jade-like radiance
+     의미   : [사전602] 서린 (瑞璘, Seorin) joins 서 (瑞, seo), "auspicious, a good omen," with 린 (璘, rin), "the luster of jade." It's a girl's name meaning someone auspicious with jade-like radiance. 서 is top-favored, as in 서연 (Seoyeon); 린 appears i
+
+  8. Ratna Utomo (여)
+     음차   : 라트나
+     이름   : 우나나 (Woo Na-na)  禹娜娜  [Q2]
+     한 줄  : A graceful person
+     의미   : [사전602] 나나 (娜娜, Nana) doubles 나 (娜), "graceful and beautiful" — beauty stated twice for double the grace. Round and endearing, its repeated sound gives it rhythm and makes it instantly memorable. It matches the Western "Nana" pe
+
+  9. Indah Wibowo (여)
+     음차   : 인다
+     이름   : 임이담 (Im I-dam)  林利潭  [Q2]
+     한 줄  : A life that nourishes itself and others, patient and clear
+     의미   : [LLM] Idam carries a quiet image: benefit flowing like water gathered in a still pond, calm and deep rather than loud. It's a wish for a life that nourishes itself and others, patient and clear. Spoken aloud, the name is soft 
+
+ 10. Wulan Halim (여)
+     음차   : 우란
+     이름   : 한우나 (Han U-na)  韓佑娜  [Q3]
+     한 줄  : Someone graceful who helps
+     의미   : [LLM] Una carries a gentle wish: 佑 (u) meaning "to help," and 娜 (na) meaning "beautiful," together forming someone made to bring graceful support into the world. Spoken aloud, Una flows in two open, unguarded syllables—soft as
+
+ 11. Kartika Suryadi (여)
+     음차   : 카르티카
+     이름   : 서가은 (Seo Ga-eun)  徐嘉恩  [Q1]
+     한 줄  : Someone fine, with kindness
+     의미   : [사전602] 가은 (嘉恩, Gaeun) joins 가 (嘉, ga), "beautiful," with 은 (恩, eun), "grace and kindness." It describes someone lovely and full of goodwill. Soft and warm, 가은 is a long-time favorite whose 은 ending appears in some of the most l
+
+ 12. Anggun Permana (여)
+     음차   : 앙군
+     이름   : 배아루 (Bae A-ru)  裵雅婁  [Q2]
+     한 줄  : Someone graceful who shines like a star
+     의미   : [사전602] 아루 (雅婁, Aru) joins 아 (雅, a), "elegant and refined," with 루 (婁, ru), "a star." It's a girl's name meaning someone graceful who shines like a star. Round and lovable with no final consonants, fairytale-like in feel; famili
+
+ 13. Cahaya Firmansyah (여)
+     음차   : 차하야
+     이름   : 박채하 (Park Chae-ha)  朴彩河  [Q2]
+     한 줄  : A name of color and river
+     의미   : [LLM] Chaeha carries color into a river—彩 for brightness, 河 for flowing water—so the name suggests light caught in a current, always moving, never dull. Spoken aloud, it opens softly: "chae" crisp and bright, "ha" wide and eas
+
+ 14. Fitri Ramadhan (여)
+     음차   : 피트리
+     이름   : 안희림 (Ahn Hui-rim)  安曦林  [Q2]
+     한 줄  : Someone fresh and bright as a sunlit woodland
+     의미   : [사전602] 희림 (曦林, Huirim) pairs 희 (曦, hui), "morning sunlight," with 림 (林, rim), "forest." It pictures someone fresh and bright as a sunlit woodland. Soft and fresh, 희 signals dawn-light while 림 carries nature's green. Sunlight an
+
+ 15. Gita Maulana (여)
+     음차   : 기타
+     이름   : 문기쁨 (Moon Gi-ppeum)  文  [Q2]
+     한 줄  : Joy in native Korean
+     의미   : [사전602] 기쁨 (Gippeum) is a purely native Korean name meaning "joy" itself. It carries the simple, radiant wish for a life full of happiness and delight. Unlike Sino-Korean names, native names speak their meaning directly, and few
+
+ 16. Hesti Anggraini (여)
+     음차   : 헤스티
+     이름   : 이예슬 (Lee Ye-seul)  李叡璱  [Q1]
+     한 줄  : Someone wise as a blue gem
+     의미   : [사전602] 예슬 (叡璱, Yeseul) joins 예 (叡, ye), "bright and wise," with 슬 (璱, seul), "blue jade, sapphire." It sounds like "pretty and wise" abbreviated, so the sense comes through. Familiar from actress Han Ye-seul — wisdom and beauty
+
+ 17. Jelita Handoko (여)
+     음차   : 젤리타
+     이름   : 한채린 (Han Chae-rin)  韓彩璘  [Q1]
+     한 줄  : Someone vibrant who shines like a jewel
+     의미   : [사전602] 채린 (彩璘, Chaerin) joins 채 (彩, chae), "vivid color, brilliance," with 린 (璘, rin), "the luster of jade." It pictures someone vibrant who shines like a jewel. Bright and stylish, both 채 (as in 채원, Chaewon) and 린 (as in 예린, Y
+
+ 18. Kirana Sutanto (여)
+     음차   : 키라나
+     이름   : 서기쁨 (Seo Gi-ppeum)  徐  [Q2]
+     한 줄  : Joy in native Korean
+     의미   : [사전602] 기쁨 (Gippeum) is a purely native Korean name meaning "joy" itself. It carries the simple, radiant wish for a life full of happiness and delight. Unlike Sino-Korean names, native names speak their meaning directly, and few
+
+ 19. Lestari Prasetyo (여)
+     음차   : 레스타리
+     이름   : 박예린 (Park Ye-rin)  朴叡璘  [Q1]
+     한 줄  : Someone wise as jade radiance
+     의미   : [사전602] 예린 (叡璘, Yerin) joins 예 (叡, ye), "bright and wise," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name — K-pop fans know it as Yerin of GFRIEND. 예 is a top-favored syllable, as in 예은 (Yeeun); 린 sparkles,
+
+ 20. Maya Susanto (여)
+     음차   : 마야
+     이름   : 서마음 (Seo Ma-eum)  徐  [Q2]
+     한 줄  : Heart in native Korean
+     의미   : [사전602] 마음 (Maeum) is a pure native Korean name — it is the native Korean word for "heart," the mind and feeling themselves. It needs no Chinese characters; the meaning lives in the sound. Soft and open, with no hard stops, it f
+
+ 21. Nadia Hartono (여)
+     음차   : 나디아
+     이름   : 한나진 (Han Na-jin)  韓娜辰  [Q2]
+     한 줄  : Someone lovely who shines like a star
+     의미   : [사전602] 나진 (娜辰, Najin) joins 나 (娜, na), "graceful," with 진 (辰, jin), "a star." It pictures someone lovely who shines like a star. Clear and distinctive, its 진 syllable (as in 수진, Sujin) carries a true, upright feel. Beauty and s
+
+ 22. Oktavia Salim (여)
+     음차   : 옥타비아
+     이름   : 서온유 (Seo On-yu)  徐溫愈  [Q1]
+     한 줄  : Someone warm who excels
+     의미   : [사전602] 온유 (溫愈, Onyu) pairs 온 (溫, on), "warm," with 유 (愈, yu), "kind and gentle." It's literally the word 온유하다, "gentle and tender." Soft from the very sound, it suits boys and girls alike, and K-pop fans will think of SHINee's 
+
+ 23. Permata Kurniawan (여)
+     음차   : 페르마타
+     이름   : 권혜은 (Kwon Hye-eun)  權慧恩  [Q2]
+     한 줄  : Someone wise and gracious
+     의미   : [사전602] 혜은 (慧恩, Hyeeun) joins 혜 (慧, hye), "wise and intelligent," with 은 (恩, eun), "grace and kindness." It pictures someone wise and gracious. Soft and tender, 혜 signals wisdom while 은 (as in 서은, Seoeun, and 하은, Haeun) is a top
+
+ 24. Rahayu Siregar (여)
+     음차   : 라하유
+     이름   : 신라윤 (Shin Ra-yun)  申羅潤  [Q1]
+     한 줄  : Someone lustrous as silk
+     의미   : [LLM] Rayun carries a quiet radiance: 라 spreads and unfolds, 윤 glows with a soft, watery luster, together painting someone whose warmth and grace ripple gently outward into the world around them. Spoken aloud, the name flows e
+
+ 25. Sekar Nasution (여)
+     음차   : 세카르
+     이름   : 남세은 (Nam Se-eun)  南世恩  [Q1]
+     한 줄  : A name of the world and kindness
+     의미   : [LLM] Se-eun carries a quiet grandeur: se (世), the whole wide world, joined to eun (恩), grace and kindness — a wish that someone might meet that vast world gently, and be met by it in kind. Spoken aloud, it flows softly, the o
+
+ 26. Utami Simatupang (여)
+     음차   : 우타미
+     이름   : 신우정 (Shin U-jeong)  申旭晶  [Q2]
+     한 줄  : Someone sparkling as a morning sun
+     의미   : [사전602] 우정 (旭晶, Ujeong) pairs 우 (旭, u), "the rising sun," with 정 (晶, jeong), "crystal-clear." But above all, it sounds like 우정 (友情), "friendship," so a sense of deep, warm loyalty is right in the name. Neat and endearing, sunris
+
+ 27. Vina Situmorang (여)
+     음차   : 비나
+     이름   : 신빛나 (Shin Bit-na)  申  [Q2]
+     한 줄  : Someone who shines brightly wherever they are
+     의미   : [사전602] 빛나 (Bitna) is a purely native Korean name meaning "to shine." It carries, directly, the wish for someone who shines brightly wherever they are. The name sparkles from its very sound; just calling it becomes a cheer of "s
+
+ 28. Widya Panjaitan (여)
+     음차   : 위댜
+     이름   : 박이담 (Park I-dam)  朴利潭  [Q2]
+     한 줄  : A name of beneficial and pond
+     의미   : [LLM] Idam carries a quiet, glimmering image: benefit and blessing (利) settling like clear water into a still pond (潭), a place where good things gather and deepen rather than rush away. Spoken aloud, it's soft and open — the 
+
+ 29. Yuliana Hutagalung (여)
+     음차   : 율리아나
+     이름   : 허윤아 (Heo Yun-a)  許玧雅  [Q1]
+     한 줄  : Someone precious as a jewel and graceful
+     의미   : [사전602] 윤아 (玧雅, Yuna) pairs 윤 (玧, yun), "a precious red jewel," with 아 (雅, a), "elegant and refined." It pictures someone precious as a jewel and graceful. Soft and elegant, K-pop fans will instantly think of Girls' Generation's
+
+ 30. Zahra Purnomo (여)
+     음차   : 자라
+     이름   : 박자영 (Park Ja-yeong)  朴慈瑩  [Q2]
+     한 줄  : Someone compassionate who glows brightly
+     의미   : [사전602] 자영 (慈瑩, Jayeong) joins 자 (慈, ja), "loving compassion," with 영 (瑩, yeong), "bright and jade-clear." It pictures someone compassionate who glows brightly. Soft and familiar, 자 carries warmth while 영 (as in 지영, Jiyeong) is 
+
+ 31. Bunga Sulaiman (여)
+     음차   : 붕가
+     이름   : 서부경 (Seo Bu-gyeong)  徐芙冏  [Q2]
+     한 줄  : Someone noble as a lotus and brightly shining
+     의미   : [사전602] 부경 (芙冏, Bugyeong) joins 부 (芙, bu), "lotus blossom," with 경 (冏, gyeong), "bright and radiant." It's a girl's name meaning someone noble as a lotus and brightly shining. 부 lends a lotus's grace; 경 lends radiance — a subtle
+
+ 32. Citra Iskandar (여)
+     음차   : 치트라
+     이름   : 이지은 (Lee Ji-eun)  李智恩  [Q1]
+     한 줄  : A name of wisdom and kindness
+     의미   : [LLM] Jieun carries a quiet strength: 지 for wisdom, 은 for kindness, together naming someone meant to think clearly and give gently. Spoken aloud, it moves softly — a crisp "ji" opening into the warm, round "eun" — like a breat
+
+ 33. Dian Mahendra (여)
+     음차   : 다이앤
+     이름   : 문다인 (Moon Da-in)  文多仁  [Q1]
+     한 줄  : Someone with abundant kindness
+     의미   : [사전602] 다인 (多仁, Dain) pairs 다 (多, da), "abundant," with 인 (仁, in), "benevolent and kind." It pictures someone with abundant kindness. Soft and neat, its 인 ending (as in 지인, Jiin, and 서인, Seoin) is gentle and warm. It also chimes
+
+ 34. Endah Wicaksono (여)  ⚠ 발음기호
+     음차   : 엔다
+     이름   : 이예담 (Lee Ye-dam)  李  [Q1]
+     한 줄  : A wise and serene person
+     의미   : [사전602] 예담 (叡憺, Yedam) joins 예 (叡, ye), "bright and wise," with 담 (憺, dam), "peaceful and calm." It evokes "holding wisdom," a native-Korean-like ring. Gender-neutral, soft and graceful in sound, elegant enough for a hanok café'
+
+ 35. Farida Wijaya (여)
+     음차   : 파리다
+     이름   : 이하린 (Lee Ha-rin)  李荷璘  [Q1]
+     한 줄  : Someone noble as a lotus who shines like a jewel
+     의미   : [사전602] 하린 (荷璘, Harin) joins 하 (荷, ha), "lotus flower," with 린 (璘, rin), "the luster of jade." It pictures someone noble as a lotus who shines like a jewel. A big favorite lately, its 하 opener (as in 하율, Hayul) and 린 ending (as 
+
+ 36. Galuh Santoso (여)
+     음차   : 갈루
+     이름   : 서가람 (Seo Ga-ram)  徐嘉覽  [Q1]
+     한 줄  : River in native Korean
+     의미   : [사전602] 가람 (嘉覽, Garam) joins 가 (嘉, ga), "beautiful and praiseworthy," with 람 (覽, ram), "to look over and care for." But 가람 is also an old native Korean word for "river," so the name carries the image of someone generous and flow
+
+ 37. Irma Kusuma (여)
+     음차   : 이르마
+     이름   : 권이은 (Kwon I-eun)  權利恩  [Q2]
+     한 줄  : A name of beneficial and kindness
+     의미   : [LLM] Ieun carries a quiet blessing: 利 for benefit, gain, the good that flows outward, and 恩 for kindness, grace freely given. Together they name someone meant to bring helpful warmth into others' lives. The sound itself is ge
+
+ 38. Juwita Hidayat (여)
+     음차   : 주위타
+     이름   : 이주이 (Lee Ju-i)  李珠璃  [Q2]
+     한 줄  : Someone precious and clear as glass
+     의미   : [사전602] 주이 (珠璃, Jui) pairs 주 (珠, ju), "pearl, jewel," with 이 (璃, i), "clear crystal." It pictures someone precious and clear as glass. Short and lovable, it chimes with the Western "Jui" and "Joey." Preciousness and clarity meet
+
+ 39. Kasih Saputra (여)
+     음차   : 카시
+     이름   : 서가빈 (Seo Ga-bin)  徐嘉彬  [Q1]
+     한 줄  : A fine and shining person
+     의미   : [사전602] 가빈 (嘉彬, Gabin) joins 가 (嘉, ga), "beautiful," with 빈 (彬, bin), "refined and shining." It describes someone lovely both inside and out. Polished and modern, 가빈 shares its 빈 ending with some of today's most popular names — 
+
+ 40. Laras Pratama (여)
+     음차   : 라라스
+     이름   : 박나라 (Park Na-ra)  朴娜羅  [Q2]
+     한 줄  : Someone unfolding as lovely as silk
+     의미   : [사전602] 나라 (娜羅, Nara) joins 나 (娜, na), "graceful," with 라 (羅, ra), "silk, to spread out." It pictures someone unfolding as lovely as silk. It's also the native Korean word for "country," adding a spacious, world-embracing spirit
+
+ 41. Mawar Nugraha (여)
+     음차   : 마와르
+     이름   : 우마음 (Woo Ma-eum)  禹  [Q2]
+     한 줄  : Heart in native Korean
+     의미   : [사전602] 마음 (Maeum) is a pure native Korean name — it is the native Korean word for "heart," the mind and feeling themselves. It needs no Chinese characters; the meaning lives in the sound. Soft and open, with no hard stops, it f
+
+ 42. Nurul Utomo (여)
+     음차   : 누룰
+     이름   : 우누리 (Woo Nu-ri)  禹  [Q2]
+     한 줄  : World in native Korean
+     의미   : [사전602] 누리 (Nuri) is a pure native Korean name — it is the native Korean word for "the world," an old and poetic one. It carries no Chinese characters; the meaning is in the sound. Bright and rolling, it flows easily off the ton
+
+ 43. Puspita Wibowo (여)
+     음차   : 푸스피타
+     이름   : 이부경 (Lee Bu-gyeong)  李芙冏  [Q2]
+     한 줄  : Someone noble as a lotus and brightly shining
+     의미   : [사전602] 부경 (芙冏, Bugyeong) joins 부 (芙, bu), "lotus blossom," with 경 (冏, gyeong), "bright and radiant." It's a girl's name meaning someone noble as a lotus and brightly shining. 부 lends a lotus's grace; 경 lends radiance — a subtle
+
+ 44. Rina Halim (여)
+     음차   : 리나
+     이름   : 한리라 (Han Ri-ra)  韓悧羅  [Q2]
+     한 줄  : Someone clever who unfolds soft as silk
+     의미   : [사전602] 리라 (悧羅, Rira) joins 리 (悧, ri), "clever and bright," with 라 (羅, ra), "silk, to spread out." It's a girl's name meaning someone clever who unfolds soft as silk. It evokes the lyre and lira, an exotic ring. Flowing with no 
+
+ 45. Suci Suryadi (여)
+     음차   : 수치
+     이름   : 서수진 (Seo Su-jin)  徐秀辰  [Q1]
+     한 줄  : Someone excellent who shines like a star
+     의미   : [사전602] 수진 (秀辰, Sujin) joins 수 (秀, su), "outstanding and excelling," with 진 (辰, jin), "star, celestial." It's a long-beloved girl's name meaning someone excellent who shines like a star. 수 is a clear first syllable; 진 feels hone
+
+ 46. Tiara Permana (여)
+     음차   : 티아라
+     이름   : 배태은 (Bae Tae-eun)  裵台恩  [Q1]
+     한 줄  : Someone who shines high and is gracious
+     의미   : [사전602] 태은 (台恩, Taeeun) pairs 태 (台, tae), "a star, high office," with 은 (恩, eun), "grace and kindness." It pictures someone who shines high and is gracious. Soft and neat, 태 signals a big vessel while 은 (as in 서은, Seoeun, and 하은
+
+ 47. Ulfa Firmansyah (여)
+     음차   : 울파
+     이름   : 박우정 (Park U-jeong)  朴旭晶  [Q2]
+     한 줄  : Someone sparkling as a morning sun
+     의미   : [사전602] 우정 (旭晶, Ujeong) pairs 우 (旭, u), "the rising sun," with 정 (晶, jeong), "crystal-clear." But above all, it sounds like 우정 (友情), "friendship," so a sense of deep, warm loyalty is right in the name. Neat and endearing, sunris
+
+ 48. Wahyuni Ramadhan (여)
+     음차   : 와휴니
+     이름   : 안아린 (Ahn A-rin)  安雅璘  [Q1]
+     한 줄  : Someone refined as jade radiance
+     의미   : [사전602] 아린 (雅璘, Arin) joins 아 (雅, a), "elegant and refined," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name today — K-pop fans know it as Arin of OH MY GIRL. The 린 syllable sparkles, as in 예린 (Yerin) — grac
+
+ 49. Yanti Maulana (여)
+     음차   : 얀티
+     이름   : 문아린 (Moon A-rin)  文雅璘  [Q1]
+     한 줄  : Someone refined as jade radiance
+     의미   : [사전602] 아린 (雅璘, Arin) joins 아 (雅, a), "elegant and refined," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name today — K-pop fans know it as Arin of OH MY GIRL. The 린 syllable sparkles, as in 예린 (Yerin) — grac
+
+ 50. Zulaikha Anggraini (여)
+     음차   : 줄라이카
+     이름   : 이주이 (Lee Ju-i)  李珠璃  [Q2]
+     한 줄  : Someone precious and clear as glass
+     의미   : [사전602] 주이 (珠璃, Jui) pairs 주 (珠, ju), "pearl, jewel," with 이 (璃, i), "clear crystal." It pictures someone precious and clear as glass. Short and lovable, it chimes with the Western "Jui" and "Joey." Preciousness and clarity meet
+
+ 51. Anisa Handoko (여)
+     음차   : 애니사
+     이름   : 한예린 (Han Ye-rin)  韓叡璘  [Q1]
+     한 줄  : Someone wise as jade radiance
+     의미   : [사전602] 예린 (叡璘, Yerin) joins 예 (叡, ye), "bright and wise," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name — K-pop fans know it as Yerin of GFRIEND. 예 is a top-favored syllable, as in 예은 (Yeeun); 린 sparkles,
+
+ 52. Cinta Sutanto (여)
+     음차   : 친타
+     이름   : 서지아 (Seo Ji-a)  徐智雅  [Q1]
+     한 줄  : Someone wise and graceful
+     의미   : [사전602] 지아 (智雅, Jia) joins 지 (智, ji), "wisdom," with 아 (雅, a), "elegant and refined." It pictures someone wise and graceful. 지아 is one of the most loved girls' names today — 지 signals cleverness while 아 (as in 수아, Sua, and 서아, S
+
+ 53. Diah Prasetyo (여)
+     음차   : 디아
+     이름   : 박지아 (Park Ji-a)  朴智雅  [Q1]
+     한 줄  : Someone wise and graceful
+     의미   : [사전602] 지아 (智雅, Jia) joins 지 (智, ji), "wisdom," with 아 (雅, a), "elegant and refined." It pictures someone wise and graceful. 지아 is one of the most loved girls' names today — 지 signals cleverness while 아 (as in 수아, Sua, and 서아, S
+
+ 54. Eka Susanto (여)
+     음차   : 에카
+     이름   : 서예강 (Seo Ye-gang)  徐睿康  [Q2]
+     한 줄  : A name of wisdom and at peace
+     의미   : [LLM] Ye-gang carries a quiet strength: 예 for wisdom, 강 for peace, together wishing for someone whose calm mind steadies both themselves and those around them. Spoken aloud, it opens softly on "ye" and settles into the crisp, 
+
+ 55. Fani Hartono (여)
+     음차   : 파니
+     이름   : 한하린 (Han Ha-rin)  韓荷璘  [Q1]
+     한 줄  : Someone noble as a lotus who shines like a jewel
+     의미   : [사전602] 하린 (荷璘, Harin) joins 하 (荷, ha), "lotus flower," with 린 (璘, rin), "the luster of jade." It pictures someone noble as a lotus who shines like a jewel. A big favorite lately, its 하 opener (as in 하율, Hayul) and 린 ending (as 
+
+ 56. Ines Salim (여)
+     음차   : 이네스
+     이름   : 서이슬 (Seo I-seul)  徐璃璱  [Q2]
+     한 줄  : Dew in native Korean
+     의미   : [사전602] 이슬 (璃璱, Iseul) pairs 이 (璃, i), "clear crystal," with 슬 (璱, seul), "blue jade." But above all, 이슬 is the native Korean word for "dew" — the clear drops on morning grass. It carries the wish to be pure and glistening as de
+
+ 57. Kemala Kurniawan (여)
+     음차   : 케말라
+     이름   : 권가람 (Kwon Ga-ram)  權嘉覽  [Q1]
+     한 줄  : River in native Korean
+     의미   : [사전602] 가람 (嘉覽, Garam) joins 가 (嘉, ga), "beautiful and praiseworthy," with 람 (覽, ram), "to look over and care for." But 가람 is also an old native Korean word for "river," so the name carries the image of someone generous and flow
+
+ 58. Mira Siregar (여)
+     음차   : 미라
+     이름   : 신미나 (Shin Mi-na)  申美娜  [Q2]
+     한 줄  : A beautiful and graceful person
+     의미   : [사전602] 미나 (美娜, Mina) joins 미 (美, mi), "beautiful," with 나 (娜, na), "graceful and beautiful" — beauty doubled. It matches "Mina," familiar in the West and Japan, so it travels effortlessly. K-pop fans may recall Mina of TWICE — 
+
+ 59. Novi Nasution (여)
+     음차   : 노비
+     이름   : 남루비 (Nam Ru-bi)  南婁丕  [Q2]
+     한 줄  : Someone precious and radiant as a jewel
+     의미   : [사전602] 루비 (婁丕, Rubi) joins 루 (婁, ru), "a star," with 비 (丕, bi), "great and grand." Above all, it evokes the red gem "ruby." It's a girl's name meaning someone precious and radiant as a jewel. Familiar abroad, with a round sound
+
+ 60. Prita Simatupang (여)
+     음차   : 프리타
+     이름   : 신부경 (Shin Bu-gyeong)  申芙冏  [Q2]
+     한 줄  : Someone noble as a lotus and brightly shining
+     의미   : [사전602] 부경 (芙冏, Bugyeong) joins 부 (芙, bu), "lotus blossom," with 경 (冏, gyeong), "bright and radiant." It's a girl's name meaning someone noble as a lotus and brightly shining. 부 lends a lotus's grace; 경 lends radiance — a subtle
+
+ 61. Ratih Situmorang (여)
+     음차   : 라티
+     이름   : 신라임 (Shin Ra-im)  申羅壬  [Q1]
+     한 줄  : Someone soft as silk and zesty as lime
+     의미   : [사전602] 라임 (羅壬, Raim) joins 라 (羅, ra), "silk," with 임 (壬, im), "kind and great." Above all, it evokes the fresh fruit "lime," a crisp, tangy image. It's a girl's name meaning someone soft as silk and zesty as lime. Familiar in s
+
+ 62. Sinta Panjaitan (여)
+     음차   : 신타
+     이름   : 박시아 (Park Si-a)  朴是雅  [Q1]
+     한 줄  : Someone upright and graceful
+     의미   : [사전602] 시아 (是雅, Sia) joins 시 (是, si), "right and true," with 아 (雅, a), "elegant and refined." It's a girl's name meaning someone upright and graceful. It matches the pop star "Sia" — one of the most naturally international Korea
+
+ 63. Tuti Hutagalung (여)
+     음차   : 투티
+     이름   : 허두나 (Heo Du-na)  許斗娜  [Q2]
+     한 줄  : Someone who shines like the Dipper and is lovely
+     의미   : [사전602] 두나 (斗娜, Duna) joins 두 (斗, du), "the Big Dipper, a star," with 나 (娜, na), "graceful and beautiful." It's a girl's name meaning someone who shines like the Dipper and is lovely. Short and distinctive, it echoes the English
+
+ 64. Vira Purnomo (여)
+     음차   : 비라
+     이름   : 박빛나 (Park Bit-na)  朴  [Q2]
+     한 줄  : Someone who shines brightly wherever they are
+     의미   : [사전602] 빛나 (Bitna) is a purely native Korean name meaning "to shine." It carries, directly, the wish for someone who shines brightly wherever they are. The name sparkles from its very sound; just calling it becomes a cheer of "s
+
+ 65. Winda Sulaiman (여)
+     음차   : 윈다
+     이름   : 서이담 (Seo I-dam)  徐利潭  [Q2]
+     한 줄  : A name of beneficial and pond
+     의미   : [LLM] I-Dam carries a quiet richness: 利 for benefit and grace, 潭 for a deep, still pond—together suggesting a calm depth from which good things naturally flow. Spoken aloud, it opens softly and closes clear, the vowels wide an
+
+ 66. Yulia Iskandar (여)
+     음차   : 율리아
+     이름   : 이윤아 (Lee Yun-a)  李玧雅  [Q1]
+     한 줄  : Someone precious as a jewel and graceful
+     의미   : [사전602] 윤아 (玧雅, Yuna) pairs 윤 (玧, yun), "a precious red jewel," with 아 (雅, a), "elegant and refined." It pictures someone precious as a jewel and graceful. Soft and elegant, K-pop fans will instantly think of Girls' Generation's
+
+ 67. Asih Mahendra (여)
+     음차   : 아시
+     이름   : 문아린 (Moon A-rin)  文雅璘  [Q1]
+     한 줄  : Someone refined as jade radiance
+     의미   : [사전602] 아린 (雅璘, Arin) joins 아 (雅, a), "elegant and refined," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name today — K-pop fans know it as Arin of OH MY GIRL. The 린 syllable sparkles, as in 예린 (Yerin) — grac
+
+ 68. Bulan Wicaksono (여)
+     음차   : 불란
+     이름   : 이보라 (Lee Bo-ra)  李普羅  [Q2]
+     한 줄  : Someone special as a mystical, elegant shade of violet
+     의미   : [사전602] 보라 (普羅, Bora) — above all, this is the native Korean word for the color "purple." It carries the wish for someone special as a mystical, elegant shade of violet. The characters echo beneath, but the color leads. A girl's
+
+ 69. Cempaka Wijaya (여)
+     음차   : 첨파카
+     이름   : 이청아 (Lee Cheong-a)  李淸雅  [Q2]
+     한 줄  : A clear and refined person
+     의미   : [LLM] Cheonga carries a name built from doubled clarity—cheong's clear brightness and a's refined grace—as if someone wished for a person untouched by murkiness, elegant in the plainest sense of the word. Spoken aloud, it open
+
+ 70. Damai Santoso (여)
+     음차   : 다마이
+     이름   : 서다인 (Seo Da-in)  徐多仁  [Q1]
+     한 줄  : Someone with abundant kindness
+     의미   : [사전602] 다인 (多仁, Dain) pairs 다 (多, da), "abundant," with 인 (仁, in), "benevolent and kind." It pictures someone with abundant kindness. Soft and neat, its 인 ending (as in 지인, Jiin, and 서인, Seoin) is gentle and warm. It also chimes
+
+ 71. Budi Utomo (남)
+     음차   : 부디
+     이름   : 우범진 (Woo Beom-jin)  禹汎辰  [Q1]
+     한 줄  : Someone broad-minded who shines like a star
+     의미   : [사전602] 범진 (汎辰, Beomjin) joins 범 (汎, beom), "broad, far-reaching," with 진 (辰, jin), "star, celestial." It's a boy's name meaning someone broad-minded who shines like a star. 범 lends a magnanimous vessel; 진 feels honest, as in 우진
+
+ 72. Agus Wibowo (남)
+     음차   : 아구스
+     이름   : 이한승 (Lee Han-seung)  李瀚勝  [Q2]
+     한 줄  : Someone wide as the sea who triumphs
+     의미   : [사전602] 한승 (瀚勝, Hanseung) joins 한 (瀚, han), "vast, expansive," with 승 (勝, seung), "to win, to excel." It pictures someone wide as the sea who triumphs. Firm and spirited, 한 signals a vast vessel while 승 (as in 승우, Seungu) signal
+
+ 73. Bambang Halim (남)
+     음차   : 밤방
+     이름   : 한바다 (Han Ba-da)  韓  [Q2]
+     한 줄  : Someone as wide, deep, and blue as the ocean
+     의미   : [사전602] 바다 (Bada) is a purely native Korean name meaning "sea." It carries the wish for someone as wide, deep, and blue as the ocean. A gender-neutral native Korean name, soft and refreshing in sound. The sea's vast, free image 
+
+ 74. Dedi Suryadi (남)
+     음차   : 데디
+     이름   : 서재진 (Seo Jae-jin)  徐才眞  [Q2]
+     한 줄  : A name of talent and true
+     의미   : [LLM] Jaejin carries a quiet kind of promise: 才 for talent, 眞 for truth, together suggesting a gift that is genuine rather than showy. Someone given this name is wished a talent rooted in honesty, real ability that needs no di
+
+ 75. Eko Permana (남)
+     음차   : 에코
+     이름   : 배예건 (Bae Ye-geon)  裵叡虔  [Q1]
+     한 줄  : Someone wise who gives their all
+     의미   : [사전602] 예건 (叡虔, Yegeon) joins 예 (叡, ye), "bright and wise," with 건 (虔, geon), "reverent and devoted." It's a boy's name meaning someone wise who gives their all. 예 lends brilliance; 건 lends solidity, as in 건우 (Geonu) — an uprigh
+
+ 76. Fajar Firmansyah (남)
+     음차   : 파자르
+     이름   : 박하람 (Park Ha-ram)  朴  [Q1]
+     한 줄  : Heaven's gift in native Korean
+     의미   : [순우리말] 하람 (Ha-ram) is a native Korean name — the native Korean word for "heaven's gift." It carries no Chinese characters; the meaning lives right in the sound. Balanced in sound, one syllable open and one closed
+
+ 77. Gunawan Ramadhan (남)
+     음차   : 구나완
+     이름   : 안구현 (Ahn Gu-hyeon)  安丘炫  [Q2]
+     한 줄  : Someone shining brilliantly from a height
+     의미   : [사전602] 구현 (丘炫, Guhyeon) pairs 구 (丘, gu), "a hill, high ground," with 현 (炫, hyeon), "dazzling and bright." It pictures someone shining brilliantly from a height. It also sounds like the Korean verb 구현하다, "to bring to life, to re
+
+ 78. Hendra Maulana (남)
+     음차   : 핸드라
+     이름   : 문해승 (Moon Hae-seung)  文楷勝  [Q2]
+     한 줄  : Someone bright who triumphs
+     의미   : [사전602] 해승 (楷勝, Haeseung) joins 해 (楷, hae), "model, exemplary," with 승 (勝, seung), "to win, to excel." With the native echo of 해, "sun," it pictures someone bright who triumphs. Firm and spirited, 승 (as in 승우, Seungu) signals vi
+
+ 79. Iwan Anggraini (남)
+     음차   : 이완
+     이름   : 안이안 (Ahn I-an)  安璃安  [Q1]
+     한 줄  : Someone clear and at peace
+     의미   : [사전602] 이안 (璃安, Ian) joins 이 (璃, i), "clear crystal," with 안 (安, an), "peaceful and tranquil." It pictures someone clear and at peace. It matches the Western "Ian" perfectly — one of the most globally natural Korean names — and 
+
+ 80. Joko Handoko (남)
+     음차   : 조코
+     이름   : 한종건 (Han Jong-geon)  韓宗建  [Q2]
+     한 줄  : A name that establishes, holding ridge
+     의미   : [LLM] Jonggeon carries a quiet strength: 宗 (jong) evokes a ridge or ancestral line, something that stands tall and endures, while 建 (geon) means to establish, to build. Together they express the hope that someone will become a
+
+ 81. Kurnia Sutanto (남)
+     음차   : 쿠르니아
+     이름   : 서건아 (Seo Geon-a)  徐虔雅  [Q2]
+     한 줄  : Someone earnest yet graceful
+     의미   : [사전602] 건아 (虔雅, Geona) pairs 건 (虔, geon), "sincere and devoted," with 아 (雅, a), "elegant and refined." It pictures someone earnest yet graceful. It also sounds like 건아 (健兒), "a spirited young person," adding a bright, healthy no
+
+ 82. Lukman Prasetyo (남)
+     음차   : 룩만
+     이름   : 박루한 (Park Ru-han)  朴婁瀚  [Q2]
+     한 줄  : Someone who shines like a star, wide as the sea
+     의미   : [사전602] 루한 (婁瀚, Ruhan) joins 루 (婁, ru), "a star," with 한 (瀚, han), "vast and expansive." It's a boy's name meaning someone who shines like a star, wide as the sea. K-pop fans know it instantly as Luhan (formerly of EXO) — a tren
+
+ 83. Mulyono Susanto (남)
+     음차   : 물요노
+     이름   : 서무영 (Seo Mu-yeong)  徐武榮  [Q2]
+     한 줄  : A name of robust and glory
+     의미   : [LLM] Muyoung carries a quiet strength: 무, meaning robust, grounds someone in sturdy resolve, while 영, meaning glory, lifts that strength toward shining achievement. Together they express the hope that a person will meet life 
+
+ 84. Nugroho Hartono (남)
+     음차   : 누그로호
+     이름   : 한누리 (Han Nu-ri)  韓  [Q2]
+     한 줄  : World in native Korean
+     의미   : [사전602] 누리 (Nuri) is a pure native Korean name — it is the native Korean word for "the world," an old and poetic one. It carries no Chinese characters; the meaning is in the sound. Bright and rolling, it flows easily off the ton
+
+ 85. Purnama Salim (남)
+     음차   : 푸르나마
+     이름   : 서부건 (Seo Bu-geon)  徐副建  [Q2]
+     한 줄  : A name that establishes, holding second
+     의미   : [LLM] Bugeon carries a quiet strength: 부 (second, supporting) paired with 건 (to establish, to build) — the hope that someone might build steadily, becoming the reliable hand that helps great things rise, even without needing t
+
+ 86. Rizky Kurniawan (남)
+     음차   : 리즈키
+     이름   : 권리우 (Kwon Ri-u)  權悧旭  [Q1]
+     한 줄  : Someone clever who rises bright as morning
+     의미   : [사전602] 리우 (悧旭, Riu) joins 리 (悧, ri), "clever and bright," with 우 (旭, u), "the rising morning sun." It's a name meaning someone clever who rises bright as morning. Gender-neutral, it evokes Rio, an exotic, lively ring. Round wit
+
+ 87. Setiawan Siregar (남)
+     음차   : 세티아완
+     이름   : 신세환 (Shin Se-hwan)  申世煥  [Q1]
+     한 줄  : Someone bright as the world
+     의미   : [LLM] Sehwan carries a bright promise: se (世) meaning "the world," hwan (煥) meaning "bright, radiant," together evoking someone whose brilliance lights up all around them. Spoken aloud, it flows smoothly—soft consonants, open 
+
+ 88. Teguh Nasution (남)
+     음차   : 테구
+     이름   : 남태건 (Nam Tae-geon)  南台虔  [Q1]
+     한 줄  : Someone shining high like a star and utterly earnest
+     의미   : [사전602] 태건 (台虔, Taegeon) pairs 태 (台, tae), "a star, high office," with 건 (虔, geon), "sincere and devoted." It pictures someone shining high like a star and utterly earnest. Firm and spirited, 태 (as in 태현, Taehyeon) signals a big
+
+ 89. Umar Simatupang (남)
+     음차   : 우마르
+     이름   : 신우찬 (Shin U-chan)  申佑燦  [Q1]
+     한 줄  : Someone shining who helps
+     의미   : [LLM] Woo-chan carries a quiet radiance: 佑 (woo) means to help or protect, 燦 (chan) means shining bright — together, someone destined to be a helping light in others' lives. Spoken aloud, the name flows warmly, its open "oo" s
+
+ 90. Wahyu Situmorang (남)
+     음차   : 와유
+     이름   : 신아준 (Shin A-jun)  申雅峻  [Q1]
+     한 줄  : Someone graceful who stands tall like a mountain
+     의미   : [사전602] 아준 (雅峻, Ajun) joins 아 (雅, a), "elegant and refined," with 준 (峻, jun), "lofty and towering." It's a boy's name meaning someone graceful who stands tall like a mountain. The 준 syllable is among the most beloved, as in 민준 (
+
+ 91. Yusuf Panjaitan (남)
+     음차   : 유수프
+     이름   : 박윤수 (Park Yun-su)  朴潤秀  [Q1]
+     한 줄  : A lustrous and outstanding person
+     의미   : [LLM] Yunsu carries a quiet shine: 윤 (潤) for lustrous, glowing warmth, and 수 (秀) for outstanding, standing above the rest. Together they paint someone meant to gleam without needing to shout about it — a gentle brilliance, ste
+
+ 92. Zaki Hutagalung (남)
+     음차   : 자키
+     이름   : 허장우 (Heo Jang-u)  許暲旭  [Q2]
+     한 줄  : Someone rising dazzlingly bright
+     의미   : [사전602] 장우 (暲旭, Jangu) doubles the sun: 장 (暲, jang), "the bright rising sun," and 우 (旭, u), "the rising sun." It pictures someone rising dazzlingly bright. Firm and bracing, its 우 ending is among the most loved — 준우 (Junu), 시우 (
+
+ 93. Bagus Purnomo (남)
+     음차   : 바구스
+     이름   : 박범수 (Park Beom-su)  朴汎秀  [Q1]
+     한 줄  : Someone broad-minded and excellent
+     의미   : [사전602] 범수 (汎秀, Beomsu) joins 범 (汎, beom), "broad, far-reaching," with 수 (秀, su), "outstanding and excelling." It's a boy's name meaning someone broad-minded and excellent. Familiar from singer Kim Bum-soo — breadth and excellen
+
+ 94. Candra Sulaiman (남)
+     음차   : 찬드라
+     이름   : 서찬승 (Seo Chan-seung)  徐讚勝  [Q2]
+     한 줄  : Someone who shines brightly and triumphs
+     의미   : [사전602] 찬승 (讚勝, Chanseung) pairs 찬 (讚, chan), "radiant, praised," with 승 (勝, seung), "to win, to excel." It pictures someone who shines brightly and triumphs. Firm and lively, 찬 (as in 우찬, Uchan) is cheerful while 승 signals vict
+
+ 95. Dimas Iskandar (남)
+     음차   : 디마스
+     이름   : 이지승 (Lee Ji-seung)  李智勝  [Q1]
+     한 줄  : Someone who wins through wisdom
+     의미   : [사전602] 지승 (智勝, Jiseung) pairs 지 (智, ji), "wisdom," with 승 (勝, seung), "to win, to excel." It pictures someone who wins through wisdom. Clear and spirited, 지 signals cleverness while 승 (as in 승우, Seungu) signals victory. Wisdom 
+
+ 96. Ferdi Mahendra (남)
+     음차   : 페르디
+     이름   : 문해준 (Moon Hae-jun)  文楷峻  [Q1]
+     한 줄  : Someone bright who stands tall like a mountain
+     의미   : [사전602] 해준 (楷峻, Haejun) joins 해 (楷, hae), "model, exemplary," with 준 (峻, jun), "lofty and towering." With the native echo of 해, "sun," it pictures someone bright who stands tall like a mountain. Neat and upright, 준 is the most l
+
+ 97. Guntur Wicaksono (남)
+     음차   : 군투르
+     이름   : 이구현 (Lee Gu-hyeon)  李丘炫  [Q2]
+     한 줄  : Someone shining brilliantly from a height
+     의미   : [사전602] 구현 (丘炫, Guhyeon) pairs 구 (丘, gu), "a hill, high ground," with 현 (炫, hyeon), "dazzling and bright." It pictures someone shining brilliantly from a height. It also sounds like the Korean verb 구현하다, "to bring to life, to re
+
+ 98. Indra Wijaya (남)
+     음차   : 인드라
+     이름   : 임이든 (Im I-deun)  林  [Q1]
+     한 줄  : Good in native Korean
+     의미   : [사전602] 이든 (Ideun) comes from the native Korean word 이든, "good-hearted and kind." It carries the wish for a genuinely good person. It also matches the English "Eden," carrying the peaceful ring of paradise. Soft and stylish, it 
+
+ 99. Rangga Santoso (남)
+     음차   : 랑가
+     이름   : 서라온 (Seo Ra-on)  徐羅溫  [Q1]
+     한 줄  : Someone joyful and warm
+     의미   : [사전602] 라온 (羅溫, Raon) — above all, this comes from the native Korean word 라온 ("joyful"). It carries the wish for someone joyful and warm. A gender-neutral name with a soft, bright sound and no final consonants, it has a lovable 
+
+100. Surya Kusuma (남)
+     음차   : 수리아
+     이름   : 권수한 (Kwon Su-han)  權秀漢  [Q2]
+     한 줄  : Someone outstanding as the han river
+     의미   : [LLM] Suhan carries a quiet grandeur: 秀 for standing out, distinguished among many, and 漢 for the great Han River, broad and enduring as it moves through Seoul. Together they suggest someone meant to flow with quiet excellence
+
+==========================================================================
+완료 100건 · 변환 실패 0건 · 확인 필요 1건
+
+의미 설명 출처
+  LLM 생성     21건   21.0%   <- 이 값이 나와야 LLM 경로가 검증된 것
+  사전 602     78건   78.0%   (미리 작성된 설명, LLM 검증 아님)
+  순우리말      1건    1.0%   (한자가 없어 로컬 생성, 정상)
+  템플릿        0건    0.0%   <- 0 이어야 정상
+
+이름 품질 등급
+  Q1           46건   46.0%
+  Q2           53건   53.0%
+  Q3            1건    1.0%
