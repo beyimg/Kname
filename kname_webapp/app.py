@@ -17,6 +17,7 @@ import io
 import re
 import sys
 import json
+import random as _rnd
 import contextlib
 
 from flask import (Flask, render_template, request, jsonify, redirect,
@@ -850,8 +851,19 @@ def _degender(text):
 # 사용자가 고른 성별에 맞춰 교정한다. (예: 여성인데 "a boy's name"으로 나온 경우)
 # 명사(boy/girl 등)는 소문자만 치환해 고유명사(OH MY GIRL 등)를 보호하고,
 # 대명사는 대소문자를 보존한다.
+# "boys and girls alike"처럼 두 성별을 함께 부르는 관용구는 성별을 바꾸면 안 된다.
+# 개별 치환(boys→girls)에 걸리면 "girls and girls alike"라는 말이 되어 버리므로,
+# 치환 전에 잠시 치워두고(_KEEP) 맨 끝에서 되돌린다(_RESTORE).
+_GENDER_PAIRS = [
+    ("boys and girls", "\x00p1\x00"), ("girls and boys", "\x00p2\x00"),
+    ("boy or girl", "\x00p3\x00"),    ("girl or boy", "\x00p4\x00"),
+    ("boys and girls alike", "\x00p5\x00"),
+]
+_KEEP = [(re.compile(r"\b%s\b" % re.escape(a)), b) for a, b in _GENDER_PAIRS]
+_RESTORE = [(re.compile(re.escape(b)), a) for a, b in _GENDER_PAIRS]
+
 _REGENDER = {
-    '여': [   # → 여성
+    '여': _KEEP + [   # → 여성
         (re.compile(r"\ba boy's name\b"), "a girl's name"),
         (re.compile(r"\bboy's name\b"), "girl's name"),
         (re.compile(r"\bboys\b"), "girls"),
@@ -862,8 +874,8 @@ _REGENDER = {
         (re.compile(r"\bhis\b", re.I), "her"),
         (re.compile(r"\bhim\b", re.I), "her"),
         (re.compile(r"\bhimself\b", re.I), "herself"),
-    ],
-    '남': [   # → 남성
+    ] + _RESTORE,
+    '남': _KEEP + [   # → 남성
         (re.compile(r"\ba girl's name\b"), "a boy's name"),
         (re.compile(r"\bgirl's name\b"), "boy's name"),
         (re.compile(r"\bgirls\b"), "boys"),
@@ -873,7 +885,7 @@ _REGENDER = {
         (re.compile(r"\bshe\b", re.I), "he"),
         (re.compile(r"\bher\b", re.I), "his"),      # 소유격 우선
         (re.compile(r"\bherself\b", re.I), "himself"),
-    ],
+    ] + _RESTORE,
 }
 
 
@@ -1388,6 +1400,12 @@ def status():
             'last_mode': TTS_FULL.last_mode,          # 최근 실제 사용 엔진(호출 후 채워짐)
             'last_error': getattr(TTS_FULL, 'last_error', None),
         },
+        # 의미 설명 생성기 상태. 이게 죽어 있으면 사전 밖 이름의 설명이
+        # 최후 템플릿으로 떨어져 영어 문장 품질이 급락한다.
+        'meaning': {
+            'llm': MEANING_EN is not None,
+            'last_error': getattr(MEANING_EN, 'last_error', None),
+        },
         'uptime_s': int(_time.time() - _BOOT_TS),
         'ts': int(_time.time()),
     }
@@ -1396,14 +1414,29 @@ def status():
             body['deep'] = {'ok': None, 'skipped': 'unauthorized'}
         else:
             t0 = _time.time()
+            # 기본은 고정 이름이라 첫 1회 뒤로는 캐시로 처리된다(무료).
+            # name=·last= 로 처음 보는 이름을 넣으면 캐시를 타지 않으므로
+            # 의미 생성 경로가 실제로 살아 있는지 확인할 수 있다.
+            fn = (request.args.get('name') or 'Thessaly').strip()[:40]
+            ln = (request.args.get('last') or 'Brzezinski').strip()[:40]
             try:
-                d = convert_name('Thessaly', 'Brzezinski', '여')
+                d = convert_name(fn, ln, '여')
                 deep_ok = ('error' not in d) and bool(d.get('full_hangul'))
+                _me = d.get('meaning_en') or ''
                 body['deep'] = {
                     'ok': deep_ok,
                     'latency_ms': int((_time.time() - t0) * 1000),
+                    'input': f'{fn} {ln}',
                     'sample': d.get('full_hangul') if deep_ok else None,
                     'error': (d.get('error') if not deep_ok else None),
+                    # fallback=true 면 LLM 설명 생성에 실패해 최후 템플릿을 쓴 것.
+                    # 이 경우 영어 문장에 문법 오류가 섞일 수 있다.
+                    'meaning': {
+                        'fallback': bool(d.get('meaning_error')),
+                        'why': d.get('meaning_error'),
+                        'chars': len(_me),
+                        'text': _me[:240],
+                    },
                 }
                 if not deep_ok:
                     body['ok'] = False
@@ -1412,6 +1445,135 @@ def status():
                 body['deep'] = {'ok': False,
                                 'error': f'{type(e).__name__}: {e}'}
     return jsonify(body), (200 if body['ok'] else 503)
+
+
+# 대량 점검용 이름 풀 — 사전(602개) 밖 결과가 나오기 쉬운 드문 영어 이름들.
+# 캐시를 타지 않은 새 이름이어야 의미 생성 경로가 실제로 돌므로 넉넉히 둔다.
+_BATCH_POOL = (
+    'Booker Cormac Dagny Dashiell Dmitri Eamon Egon Eldric Elowen Gideon '
+    'Hawthorne Horatio Ignatius Jonas Leopold Ludovic Octavian Orsino Pascal '
+    'Quillon Septimus Solveig Stellan Tarquin Alaric Aldous Alistair Ambrose '
+    'Anders Anouk Ansel Auberon Barnaby Bellamy Bertram Blaise Bram Brennan '
+    'Cadence Carsten Casimir Cassius Cedric Clement Cyprian Desmond Dorian '
+    'Edmund Ephraim Evander Fabian Fenwick Florian Godfrey Gregor Gunnar '
+    'Hadrian Halvard Hamish Hartley Hendrik Ilya Isolde Jerome Joaquin '
+    'Juniper Kasimir Killian Lachlan Lazarus Leander Ludwig Magnus Marcellus '
+    'Mordecai Mortimer Nikolai Odalys Osgood Oswin Peregrine Phineas Quentin '
+    'Radomir Ragnar Remus Rhydian Roderick Rollo Rufus Septima Silas '
+    'Sylvester Theobald Torsten Ulric Valentin Vardan Vaughn Verity Wendell '
+    'Wilhelm Wolfram Xanthe Yannick Yseult Zephyr Zacharias Zeno'
+).split()
+
+# 최후 템플릿(_compose_meaning_en)만 쓰는 문구들. 하나라도 있으면 LLM 실패다.
+_TPL_SIG = ('Together they picture', 'Together they bring',
+            'Together they speak of', 'It pictures someone',
+            'It speaks of one who', 'The whole name reads calm and considered',
+            'Balanced in sound, one syllable open',
+            'Firm and grounded, with a consonant closing',
+            'Soft and open, with no final consonants')
+
+
+def _meaning_source(given, text, meaning_error):
+    """의미 설명이 어디서 왔는지 판정: 템플릿 / 사전(602) / LLM."""
+    if not text:
+        return 'none'
+    if meaning_error or any(s in text for s in _TPL_SIG):
+        return 'template'
+    for _sx in ('male', 'female'):
+        info = GIVEN_INFO.get((_sx, given))
+        if info and (info.get('meaning_en') or '').strip() == text.strip():
+            return 'dict'
+    return 'llm'
+
+
+def _parse_names(raw):
+    """붙여넣은 이름 덩어리를 목록으로. 줄바꿈·쉼표·공백 아무거나 허용."""
+    out, seen = [], set()
+    for p in re.split(r'[\s,;]+', raw or ''):
+        p = p.strip()[:40]
+        if not p or not any(c.isalpha() and c.isascii() for c in p):
+            continue
+        k = p.lower()
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(p)
+    return out[:400]
+
+
+@app.route('/admin/batch', methods=['GET', 'POST'])
+def admin_batch():
+    """
+    대량 품질 점검 — 이름 목록을 붙여넣으면 서버가 변환해 결과를 표로 낸다.
+    API 키가 있는 서버에서 돌므로 의미 설명이 LLM에서 왔는지 템플릿으로
+    떨어졌는지까지 판정된다.
+
+    한 번에 다 못 돌면(gunicorn 60초 제한) 40초에서 끊고, 남은 이름을
+    입력창에 채워 돌려주므로 '계속' 버튼만 누르면 이어서 처리된다.
+    """
+    want = os.environ.get('ADMIN_TOKEN')
+    src = request.form if request.method == 'POST' else request.args
+    if not (want and (src.get('token', '') == want
+                      or request.cookies.get('admin_auth', '') == want)):
+        return ('Not found', 404)
+
+    sex = src.get('sex') or '여'
+    last = (src.get('last') or 'Miller').strip()[:40] or 'Miller'
+    raw = src.get('names') or ''
+    # ?sample=12 를 붙이면 내장 예시 이름으로 입력창을 채워준다(선택 사항).
+    if not raw.strip() and src.get('sample'):
+        try:
+            k = max(1, min(60, int(src.get('sample'))))
+        except Exception:
+            k = 12
+        pool = list(_BATCH_POOL)
+        _rnd.shuffle(pool)
+        raw = ' '.join(pool[:k])
+
+    names = _parse_names(raw)
+    rows, t_start, done = [], _time.time(), 0
+    for nm in names:
+        if _time.time() - t_start > 40:      # 타임아웃 전에 안전하게 끊는다
+            break
+        done += 1
+        t0 = _time.time()
+        try:
+            d = convert_name(nm, last, sex)
+        except Exception as e:
+            rows.append({'name': nm, 'src': 'error', 'korean': '', 'rom': '',
+                         'hanja': '', 'q': '', 'why': '',
+                         'text': f'{type(e).__name__}: {e}', 'ms': 0})
+            continue
+        if 'error' in d:
+            rows.append({'name': nm, 'src': 'error', 'korean': '', 'rom': '',
+                         'hanja': '', 'q': '', 'why': '', 'text': d['error'],
+                         'ms': int((_time.time() - t0) * 1000)})
+            continue
+        text = d.get('meaning_en') or ''
+        rows.append({
+            'name': nm,
+            'korean': d.get('full_hangul') or '',
+            'rom': d.get('full_rom') or '',
+            'given': d.get('given') or '',
+            'hanja': d.get('hanja') or ('순우리말' if d.get('is_native') else ''),
+            'q': (d.get('reason') or {}).get('quality') or '',
+            'src': _meaning_source(d.get('given'), text, d.get('meaning_error')),
+            'why': d.get('meaning_error') or '',
+            'text': text,
+            'ms': int((_time.time() - t0) * 1000),
+        })
+
+    remaining = names[done:]
+    tally = {}
+    for r in rows:
+        tally[r['src']] = tally.get(r['src'], 0) + 1
+        if r.get('q'):
+            tally[r['q']] = tally.get(r['q'], 0) + 1
+    return render_template('admin_batch.html', rows=rows, tally=tally,
+                           total=len(rows), sex=sex, last=last,
+                           remaining=remaining, submitted=len(names),
+                           token=src.get('token', ''),
+                           elapsed=int(_time.time() - t_start))
 
 
 @app.route('/admin')
