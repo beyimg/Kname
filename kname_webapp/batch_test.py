@@ -79,25 +79,41 @@ def main():
 
     # 의미 설명의 출처를 판정한다. 이게 없으면 "설명이 나왔다"는 사실만 알 뿐
     # 그게 LLM 이 쓴 것인지 사전에서 꺼낸 것인지 구분할 수 없다.
-    _TPL = ('Together they picture', 'Together they bring', 'Together they speak of',
-            'It pictures someone', 'It speaks of one who',
+    # 최후 템플릿(_compose_meaning_en)에만 나오는 문구.
+    # 주의: 'It pictures someone' 은 여기 넣으면 안 된다 — 602개 사전 설명 중
+    # 272개가 같은 문구를 쓰기 때문에 사전 결과가 전부 템플릿으로 오판된다.
+    # 템플릿은 사전과 같은 문체로 쓰였으므로 문체로는 구분되지 않는다.
+    # 확실한 판정 근거는 app.py 가 채워 주는 meaning_error 다.
+    _TPL = ('Together they picture', 'Together they bring',
+            'Together they speak of', 'It speaks of one who',
             'The whole name reads calm and considered',
             'Balanced in sound, one syllable open',
             'Firm and grounded, with a consonant closing',
             'Soft and open, with no final consonants')
 
+    def _norm(s):
+        """성별 치환(boy↔girl, he↔she)을 무시하고 비교하기 위한 정규화."""
+        s = re.sub(r'\s+', ' ', s or '').strip()
+        return re.sub(r'\b(boys?|girls?|his|her|hers|he|she|him|sons?|'
+                      r'daughters?|men|women)\b', '~', s, flags=re.I)
+
     def meaning_source(given, text, err):
-        fn = getattr(A, '_meaning_source', None)
-        if fn:
-            return fn(given, text, err)
         if not text:
             return 'none'
+        # ① 확실한 신호 — app.py 가 템플릿으로 떨어질 때만 채운다
         if err or any(s in text for s in _TPL):
             return 'template'
+        # ② 미리 작성된 602개 원문과 일치하는가 (성별 치환분은 무시하고 비교)
+        nt = _norm(text)
         for sx in ('male', 'female'):
             info = getattr(A, 'GIVEN_INFO', {}).get((sx, given))
-            if info and (info.get('meaning_en') or '').strip() == text.strip():
+            if not info:
+                continue
+            nd = _norm(info.get('meaning_en') or '')
+            if nd and (nd == nt or nd[:150] == nt[:150]
+                       or nt[:150] in nd or nd[:150] in nt):
                 return 'dict'
+        # ③ 둘 다 아니면 LLM 이 새로 쓴 것
         return 'llm'
 
     # 템플릿이 만들어내는 영어 문법 오류(관사·품사 오분류) 탐지
@@ -149,7 +165,9 @@ def main():
         flags = []
         if src == 'template': flags.append('템플릿(LLM실패)')
         if fallback: flags.append('설명없음')
-        if BAD_EN.search(meaning): flags.append('영어문법')
+        # 문법 검사는 템플릿이 조립한 문장에만 적용한다.
+        # 사전 602개는 사람이 쓴 문장이라 검사 대상이 아니다.
+        if src == 'template' and BAD_EN.search(meaning): flags.append('영어문법')
         if HANGUL.search(short): flags.append('한줄에한국어')
         if HANJA.search(short): flags.append('한줄에한자')
         if LATIN_EXT.search(short) or LATIN_EXT.search(meaning): flags.append('발음기호')
