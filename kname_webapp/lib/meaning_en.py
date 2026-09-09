@@ -151,6 +151,25 @@ class MeaningEnGenerator:
         else:
             chars_desc = 'a native Korean name (no hanja)'
 
+        # 미리 작성된 602개 설명과 같은 도입부 형식을 쓴다.
+        #   한자 이름  → 민수 (旻秀, Minsu)
+        #   순우리말   → 마루 (Maru)
+        rom = ''
+        try:
+            from pronounce_guide import romanize_hyphen
+            rom = romanize_hyphen(given).replace('-', '')
+        except Exception:
+            pass
+        hanja_str = ''.join(h for _s, h, _g in (hanja_chars or []) if h)
+        if hanja_str and rom:
+            label = f'{given} ({hanja_str}, {rom})'
+        elif hanja_str:
+            label = f'{given} ({hanja_str})'
+        elif rom:
+            label = f'{given} ({rom})'
+        else:
+            label = given
+
         pop = []
         for syl in given:
             for p in self._popular(syl, sex, exclude=given, limit=2):
@@ -181,6 +200,13 @@ class MeaningEnGenerator:
             + 'Write in the third person about the name and the person who bears it — '
             'refer to them as "someone" or "a person" (or "they"); never address the reader '
             'as "you" or "your". '
+            + f'Start the very first sentence with exactly "{label}" and continue straight '
+            f'on from it — for example: '
+            + (f'\'{label} joins ...\' or \'{label} pairs ...\'. '
+               if hanja_chars else
+               f'\'{label} — above all, this is the native Korean word for ...\'. ')
+            + 'This opening is fixed — do not drop the Hangul or the parentheses, and never '
+            'open with the romanization alone ("Yunsu carries ..." is wrong). '
             + 'Never invent facts about real people or media. 60-90 words. '
             'Write the name in plain Revised Romanization using basic Latin letters only '
             '(Horim, not Hořim) — no diacritics or accented characters. '
