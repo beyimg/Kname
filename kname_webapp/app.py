@@ -30,6 +30,10 @@ from conversion_reason import build_reason, build_surname
 from transliterate import Transliterator
 from meaning import NameMeaning
 from meaning_en import MeaningEnGenerator
+try:
+    from meaning_en import PROMPT_VERSION as _PROMPT_VERSION
+except Exception:
+    _PROMPT_VERSION = None
 from tts_full import FullNameTTS
 from pronounce_guide import romanize_hyphen, romanize_syllable
 
@@ -1662,6 +1666,14 @@ def status():
             'llm': MEANING_EN is not None,
             'last_error': getattr(MEANING_EN, 'last_error', None),
         },
+        # 지금 돌고 있는 코드가 어느 커밋인지. 배포가 반영됐는지 확인할 때
+        # 업타임만으로는 부족하다(재시작만 해도 0으로 돌아간다).
+        # RENDER_GIT_COMMIT / RENDER_GIT_BRANCH 는 Render 가 런타임에 넣어준다.
+        'build': {
+            'commit': (os.environ.get('RENDER_GIT_COMMIT') or '')[:7] or None,
+            'branch': os.environ.get('RENDER_GIT_BRANCH') or None,
+            'prompt_version': _PROMPT_VERSION,
+        },
         'uptime_s': int(_time.time() - _BOOT_TS),
         'ts': int(_time.time()),
     }
@@ -1733,6 +1745,7 @@ def admin():
     except Exception:
         cache_entries = None
     op = {
+        'commit': (os.environ.get('RENDER_GIT_COMMIT') or '')[:7] or 'local',
         'uptime_s': int(_time.time() - _BOOT_TS),
         'llm': bool(TRANSLIT.llm_available),
         'sentry': _SENTRY_ON,

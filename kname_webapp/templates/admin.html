@@ -85,7 +85,8 @@
     <div class="card">
       <div class="k">서비스</div>
       <div class="v" style="color:var(--ok)">정상</div>
-      <div class="sub">응답 중 · 200 OK</div>
+      <div class="sub">배포 <b style="font-family:ui-monospace,monospace">{{ op.commit }}</b>
+        · {{ (op.uptime_s // 60) }}분 전 시작</div>
     </div>
     <div class="card">
       <div class="k">AI 음차(LLM)</div>

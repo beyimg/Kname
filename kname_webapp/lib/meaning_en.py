@@ -21,6 +21,14 @@ from typing import Dict, List, Optional, Tuple
 
 DEFAULT_MODEL = "claude-sonnet-5"
 
+# 프롬프트 형식 버전. **프롬프트를 고칠 때마다 올린다.**
+#
+# 캐시에 이 값이 없거나 다르면 그 항목은 없는 것으로 보고 다시 만든다.
+# 예전에는 프롬프트를 고쳐도 캐시가 그대로 남아, 파일을 손으로 지우지 않으면
+# 예전 형식 결과가 계속 나왔다("Boa carries ..." 처럼 도입부가 로마자만).
+# 사람이 기억해야 하는 절차는 반드시 잊히므로 버전으로 강제한다.
+PROMPT_VERSION = 2
+
 # 라틴 확장 문자 → 기본 알파벳. LLM이 한국어 로마자에 발음기호를
 # 붙이는 경우가 있어(Hořim), 표기를 정규화한다.
 _DIACRITIC_MAP = str.maketrans({
@@ -133,6 +141,56 @@ class MeaningEnGenerator:
         except Exception:
             return []
 
+    @staticmethod
+    def _romanize(given: str) -> str:
+        try:
+            from pronounce_guide import romanize_hyphen
+            return romanize_hyphen(given).replace('-', '')
+        except Exception:
+            return ''
+
+    @classmethod
+    def _label(cls, given, hanja_chars):
+        """
+        미리 작성된 602개 설명과 같은 도입부.
+          한자 이름  → 민수 (旻秀, Minsu)
+          순우리말   → 마루 (Maru)
+        (라벨, 로마자) 를 돌려준다.
+        """
+        rom = cls._romanize(given)
+        hanja_str = ''.join(h for _s, h, _g in (hanja_chars or []) if h)
+        if hanja_str and rom:
+            return f'{given} ({hanja_str}, {rom})', rom
+        if hanja_str:
+            return f'{given} ({hanja_str})', rom
+        if rom:
+            return f'{given} ({rom})', rom
+        return given, rom
+
+    @staticmethod
+    def _fix_opening(text, given, label, rom):
+        """
+        도입부를 규정 형식으로 맞춘다.
+
+        프롬프트로 "이렇게 시작하라"고 지시해도 모델은 종종 로마자만 쓴다
+        ("Boa carries a quiet richness"). 지시에 기대지 않고 여기서 고친다.
+        고칠 수 없는 형태면 손대지 않고 그대로 둔다(억지로 붙이면 문장이
+        깨지므로, 대신 품질 점검이 'meaning/opening' 으로 잡는다).
+        """
+        if not text or text.startswith(label):
+            return text
+        # 한글 이름으로 시작 — 괄호가 없거나 다르면 라벨로 교체
+        m = re.match(re.escape(given) + r'(?:\s*\([^)]*\))?', text)
+        if m:
+            return label + text[m.end():]
+        # 로마자로 시작 — "Boa carries ..." → "보아 (寶雅, Boa) carries ..."
+        if rom:
+            m = re.match(re.escape(rom) + r'\b(?:\s*\([^)]*\))?', text,
+                         re.IGNORECASE)
+            if m:
+                return label + text[m.end():]
+        return text
+
     def _build_prompt(
         self,
         given: str,
@@ -151,24 +209,7 @@ class MeaningEnGenerator:
         else:
             chars_desc = 'a native Korean name (no hanja)'
 
-        # 미리 작성된 602개 설명과 같은 도입부 형식을 쓴다.
-        #   한자 이름  → 민수 (旻秀, Minsu)
-        #   순우리말   → 마루 (Maru)
-        rom = ''
-        try:
-            from pronounce_guide import romanize_hyphen
-            rom = romanize_hyphen(given).replace('-', '')
-        except Exception:
-            pass
-        hanja_str = ''.join(h for _s, h, _g in (hanja_chars or []) if h)
-        if hanja_str and rom:
-            label = f'{given} ({hanja_str}, {rom})'
-        elif hanja_str:
-            label = f'{given} ({hanja_str})'
-        elif rom:
-            label = f'{given} ({rom})'
-        else:
-            label = given
+        label, rom = self._label(given, hanja_chars)
 
         pop = []
         for syl in given:
@@ -252,13 +293,19 @@ class MeaningEnGenerator:
         조립하던 경로는 이 값이 없을 때만 쓰인다.
         """
         key = f'{given}:{sex}:{english_name or ""}'
+        label, rom = self._label(given, hanja_chars)
+
         cached = self._cache.get(key)
-        if isinstance(cached, dict):
+        if isinstance(cached, dict) and cached.get('v') == PROMPT_VERSION:
             return cached.get('text') or None, cached.get('short') or ''
-        if isinstance(cached, str):
-            # 예전 캐시(문자열) — 설명만 있고 한 줄은 없다
-            return cached, ''
+        # 버전이 다르거나 예전 문자열 캐시다.
+        # 프롬프트가 바뀌었으니 다시 만드는 것이 맞다. 다만 키가 없어 새로
+        # 만들 수 없을 때는 있는 것이라도 쓴다(도입부만 형식에 맞춰서).
+        stale = cached if isinstance(cached, str) else (
+            cached.get('text') if isinstance(cached, dict) else None)
         if not self.api_key:
+            if stale:
+                return self._fix_opening(stale, given, label, rom), ''
             return None, ''
 
         prompt = self._build_prompt(given, sex, hanja_chars, english_name, gloss_en)
@@ -274,14 +321,22 @@ class MeaningEnGenerator:
         except Exception as e:
             # 호출부가 상황에 맞는 안내를 띄울 수 있도록 유형을 남긴다
             self.last_error = classify_error(e)
+            # 새로 만들지 못했으면 예전 캐시라도 내보낸다(빈 카드보다 낫다)
+            if stale:
+                return self._fix_opening(stale, given, label, rom), ''
             return None, ''
 
         body, short = self._split_short(raw)
         text = self._clean(body)
         if not text:
+            if stale:
+                return self._fix_opening(stale, given, label, rom), ''
             return None, ''
+        # 도입부는 지시가 아니라 코드로 보장한다
+        text = self._fix_opening(text, given, label, rom)
         with self._lock:
-            self._cache[key] = {'text': text, 'short': short}
+            self._cache[key] = {'v': PROMPT_VERSION, 'text': text,
+                                'short': short}
             self._save_cache()
         return text, short
 

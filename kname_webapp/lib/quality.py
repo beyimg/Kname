@@ -52,6 +52,7 @@ SEVERITY = {
     'short/ungrammatical': 'error',
     'short/empty':         'error',
     'text/hangul-leak':    'error',
+    'meaning/opening':     'warning',
     'meaning/none':        'warning',
     'meaning/template':    'warning',
     'gloss/unclassified':  'warning',
@@ -164,6 +165,15 @@ def audit(data, pos_of=None):
         elif short == 'A native Korean name' and not data.get('is_native'):
             # 순우리말이 아닌데 최후 폴백까지 갔다 — 뜻을 하나도 못 쓴 것
             out.append(('short/fallback', given))
+
+    # ---------------------------------------------------------- 도입부 형식
+    # 설명은 반드시 한글 이름으로 시작해야 한다.
+    #   보아 (寶雅, Boa) carries ...   (O)
+    #   Boa carries ...               (X — 로마자만)
+    # 사전 602개는 전부 이 형식이고, LLM 출력은 meaning_en._fix_opening 이
+    # 강제한다. 그래도 어긋난 것이 나오면 고칠 수 없는 형태였다는 뜻이다.
+    if given and meaning.strip() and not meaning.lstrip().startswith(given):
+        out.append(('meaning/opening', f'{given}: {meaning[:40]}'))
 
     # ---------------------------------------------------------- 의미 설명
     if source in ('none', '') or not meaning.strip():

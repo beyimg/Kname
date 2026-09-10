@@ -42,6 +42,33 @@ DEFAULT = [
 ]
 
 
+def _save(path, writer):
+    """
+    파일을 저장한다. 열려 있어 잠긴 경우(엑셀·메모장) 죽지 않고
+    'result_brazil (2).xlsx' 처럼 옆 이름으로 저장하고 그 경로를 돌려준다.
+
+    Windows 는 열려 있는 파일을 덮어쓰지 못한다(PermissionError). 테스트를
+    돌릴 때마다 엑셀을 닫아야 하는 것은 번거롭고, 결과를 통째로 잃는 것은
+    더 나쁘다.
+    """
+    stem, ext = os.path.splitext(path)
+    for i in range(1, 20):
+        target = path if i == 1 else f'{stem} ({i}){ext}'
+        try:
+            writer(target)
+            if target != path:
+                print(f'  ! {os.path.basename(path)} 이(가) 열려 있어 '
+                      f'{os.path.basename(target)} 로 저장했습니다.')
+            return target
+        except PermissionError:
+            continue
+        except OSError as e:
+            print(f'  ! {os.path.basename(target)} 저장 실패: {e}')
+            return None
+    print(f'  ! {os.path.basename(path)} 저장 실패 — 열려 있는 파일을 닫아주세요.')
+    return None
+
+
 def parse_line(s):
     """'Siobhan Kowalski 여' → ('Siobhan', 'Kowalski', '여')"""
     parts = s.strip().split()
@@ -258,11 +285,16 @@ def main():
         stem = 'result_' + base[6:] if base.startswith('names_') else 'result_' + base
     else:
         stem = 'batch_result'
-    with open(stem + '.txt', 'w', encoding='utf-8') as f:
-        f.write('\n'.join(out_lines))
-    with open(stem + '.json', 'w', encoding='utf-8') as f:
-        json.dump(rows, f, ensure_ascii=False, indent=1)
-    saved = [stem + '.txt', stem + '.json']
+    def _w_txt(t):
+        with open(t, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(out_lines))
+
+    def _w_json(t):
+        with open(t, 'w', encoding='utf-8') as f:
+            json.dump(rows, f, ensure_ascii=False, indent=1)
+
+    saved = [p for p in (_save(stem + '.txt', _w_txt),
+                         _save(stem + '.json', _w_json)) if p]
 
     xlsx = write_xlsx(stem + '.xlsx', rows, cnt, n, warn)
     if xlsx:
@@ -395,8 +427,7 @@ def write_xlsx(path, rows, cnt, n, warn):
     row += 1
     put(row, '서로 다른 결과 이름', uniq, uniq / (ok or 1), '다양성 — 높을수록 좋음')
 
-    wb.save(path)
-    return path
+    return _save(path, wb.save)
 
 
 if __name__ == '__main__':
