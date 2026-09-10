@@ -40,6 +40,12 @@ except Exception:
     def report(*a, **k):
         pass
 
+# 결과물 품질 점검 — 변환은 성공했지만 카드 문구가 이상한 경우를 잡는다.
+try:
+    from quality import audit as _audit, SEVERITY as _Q_SEVERITY
+except Exception:
+    _audit, _Q_SEVERITY = None, {}
+
 # 시스템 오류가 아니라 사용자 입력 실수(빈칸·너무 긴 값)인 에러 — 보고하지 않는다.
 _INPUT_ERR_HINTS = ('enter your first', 'enter your last', 'shorter name',
                     'english letters')
@@ -220,6 +226,21 @@ try:
     from native_names import HANJA_OK as _NATIVE_HANJA_OK, HANJA_HIDE as _NATIVE_HANJA_HIDE
 except Exception:
     _NATIVE_HANJA_OK, _NATIVE_HANJA_HIDE = {}, {}
+
+# 한자 뜻 → 품사 표. 카드 앞면 한 줄 의미 조립에만 쓴다.
+# 표에 없는 뜻은 '모르는 것'으로 두고 문장을 만들지 않는다(라벨형으로 내려간다).
+try:
+    from gloss_pos import (GLOSS_POS as _GLOSS_POS, VERB_FORM as _VERB_FORM,
+                           FORCE_NOUNS as _FORCE_NOUNS,
+                           VERB_TRANSITIVE as _VERB_T)
+except Exception:
+    _GLOSS_POS, _VERB_FORM, _FORCE_NOUNS, _VERB_T = {}, {}, set(), set()
+
+# 사전 602개 중 설명문에서 한 줄을 뽑아내지 못하는 이름의 손으로 쓴 한 줄.
+try:
+    from short_en import SHORT_EN as _SHORT_EN
+except Exception:
+    _SHORT_EN = {}
 
 # 교정된 순우리말 이름 사전 (DB 유형 오분류·LLM 신호에 의존하지 않는 정본).
 # 여기 있으면 무조건 순우리말로 취급해 한자를 감추고 그 뜻을 쓴다.
@@ -446,7 +467,8 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False):
     try:
         ntype = MEANING.classify_name(given)
         chars = MEANING.pick_best_hanja(given) if ntype == 'hanja' else None
-        out = {'hanja': '', 'hanja_detail': [], 'meaning_en': ''}
+        out = {'hanja': '', 'hanja_detail': [], 'meaning_en': '',
+               'meaning_short': ''}
 
         if chars:
             # chars: [(음, 한자, 뜻), ...]
@@ -462,13 +484,16 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False):
                 out['hanja_detail'] = detail
 
         # ① 영어 전용 생성기 (저비용)
+        #    설명과 함께 카드 앞면 한 줄(short)도 받아 온다. 그 한 줄을
+        #    로컬에서 조립하지 않게 되어 비문이 구조적으로 사라진다.
         en = ''
         if MEANING_EN is not None:
-            en = MEANING_EN.explain_en(
+            en, out['meaning_short'] = MEANING_EN.explain_pair(
                 # Either 를 고른 경우 성별을 단정하지 않도록 중립값을 넘긴다
                 given=given, sex=('기타' if neutral else sex), hanja_chars=chars,
                 english_name=english_first, gloss_en=_KR_GLOSS_TO_EN,
-            ) or ''
+            )
+            en = en or ''
 
         # ② 실패 시 meaning.py로 폴백 (한국어+영어 생성, 비용 높음)
         if not en:
@@ -693,9 +718,29 @@ def _adj_noun(adj, noun):
     return f'Someone {a} as {art}{n}'
 
 
+def _adj_noun_pos(adj, noun, npos):
+    """
+    품사를 아는 상태에서 만드는 '형용사 + 명사' 문구.
+    _adj_noun()과 달리 명사 종류를 목록으로 추측하지 않는다.
+      N  'bright' + 'a pearl'  → Someone bright as a pearl
+      M  'bright' + 'jade'     → Someone bright as jade
+      T  'bright' + 'moon'     → Someone bright as the moon
+      X  'bright' + 'wisdom'   → Someone bright, with wisdom  (비유가 안 된다)
+    """
+    a = adj.strip().lower()
+    n = noun.strip().lower()
+    if npos == 'X' or n in _NOT_COMPARABLE or _bare_noun(n) in _NOT_COMPARABLE:
+        # 'A as a B' 비유가 성립하지 않는 뜻 — 곁들이는 형태로 바꾼다.
+        # 관사는 여기서도 품사대로 붙인다('with model'은 비문).
+        return f'Someone {a}, with {_as_noun(noun.strip(), npos)}'
+    return f'Someone {a} as {_as_noun(noun.strip(), npos)}'
+
+
 def _verb_phrase(verb):
-    """'to assist' → 'assists'"""
-    v = verb.lower()
+    """'to assist' → 'assists'  ('to be' → 'abides')"""
+    v = verb.strip().lower()
+    if v in _VERB_FORM:
+        return _VERB_FORM[v]          # 불규칙 — 규칙대로면 'bes'가 된다
     if v.startswith('to '):
         v = v[3:]
     w = v.split()[0]
@@ -709,8 +754,94 @@ def _verb_phrase(verb):
     return w + rest
 
 
-def _short_meaning(meaning_en, hanja_lines):
+def _pos_of(token):
+    """
+    한자 뜻 토큰의 품사. 모르면 None — 절대 추측하지 않는다.
+
+    어미로 품사를 추론하면 반드시 오탐이 생긴다.
+      a capital · crystal · lotus seed · a descendant → 명사인데 형용사 어미
+      great zither · clear water · broad rock         → 형용사+명사 복합어
+    그래서 아는 것만 쓰고, 모르면 문장을 만들지 않는다.
+    """
+    t = str(token or '').strip().lower()
+    if not t:
+        return None
+    # 표를 가장 먼저 본다 — 형태로 판정하는 아래 두 규칙을 덮어쓸 수 있어야 한다
+    # (예: 'to pair with' 는 목적어가 없으면 문장이 끊기므로 'S'로 막아 둔다)
+    p = _GLOSS_POS.get(t)
+    if p:
+        return p
+    if t.startswith('to '):
+        return 'V'                       # 'to shine' — 부정사는 형태로 확정된다
+    if t.split()[0] in ('a', 'an', 'the'):
+        return 'N'                       # 관사가 붙어 있으면 가산명사가 확실하다
+    # 기존 목록에서 유추 가능한 것만 받아 쓴다 (여기까지도 추측은 없다)
+    if t in _ADJ_OK:
+        return 'A'
+    if t in _NO_ARTICLE:
+        return 'M'
+    if t in _ABSTRACT:
+        return 'X'
+    if t in _NOT_NOUN:
+        return 'S'
+    return None
+
+
+def _as_noun(token, pos):
+    """
+    비유 문구에 넣을 명사구. 관사는 품사로만 결정한다.
+      N  가산명사   → 'a pearl'      (뜻에 이미 관사가 있으면 그대로)
+      T  유일물     → 'the moon'
+      M  불가산     → 'jade'         관사를 붙이면 비문이 된다
+      X  추상명사   → 'wisdom'
+    고유명사('the Dipper')가 있으므로 대소문자는 건드리지 않는다.
+    """
+    n = token.strip()
+    if pos == 'N':
+        if n.split()[0].lower() in ('a', 'an', 'the'):
+            return n
+        return ('an ' if n[0].lower() in 'aeiou' else 'a ') + n
+    if pos == 'T':
+        return 'the ' + n
+    return n
+
+
+def _bare_noun(token):
+    """뜻만 남긴 형태 — 관사를 뗀다. (라벨형에 쓴다)"""
+    return re.sub(r'^(?:a|an|the)\s+', '', token.strip(), flags=re.I)
+
+
+def _label_form(hanja_lines):
+    """
+    품사를 모르는 뜻이 섞였을 때의 안전한 형태.
+    문장을 만들지 않고 뜻을 나열하므로 비문이 될 수 없다.
+      예) 'Bright and wise · Luster of jade'
+    """
+    labels = []
+    for h in hanja_lines:
+        words = [w.strip() for w in str(h.get('gloss') or '').split(',') if w.strip()]
+        words = [w for w in words if not _has_hangul(w)]
+        # 'S'(수사·전치사·목적어가 필요한 동사)는 라벨로도 쓸 수 없다.
+        #   'to pair with' → "Pair · To pair with" 처럼 끊긴 라벨이 된다
+        usable = [w for w in words if _pos_of(w) != 'S']
+        if not usable:
+            continue
+        w = _bare_noun(usable[0])
+        if not w:
+            continue
+        labels.append(w[0].upper() + w[1:])
+    if not labels:
+        return None
+    out = ' · '.join(labels[:3])
+    return out if len(out) <= 62 else labels[0]
+
+
+def _short_meaning(meaning_en, hanja_lines, given='', llm_short=''):
     """카드 앞면의 한 줄 요약."""
+    # 0) 사전 이름 중 설명문에서 뽑아내지 못하는 것들은 손으로 쓴 문구를 쓴다
+    if given and given in _SHORT_EN:
+        return _SHORT_EN[given]
+
     # 1) 의미설명 안의 대표 문구를 우선 사용
     if meaning_en:
         pats = [
@@ -774,63 +905,91 @@ def _short_meaning(meaning_en, hanja_lines):
                 if 2 <= len(s) <= 46 and _ok_phrase(s):
                     return _phrase_native(s)
 
-    # 2) 한자 뜻으로 조립 — 모든 글자의 뜻을 반드시 반영한다.
-    #    글자마다 형용사/명사/동사 중 쓸 수 있는 것을 하나씩 뽑는다.
-    parts = []
+    # 2) LLM이 설명과 함께 써 준 한 줄.
+    #    문장을 사람이 조립하지 않으므로 비문이 될 수 없다.
+    if llm_short:
+        s = re.sub(r'\s+', ' ', str(llm_short)).strip().rstrip('.').strip()
+        if 10 <= len(s) <= 62 and len(s.split()) >= 3 and _ok_phrase(s):
+            return s[0].upper() + s[1:]
+
+    # 3) 한자 뜻으로 조립.
+    #    품사를 아는 뜻만 쓴다. 한 글자라도 아는 뜻이 없으면 문장을 만들지
+    #    않고 라벨형으로 내려간다 — 추측해서 조립하면 비문이 나온다.
+    slots = []
+    unknown = False
     for h in hanja_lines:
-        words = [w.strip() for w in h['gloss'].split(',') if w.strip()]
+        words = [w.strip() for w in str(h.get('gloss') or '').split(',') if w.strip()]
         words = [w for w in words if not _has_hangul(w)]
-        if not words:
+        tagged = [(w, _pos_of(w)) for w in words]
+        usable = [(w, p) for w, p in tagged if p and p != 'S']
+        if not usable:
+            # 뜻이 전부 '모르는 것' 또는 '쓸 수 없는 것' — 조립 불가
+            if any(p is None for _w, p in tagged):
+                unknown = True
             continue
-        adj = next((w for w in words if w.lower() in _ADJ_OK), None)
-        noun = next((w for w in words
-                     if w.lower() not in _ADJ_OK and not w.lower().startswith('to ')), None)
-        verb = next((w for w in words if w.lower().startswith('to ')), None)
-        parts.append({'adj': adj, 'noun': noun, 'verb': verb})
+        slot = {'adj': None, 'noun': None, 'npos': None, 'verb': None}
+        for w, p in usable:
+            if p == 'A' and not slot['adj']:
+                slot['adj'] = w
+            elif p in ('N', 'M', 'T', 'X') and not slot['noun']:
+                slot['noun'], slot['npos'] = w, p
+            elif p == 'V' and not slot['verb']:
+                slot['verb'] = w
+        slots.append(slot)
 
-    if parts:
-        # 모든 글자가 형용사 → "A bright and gentle person"
-        adjs = [p['adj'] for p in parts if p['adj']]
-        if len(adjs) == len(parts) and adjs:
-            uniq = list(dict.fromkeys(adjs))
-            phrase = ' and '.join(uniq[:2]) if len(uniq) >= 2 else uniq[0]
-            art = 'An' if phrase[0].lower() in 'aeiou' else 'A'
-            return f'{art} {phrase} person'
+    if unknown or not slots:
+        # 모르는 뜻이 섞였으면 문장 대신 라벨 — 문법이 개입하지 않는다
+        return _label_form(hanja_lines) or 'A native Korean name'
 
+    # 모든 글자가 형용사 → "A bright and gentle person"
+    adjs = [s['adj'] for s in slots if s['adj']]
+    if len(adjs) == len(slots):
+        uniq = list(dict.fromkeys(a.lower() for a in adjs))
+        phrase = ' and '.join(uniq[:2]) if len(uniq) >= 2 else uniq[0]
+        art = 'An' if phrase[0] in 'aeiou' else 'A'
+        return f'{art} {phrase} person'
+
+    if len(slots) == 2:
+        a, b = slots
         # 형용사 + 명사 → "Someone bright as jade"
-        if len(parts) == 2:
-            a, b = parts
-            if a['adj'] and b['noun']:
-                return _adj_noun(a['adj'], b['noun'])
-            if b['adj'] and a['noun']:
-                return _adj_noun(b['adj'], a['noun'])
-            # 형용사 + 동사 → "Someone bright who helps others"
-            if a['adj'] and b['verb']:
-                return f"Someone {a['adj'].lower()} who {_verb_phrase(b['verb'])}"
-            if b['adj'] and a['verb']:
-                return f"Someone {b['adj'].lower()} who {_verb_phrase(a['verb'])}"
+        for x, y in ((a, b), (b, a)):
+            if x['adj'] and y['noun']:
+                return _adj_noun_pos(x['adj'], y['noun'], y['npos'])
+        # 형용사 + 동사 → "Someone bright who shines"
+        for x, y in ((a, b), (b, a)):
+            if x['adj'] and y['verb']:
+                return f"Someone {x['adj'].lower()} who {_verb_phrase(y['verb'])}"
 
-        # 명사만 → "A name of sunlight and star"
-        nouns = [p['noun'] for p in parts if p['noun']]
-        nouns = [n for n in nouns if n.lower() not in _NOT_NOUN]
-        if len(nouns) >= 2:
-            return f'A name of {nouns[0].lower()} and {nouns[1].lower()}'
-        # 동사가 섞인 경우
-        verbs = [p['verb'] for p in parts if p['verb']]
-        if nouns and verbs:
-            return f'A name that {_verb_phrase(verbs[0])}, holding {nouns[0].lower()}'
-        if len(verbs) >= 2:
-            return f'A name that {_verb_phrase(verbs[0])} and {_verb_phrase(verbs[1])}'
-        if nouns:
-            return f'A name of {nouns[0].lower()}'
-        if adjs:
-            art = 'An' if adjs[0][0].lower() in 'aeiou' else 'A'
-            return f'{art} {adjs[0]} person'
-        if verbs:
-            return f'A name that {_verb_phrase(verbs[0])}'
+    nouns = [(s['noun'], s['npos']) for s in slots if s['noun']]
+    verbs = [s['verb'] for s in slots if s['verb']]
+    if len(nouns) >= 2:
+        n1, n2 = _as_noun(*nouns[0]), _as_noun(*nouns[1])
+        if n1.lower() == n2.lower():
+            return f'A name of {n1}'      # 두 글자가 같은 뜻 — 되풀이하지 않는다
+        return f'A name of {n1} and {n2}'
+    if nouns and verbs:
+        n, npos = nouns[0]
+        # 뜻을 품사에 묶어두지 않고, 동작을 중심으로 문장을 세운다.
+        #   旻(하늘) + 佑(돕다) → "하늘이 돕는 자"
+        # 단, 방향을 정할 수 있는 경우에만 쓴다. 사람에게 작용하는 뜻
+        # (하늘·은혜·복)이 타동사와 만났을 때다. 그 밖에는 방향을 알 수 없어
+        # "옥을 돕는 자" 같은 엉뚱한 뜻이 되므로 아래 형태로 남긴다.
+        if _bare_noun(n) in _FORCE_NOUNS and verbs[0].strip().lower() in _VERB_T:
+            return f'Someone whom {_as_noun(n, npos)} {_verb_phrase(verbs[0])}'
+        return (f'A name that {_verb_phrase(verbs[0])}, '
+                f'holding {_as_noun(n, npos)}')
+    if len(verbs) >= 2:
+        return f'A name that {_verb_phrase(verbs[0])} and {_verb_phrase(verbs[1])}'
+    if nouns:
+        return f'A name of {_as_noun(*nouns[0])}'
+    if adjs:
+        art = 'An' if adjs[0][0].lower() in 'aeiou' else 'A'
+        return f'{art} {adjs[0].lower()} person'
+    if verbs:
+        return f'A name that {_verb_phrase(verbs[0])}'
 
     # 4) 순우리말 이름 등 — 마지막 안전장치
-    return 'A native Korean name'
+    return _label_form(hanja_lines) or 'A native Korean name'
 
 
 # ---------------------------------------------------------------- 성별 중립화
@@ -1033,6 +1192,7 @@ def convert_name(first_en, last_en, sex):
     meaning_unavailable = False
     meaning_error = None
     meaning_raw = ''
+    meaning_short = ''      # LLM이 설명과 함께 써 준 카드 앞면 한 줄
     # 설명의 출처를 끝까지 따라간다: dict(미리 작성된 602개) / llm / template /
     # native(순우리말 로컬 설명). 점검 도구가 이 값을 그대로 읽으면 되므로,
     # 문체로 되짚다가 오판하는 일이 없어진다.
@@ -1051,6 +1211,7 @@ def convert_name(first_en, last_en, sex):
             meaning_unavailable = bool(gen.get('meaning_unavailable'))
             meaning_error = gen.get('meaning_error')
             meaning_raw = gen.get('meaning_raw') or ''
+            meaning_short = gen.get('meaning_short') or ''
 
     # 순우리말 정본 사전에 있으면: 한자를 감추고 그 뜻을 쓴다.
     # (DB 오분류·LLM 신호 여부와 무관하게 순우리말을 보장. HANJA_OK 이름은 한자 병기 허용)
@@ -1067,6 +1228,7 @@ def convert_name(first_en, last_en, sex):
         meaning_unavailable = False
         meaning_error = None
         meaning_raw = ''
+        meaning_short = ''
 
     # 4) 성씨 결과
     #    사전에 있는 음차면 미리 만든 결과를, 없으면 엔진이 매칭한 성씨를 사용한다.
@@ -1175,7 +1337,8 @@ def convert_name(first_en, last_en, sex):
     # 짧은 의미 (카드 앞면)
     # 1순위: meaning_en 안의 "a wish for ..." / "It pictures ..." 같은 요약 문구
     # 2순위: 형용사형 gloss만 골라 조합 (명사/동사는 어색해서 제외)
-    short = _short_meaning(meaning_raw or meaning_en, hanja_lines)
+    short = _short_meaning(meaning_raw or meaning_en, hanja_lines,
+                           given=given, llm_short=meaning_short)
     if _has_hangul(short):      # 최종 방어: 카드 앞면에는 영어만
         short = 'A native Korean name'
 
@@ -1288,6 +1451,43 @@ def _log_conv(first_en, last_en, sex, is_new, data):
                    fingerprint=['conv-fail', reason], reason=reason,
                    name=f'{first_en} {last_en}'.strip(), sex=sex,
                    detail=err[:140])
+        return
+
+    _log_quality(first_en, last_en, data)
+
+
+def _log_quality(first_en, last_en, data):
+    """
+    변환은 성공했지만 결과물이 이상한 경우를 기록·보고한다.
+
+    실패는 예외가 나므로 저절로 잡히지만, 비문이나 빠진 의미설명은 아무 일도
+    일어나지 않은 것처럼 지나간다. 여기서 그것을 눈에 보이게 만든다.
+
+    저장은 stats.db(→ /admin 화면), 보고는 Sentry.
+    'info' 등급(라벨형·폴백)은 정상 동작 범위라 DB에만 쌓고 Sentry로 보내지
+    않는다. 알림이 흔해지면 아무도 보지 않게 되기 때문이다.
+    """
+    if _audit is None:
+        return
+    try:
+        findings = _audit(data, pos_of=_pos_of)
+    except Exception:
+        return                      # 점검 자체가 서비스를 막아서는 안 된다
+
+    name = f'{first_en} {last_en}'.strip()
+    seen = set()
+    for code, detail in findings:
+        try:
+            STATS.record_issue(code, data.get('given', ''), detail)
+        except Exception:
+            pass
+        level = _Q_SEVERITY.get(code, 'warning')
+        if level == 'info' or code in seen:
+            continue
+        seen.add(code)                  # 한 건에서 같은 코드는 한 번만 보고
+        report(f'result quality: {code}', level=level,
+               fingerprint=['quality', code], code=code,
+               name=name, given=data.get('given', ''), detail=str(detail)[:140])
 
 
 @app.route('/')
@@ -1550,7 +1750,14 @@ def admin():
         'top_peak': max([t['count'] for t in s.get('top_first', [])] or [0]) or 1,
         'toph_peak': max([t['count'] for t in s.get('top_hangul', [])] or [0]) or 1,
     }
-    return render_template('admin.html', s=s, op=op)
+    # 결과물 품질 문제 — 최근 7일 코드별 건수 + 최근 사례
+    try:
+        iss = STATS.issues(days=7, limit=30)
+    except Exception:
+        iss = {'ok': False, 'by_code': [], 'recent': [], 'total': 0}
+    iss['peak'] = max([r['count'] for r in iss.get('by_code') or []] or [0])
+    iss['severity'] = _Q_SEVERITY
+    return render_template('admin.html', s=s, op=op, iss=iss)
 
 
 if __name__ == '__main__':

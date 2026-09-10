@@ -54,6 +54,16 @@ class Stats:
                 hangul   TEXT
             )''')
             c.execute('CREATE INDEX IF NOT EXISTS idx_conv_ts ON conv(ts)')
+            # 결과물 품질 문제(비문·의미설명 없음 등). 변환은 성공했지만
+            # 카드에 실린 결과가 이상한 경우를 여기 쌓는다.
+            c.execute('''CREATE TABLE IF NOT EXISTS issue(
+                ts     INTEGER,
+                code   TEXT,
+                given  TEXT,
+                detail TEXT
+            )''')
+            c.execute('CREATE INDEX IF NOT EXISTS idx_issue_ts ON issue(ts)')
+            c.execute('CREATE INDEX IF NOT EXISTS idx_issue_code ON issue(code)')
 
     # ------------------------------------------------------------ 기록
     def record(self, *, ok, is_new, native, quality, sex,
@@ -72,6 +82,55 @@ class Stats:
                      (given or '')[:20], (hangul or '')[:20]))
         except Exception:
             pass
+
+    def record_issue(self, code, given='', detail=''):
+        """결과물 품질 문제 1건 기록."""
+        if not self.ok:
+            return
+        try:
+            with self._lock, self._conn() as c:
+                c.execute('INSERT INTO issue(ts,code,given,detail) VALUES(?,?,?,?)',
+                          (int(time.time()), str(code)[:40],
+                           str(given or '')[:20], str(detail or '')[:200]))
+        except Exception:
+            pass
+
+    def issues(self, days=7, limit=40):
+        """
+        품질 문제 집계 — 코드별 건수(전체·최근)와 최근 사례.
+        /admin 이 그대로 뿌린다.
+        """
+        out = {'ok': self.ok, 'by_code': [], 'recent': [], 'total': 0,
+               'window': days}
+        if not self.ok:
+            return out
+        try:
+            now = int(time.time())
+            since = now - days * 86400
+            with self._conn() as c:
+                cur = c.cursor()
+                out['total'] = cur.execute(
+                    'SELECT COUNT(*) FROM issue').fetchone()[0]
+                rows = cur.execute(
+                    'SELECT code, COUNT(*) c, MAX(ts) FROM issue '
+                    'WHERE ts>=? GROUP BY code ORDER BY c DESC',
+                    (since,)).fetchall()
+                out['by_code'] = [
+                    {'code': code, 'count': n,
+                     'last': time.strftime('%m/%d %H:%M', time.gmtime(ts))}
+                    for code, n, ts in rows]
+                rec = cur.execute(
+                    'SELECT ts, code, given, detail FROM issue '
+                    'ORDER BY ts DESC LIMIT ?', (limit,)).fetchall()
+                out['recent'] = [
+                    {'when': time.strftime('%m/%d %H:%M', time.gmtime(ts)),
+                     'code': code, 'given': g, 'detail': d}
+                    for ts, code, g, d in rec]
+            return out
+        except Exception as e:
+            import sys
+            print(f'[stats] issues failed: {e}', file=sys.stderr, flush=True)
+            return out
 
     # ------------------------------------------------------------ 집계
     def summary(self, top_n=10, days=7):

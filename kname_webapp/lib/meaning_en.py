@@ -80,7 +80,7 @@ class MeaningEnGenerator:
         api_key: Optional[str] = None,
         model: str = DEFAULT_MODEL,
         cache_path: Optional[str] = 'meaning_en_cache.json',
-        max_tokens: int = 320,
+        max_tokens: int = 400,
         temperature: float = 0.7,
     ):
         self.nm = name_meaning
@@ -91,7 +91,7 @@ class MeaningEnGenerator:
         self.cache_path = cache_path
         self._client = None
         self._lock = threading.Lock()
-        self._cache: Dict[str, str] = {}
+        self._cache: Dict[str, object] = {}
         self.last_error: Optional[str] = None
         if cache_path and os.path.exists(cache_path):
             try:
@@ -209,8 +209,20 @@ class MeaningEnGenerator:
             'open with the romanization alone ("Yunsu carries ..." is wrong). '
             + 'Never invent facts about real people or media. 60-90 words. '
             'Write the name in plain Revised Romanization using basic Latin letters only '
-            '(Horim, not Hořim) — no diacritics or accented characters. '
-            'Reply with the explanation text only — no preamble, no quotes, no JSON.'
+            '(Horim, not Hořim) — no diacritics or accented characters.\n\n'
+            # 카드 앞면에 쓰는 한 줄. 예전에는 한자 뜻을 로컬에서 조립했는데,
+            # 뜻 문자열만 보고 품사를 알 수 없어 비문이 계속 나왔다
+            # ("A name of beneficial and talent"). 문장은 모델이 쓰게 한다.
+            'Then, after the explanation, add one final line in exactly this form:\n'
+            'SHORT: <one short phrase>\n'
+            'Rules for that phrase: a single grammatical English noun phrase of 4-9 words, '
+            '30-55 characters, describing ONLY what the name means (never its sound, never '
+            'the English name). Start with a capital letter and end with no punctuation. '
+            'Use no Korean, no hanja, no romanization, no quotation marks. '
+            'Good: "Someone wise who shines like jade" / "A bright and steadfast heart" / '
+            '"Warmth that gathers people close". '
+            'Bad: "Wisdom" (too short) / "Sounds soft and open" (about sound) / '
+            '"Yunsu, a wise child" (names the person).'
         )
 
     # ------------------------------------------------------------ 공개 API
@@ -222,12 +234,32 @@ class MeaningEnGenerator:
         english_name: Optional[str] = None,
         gloss_en: Optional[Dict[str, str]] = None,
     ) -> Optional[str]:
-        """영어 의미 설명 생성. 실패 시 None."""
+        """영어 의미 설명 생성. 실패 시 None. (기존 호출부 호환)"""
+        return self.explain_pair(given, sex, hanja_chars, english_name, gloss_en)[0]
+
+    def explain_pair(
+        self,
+        given: str,
+        sex: str,
+        hanja_chars: Optional[List[Tuple[str, str, str]]] = None,
+        english_name: Optional[str] = None,
+        gloss_en: Optional[Dict[str, str]] = None,
+    ) -> Tuple[Optional[str], str]:
+        """
+        (설명, 카드 앞면 한 줄) 을 함께 돌려준다.
+
+        한 줄은 모델이 쓴 문장이므로 문법이 깨지지 않는다. 로컬에서 한자 뜻을
+        조립하던 경로는 이 값이 없을 때만 쓰인다.
+        """
         key = f'{given}:{sex}:{english_name or ""}'
-        if key in self._cache:
-            return self._cache[key]
+        cached = self._cache.get(key)
+        if isinstance(cached, dict):
+            return cached.get('text') or None, cached.get('short') or ''
+        if isinstance(cached, str):
+            # 예전 캐시(문자열) — 설명만 있고 한 줄은 없다
+            return cached, ''
         if not self.api_key:
-            return None
+            return None, ''
 
         prompt = self._build_prompt(given, sex, hanja_chars, english_name, gloss_en)
         try:
@@ -237,20 +269,54 @@ class MeaningEnGenerator:
                 max_tokens=self.max_tokens,
                 messages=[{'role': 'user', 'content': prompt}],
             )
-            text = ''.join(b.text for b in resp.content if hasattr(b, 'text')).strip()
+            raw = ''.join(b.text for b in resp.content if hasattr(b, 'text')).strip()
             self.last_error = None
         except Exception as e:
             # 호출부가 상황에 맞는 안내를 띄울 수 있도록 유형을 남긴다
             self.last_error = classify_error(e)
-            return None
+            return None, ''
 
-        text = self._clean(text)
+        body, short = self._split_short(raw)
+        text = self._clean(body)
         if not text:
-            return None
+            return None, ''
         with self._lock:
-            self._cache[key] = text
+            self._cache[key] = {'text': text, 'short': short}
             self._save_cache()
-        return text
+        return text, short
+
+    # 'SHORT: ...' 마지막 줄을 떼어낸다.
+    _SHORT_RE = re.compile(r'^\s*SHORT\s*[:\-—]\s*(.+?)\s*$',
+                           re.IGNORECASE | re.MULTILINE)
+
+    @classmethod
+    def _split_short(cls, raw: str) -> Tuple[str, str]:
+        if not raw:
+            return '', ''
+        m = None
+        for m in cls._SHORT_RE.finditer(raw):
+            pass                                  # 마지막 것을 쓴다
+        if not m:
+            return raw, ''
+        body = (raw[:m.start()] + raw[m.end():]).strip()
+        return body, cls._clean_short(m.group(1))
+
+    @staticmethod
+    def _clean_short(s: str) -> str:
+        """한 줄을 카드에 쓸 수 있는 형태로 검사·정리. 부적합하면 빈 문자열."""
+        s = re.sub(r'\s+', ' ', (s or '').strip())
+        s = s.strip('"“”‘’ ').rstrip('.').strip()
+        s = _strip_diacritics(s)
+        if not s or re.search(r'[가-힣㐀-鿿]', s):
+            return ''                             # 한글·한자가 섞이면 버린다
+        if not (10 <= len(s) <= 62) or not (3 <= len(s.split()) <= 12):
+            return ''
+        if s.rstrip().lower().endswith((',', ' and', ' or', ' as', ' of',
+                                        ' with', ' to', ' the', ' a')):
+            return ''                             # 어중간하게 끊긴 문구
+        if re.search(r'\bsounds?\b|\bsyllable', s, re.I):
+            return ''                             # 발음 이야기는 뜻이 아니다
+        return s[0].upper() + s[1:]
 
     @staticmethod
     def _clean(text: str) -> Optional[str]:

@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#f4efe4; --panel:#fffdf8; --ink:#2b2622; --soft:#7a7266; --faint:#a89f90;
-    --line:#e7dfce; --accent:#3f6f5f; --accent2:#8a6a26; --bad:#b0433a; --ok:#3f8f5f;
+    --line:#e7dfce; --accent:#3f6f5f; --accent2:#8a6a26; --bad:#b0433a; --ok:#3f8f5f; --warn:#8a6a26;
     --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Malgun Gothic',Roboto,sans-serif;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -227,10 +227,43 @@
   </div>
   {% endif %}
 
+  <div class="sec-label" style="margin-top:26px;">결과물 품질 (최근 {{ iss.window or 7 }}일)</div>
+  {% if iss.by_code %}
+  <div class="list" style="margin-bottom:12px;">
+    {% for r in iss.by_code %}
+    <div class="row">
+      <div class="rank" style="font-size:10px;color:{{ 'var(--bad)' if iss.severity.get(r.code) == 'error' else ('var(--warn)' if iss.severity.get(r.code) == 'warning' else 'var(--faint)') }}">
+        {{ '●' if iss.severity.get(r.code) == 'error' else ('▲' if iss.severity.get(r.code) == 'warning' else '·') }}
+      </div>
+      <div class="nm" style="font-family:ui-monospace,monospace;font-size:12px;">{{ r.code }}</div>
+      <div class="rb"><span style="width:{{ (100 * r.count / iss.peak) if iss.peak else 0 }}%"></span></div>
+      <div class="ct">{{ r.count }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  <details style="margin-bottom:8px;">
+    <summary style="cursor:pointer;color:var(--faint);font-size:12px;">최근 사례 {{ iss.recent|length }}건 보기</summary>
+    <div class="list" style="margin-top:8px;">
+      {% for r in iss.recent %}
+      <div class="row">
+        <div class="rank" style="font-size:10px;color:var(--faint);">{{ r.when }}</div>
+        <div class="nm" style="font-size:12px;">
+          <span style="font-family:ui-monospace,monospace;color:var(--faint);">{{ r.code }}</span>
+          &nbsp;{{ r.detail or r.given }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </details>
+  {% else %}
+  <div class="empty">문제 없음 — 기록된 품질 이슈가 없습니다</div>
+  {% endif %}
+
   <div class="foot">
     · 비용은 <b>추정치</b>입니다 — 정확한 청구는
     <a href="https://console.anthropic.com" target="_blank" rel="noopener">Anthropic 콘솔</a> ·
     <a href="https://sentry.io" target="_blank" rel="noopener">Sentry</a> 에서 확인하세요.<br>
+    · <b>결과물 품질</b>: ● 나오면 안 되는 결함 · ▲ 품질 저하 · · 정상 범위의 열화(Sentry 미전송).<br>
     · 통계는 서버의 CACHE_DIR 에 저장됩니다. 영구 디스크가 없으면 재배포 시 초기화됩니다.<br>
     · 이 페이지는 ADMIN_TOKEN 으로 보호됩니다. 링크(토큰 포함)를 공유하지 마세요.
   </div>
