@@ -585,6 +585,11 @@ _ABSTRACT = {
 }
 # 관사를 붙이지 않는 명사 (물질·자연·복수 개념)
 _NO_ARTICLE = {
+    # 불가산·물질·추상명사 — 관사를 붙이면 "as a poetry" 같은 비문이 된다
+    'poetry', 'history', 'music', 'art', 'learning', 'knowledge', 'truth',
+    'beauty', 'radiance', 'brilliance', 'splendor', 'harmony', 'peace',
+    'glory', 'courage', 'patience', 'clarity', 'purity', 'jade radiance',
+    'good fortune', 'abundance', 'warmth', 'kindness', 'talent',
     'jade', 'gold', 'silk', 'water', 'sunlight', 'moonlight', 'firelight',
     'earth', 'land', 'sky', 'spring', 'dawn', 'daylight', 'ink', 'honey',
     'barley', 'cotton', 'coral', 'metal', 'stone',
@@ -593,6 +598,10 @@ _NO_ARTICLE = {
 }
 
 _ADJ_OK = {
+    # 명사로 오분류되어 "A name of beneficial and talent" 같은 비문을 만들던 뜻들.
+    # (뜻 문자열 전체가 한 항목이므로 여러 단어로 된 형용사구도 여기 넣는다)
+    'admirable','robust','beneficial','true','exemplary','flourishing',
+    'luxuriant','vast and great','at peace','upright and true',
     'outstanding','excelling','clear','upright','bright','wise','benevolent','kind',
     'graceful','beautiful','lovely','peaceful','glad','virtuous','good','auspicious',
     'great','foremost','lofty','towering','abundant','broad','wide','warm','clever',
@@ -642,7 +651,20 @@ def _phrase_native(s):
 
 
 # 비유 대상으로 쓸 수 없는 표현 (수량·정도·관계 등)
+# 명사가 아니어서 아예 뜻으로 세울 수 없는 말(수사·대명사·전치사).
+# 이 경우 형용사만 남겨 "A lofty person" 형태로 만든다.
+_NOT_NOUN = {
+    'above', 'all', 'alongside', 'behind', 'beside', 'both', 'each',
+    'inside', 'self', 'that', 'the most', 'this', 'us', 'we',
+    'three', 'six', 'seven', 'eight', 'ten', 'many',
+}
+
+# 실제 명사이지만 'A as a B' 비유가 어색한 뜻.
+# ("benevolent as a talent", "graceful as a model" 같은 문장을 막는다)
 _NOT_COMPARABLE = {
+    'talent', 'good omen', 'years', 'arriving', 'model', 'a model',
+    'praise', 'center', 'board', 'source', 'fine person', 'a fine person',
+    'hill', 'sovereign', 'gate', 'record', 'history', 'the first',
     'many', 'all', 'each', 'both', 'three', 'six', 'seven', 'eight', 'ten',
     'the most', 'above', 'inside', 'behind', 'beside', 'alongside',
     'self', 'we', 'us', 'this', 'that',
@@ -652,9 +674,13 @@ _NOT_COMPARABLE = {
 def _adj_noun(adj, noun):
     """'bright' + 'jade' → 'Someone bright as jade'"""
     a, n = adj.lower(), noun.lower()
+    if n in _NOT_NOUN:
+        # 'lofty as a many' 같은 비문이 되므로 형용사만 남긴다
+        art = 'An' if a[0] in 'aeiou' else 'A'
+        return f'{art} {a} person'
     if n in _NOT_COMPARABLE:
-        # 'lofty as a many' 같은 비문이 되므로 두 뜻을 나열한다
-        return f'A name of {n} and {a}'
+        # 비유가 성립하지 않는 뜻은 'A as a B' 대신 곁들이는 형태로
+        return f'Someone {a}, with {_a(n)}'
     if n in _ABSTRACT:
         return f'Someone {a}, with {n}'
     first = n.split()[0]
@@ -688,11 +714,21 @@ def _short_meaning(meaning_en, hanja_lines):
     # 1) 의미설명 안의 대표 문구를 우선 사용
     if meaning_en:
         pats = [
-            r"[Ii]t'?s a wish for (someone [^.\"]+?)[.\"]",
-            r"[Ii]t pictures (someone [^.\"]+?)[.\"]",
-            r"wish (?:for|to be) (someone [^.\"]+?)[.\"]",
-            r"[Ii]t carries the (?:poetic )?wish for (someone [^.\"]+?)[.\"]",
-            r"name meaning (someone [^.\"]+?)[.\"]",
+            r"[Ii]t'?s a wish for (someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"[Ii]t pictures (someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            # 사전 602개가 핵심 의미를 이끌 때 쓰는 다른 표현들.
+            # 여기서 못 잡으면 품질이 낮은 한자 조립 경로로 떨어진다.
+            r"[Ii]t describes (someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"[Ii]t suggests \"?(someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"suggesting (someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"[Tt]he image of (someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"image of (someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"name for (someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"name means \"?(someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"[Ii]t evokes \"?(someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"wish (?:for|to be) (someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"[Ii]t carries the (?:poetic )?wish for (someone [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"name meaning (someone [^.\"\u2014;]+?)[.\"\u2014;]",
             r"native Korean name meaning \"([^\"]+)\"",
             r"native Korean word (?:for|meaning) \"([^\"]+)\"",
             r"[Nn]ative Korean word for \"([^\"]+)\"",
@@ -704,8 +740,8 @@ def _short_meaning(meaning_en, hanja_lines):
             r"name meaning \"([^\"]+)\"",
             r"comes from the native Korean word \uc774\ub4e0, \"([^\"]+)\"",
             r"native Korean word [^,]*, \"([^\"]+)\"",
-            r"wish for (a [^.\"]+?)[.\"]",
-            r"[Ii]t pictures (a [^.\"]+?)[.\"]",
+            r"wish for (a [^.\"\u2014;]+?)[.\"\u2014;]",
+            r"[Ii]t pictures (a [^.\"\u2014;]+?)[.\"\u2014;]",
         ]
         # "Meaning: 이(this) + 봄(spring)." 처럼 글자별 뜻이 나열된 폴백은
         # 괄호를 모두 모아 하나의 구로 합친다 (this + spring → this spring)
@@ -776,6 +812,7 @@ def _short_meaning(meaning_en, hanja_lines):
 
         # 명사만 → "A name of sunlight and star"
         nouns = [p['noun'] for p in parts if p['noun']]
+        nouns = [n for n in nouns if n.lower() not in _NOT_NOUN]
         if len(nouns) >= 2:
             return f'A name of {nouns[0].lower()} and {nouns[1].lower()}'
         # 동사가 섞인 경우
