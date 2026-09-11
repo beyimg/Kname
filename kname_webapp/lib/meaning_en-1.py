@@ -27,7 +27,30 @@ DEFAULT_MODEL = "claude-sonnet-5"
 # 예전에는 프롬프트를 고쳐도 캐시가 그대로 남아, 파일을 손으로 지우지 않으면
 # 예전 형식 결과가 계속 나왔다("Boa carries ..." 처럼 도입부가 로마자만).
 # 사람이 기억해야 하는 절차는 반드시 잊히므로 버전으로 강제한다.
-PROMPT_VERSION = 3
+PROMPT_VERSION = 4
+
+# 도입부 자리표시자. 모델은 이 토큰만 쓰고, 코드가 라벨로 바꿔 넣는다.
+# 형태가 하나뿐이므로 '모델이 어떻게 썼을까'를 알아맞힐 필요가 없다.
+NAME_SLOT = '{{NAME}}'
+
+# 라벨 바로 뒤에 오는 동사들. 모델이 자리표시자를 빼먹고 동사부터 썼다면
+# 라벨을 앞에 붙이기만 하면 문장이 완성된다 — 떼어낼 것이 없으므로 안전하다.
+# (사전 602개가 실제로 쓰는 낱말: joins 398 · pairs 154 · is 20 · doubles 12 ...)
+_LEAD_VERBS = (
+    'joins', 'pairs', 'combines', 'doubles', 'sets', 'brings', 'weaves',
+    'carries', 'holds', 'blends', 'unites', 'marries', 'places', 'puts',
+    'links', 'binds', 'gathers', 'is', 'comes', 'means', 'names',
+    'evokes', 'pictures', 'paints', 'suggests', 'describes',
+)
+
+# 영어 문장이 이 낱말로 시작하면 '로마자 이름'이 아니다 — 건드리면 문장이 깨진다
+_SENTENCE_OPENERS = {
+    'the', 'this', 'that', 'these', 'those', 'a', 'an', 'and', 'but',
+    'it', 'its', 'in', 'on', 'at', 'with', 'for', 'from', 'as', 'by',
+    'her', 'his', 'their', 'they', 'both', 'two', 'one', 'named', 'name',
+    'together', 'joined', 'joining', 'paired', 'pairing', 'above', 'born',
+    'parents', 'chosen', 'spoken', 'carrying', 'meaning', 'korean',
+}
 
 # 라틴 확장 문자 → 기본 알파벳. LLM이 한국어 로마자에 발음기호를
 # 붙이는 경우가 있어(Hořim), 표기를 정규화한다.
@@ -203,16 +226,41 @@ class MeaningEnGenerator:
         """
         if not text or text.startswith(label):
             return text
-        # 한글 이름으로 시작 — 괄호가 없거나 다르면 라벨로 교체
-        m = re.match(re.escape(given) + r'(?:\s*\([^)]*\))?', text)
+        # 한글 이름으로 시작 — 괄호가 없거나 다르면 라벨로 교체.
+        # 단, 본문 괄호에 한자가 있는데 우리 라벨에는 없으면 본문이 더 풍부하다.
+        # 그 경우 덮어쓰면 정보를 잃으므로 그대로 둔다.
+        m = re.match(re.escape(given) + r'(?:\s*\(([^)]*)\))?', text)
         if m:
+            inner = m.group(1) or ''
+            if re.search(r'[\u4e00-\u9fff]', inner) and not re.search(
+                    r'[\u4e00-\u9fff]', label):
+                return text
             return label + text[m.end():]
-        # 로마자로 시작 — "Boa carries ..." → "보아 (寶雅, Boa) carries ..."
-        if rom:
-            m = re.match(re.escape(rom) + r'\b(?:\s*\([^)]*\))?', text,
-                         re.IGNORECASE)
-            if m:
-                return label + text[m.end():]
+
+        # 로마자로 시작하는 경우.
+        #
+        # 정확히 일치만 보면 놓친다. 모델이 쓰는 표기가 코드가 만든 표기와
+        # 조금씩 다르기 때문이다(실측).
+        #   세은 → 'Se-eun'  (하이픈)      코드: 'Seeun'
+        #   이담 → 'I-Dam'   (하이픈+대문자) 코드: 'Idam'
+        #   무영 → 'Muyoung' (표기 이형)    코드: 'Muyeong'
+        # 그래서 맨 앞의 라틴 낱말을 떼어내 '그 이름의 로마자로 볼 수 있는가'를
+        # 느슨하게 판정한다. 영어 문장으로 시작한 경우를 건드리면 문장이
+        # 깨지므로, 흔한 문장 시작 낱말은 제외한다.
+        lead = re.match(r"[A-Za-z][A-Za-z'\-]*", text)
+        if rom and lead:
+            word = lead.group(0)
+            flat = word.replace('-', '').replace("'", '').lower()
+            if (flat not in _SENTENCE_OPENERS
+                    and (flat == rom.lower()
+                         or (flat[:1] == rom[:1].lower()
+                             and abs(len(flat) - len(rom)) <= 3))):
+                rest = text[lead.end():]
+                # 'Se-eun (世恩) carries ...' 처럼 괄호가 붙어 있으면 함께 뗀다
+                m2 = re.match(r'\s*\([^)]*\)', rest)
+                if m2:
+                    rest = rest[m2.end():]
+                return label + rest
         return text
 
     def _build_prompt(
@@ -277,13 +325,21 @@ class MeaningEnGenerator:
             + 'Write in the third person about the name and the person who bears it — '
             'refer to them as "someone" or "a person" (or "they"); never address the reader '
             'as "you" or "your". '
-            + f'Start the very first sentence with exactly "{label}" and continue straight '
-            f'on from it — for example: '
-            + (f'\'{label} joins ...\' or \'{label} pairs ...\'. '
+            # 도입부는 모델에게 '이름을 정확히 쓰라'고 요구하지 않는다.
+            #
+            # 그렇게 하면 표기가 매번 달라져 코드가 맞출 수 없다(실측).
+            #   Se-eun / Seeun / I-Dam / Muyoung / Muyeong ...
+            # 대신 고정된 자리표시자만 쓰게 하고, 코드가 그것을 라벨로 바꾼다.
+            # 자리표시자는 형태가 하나뿐이라 일치 문제가 원리적으로 없다.
+            + f'Begin the explanation with exactly {NAME_SLOT} and continue straight '
+            f'on from it \u2014 for example: '
+            + (f"'{NAME_SLOT} joins ...' or '{NAME_SLOT} pairs ...'. "
                if hanja_chars else
-               f'\'{label} — above all, this is the native Korean word for ...\'. ')
-            + 'This opening is fixed — do not drop the Hangul or the parentheses, and never '
-            'open with the romanization alone ("Yunsu carries ..." is wrong). '
+               f"'{NAME_SLOT} \u2014 above all, this is the native Korean word "
+               f"for ...'. ")
+            + f'Write {NAME_SLOT} literally, exactly once, as the very first thing. '
+            'Do not write the Korean name or its romanization anywhere in that first '
+            f'sentence \u2014 {NAME_SLOT} stands in for it and is filled in afterwards. '
             + 'Never invent facts about real people or media. 60-90 words. '
             'Write the name in plain Revised Romanization using basic Latin letters only '
             '(Horim, not Hořim) — no diacritics or accented characters.\n\n'
@@ -380,8 +436,20 @@ class MeaningEnGenerator:
                 self.last_stale_why = 'empty-response'
                 return self._fix_opening(stale, given, label, rom), ''
             return None, ''
-        # 도입부는 지시가 아니라 코드로 보장한다
-        text = self._fix_opening(text, given, label, rom)
+        # 도입부는 지시가 아니라 코드로 보장한다.
+        #  ① 자리표시자가 있으면 그대로 바꿔 넣는다 — 실패할 수 없는 경로
+        #  ② 없으면(모델이 지시를 무시한 경우) 기존 교정이 받아낸다
+        if NAME_SLOT in text:
+            text = text.replace(NAME_SLOT, label, 1).replace(NAME_SLOT, given)
+            text = re.sub(r'\s+', ' ', text).strip()
+        else:
+            text = self._fix_opening(text, given, label, rom)
+            # 자리표시자를 빼먹고 동사부터 쓴 경우 — 라벨만 앞에 붙이면 된다.
+            #   'joins 세 (世, se) ...' → '세은 (世恩, Seeun) joins 세 ...'
+            if not text.startswith(label):
+                w = re.match(r'([a-z]+)\b', text)
+                if w and w.group(1) in _LEAD_VERBS:
+                    text = f'{label} {text}'
         with self._lock:
             self._cache[key] = {'v': PROMPT_VERSION, 'text': text,
                                 'short': short}
