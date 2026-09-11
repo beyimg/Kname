@@ -248,6 +248,16 @@ try:
 except Exception:
     _SHORT_EN = {}
 
+# 국적 — 입력 폼 드롭박스 + 로그 저장
+try:
+    from countries import (COUNTRIES as _COUNTRIES, NAMES as _COUNTRY_NAMES,
+                           normalize as _norm_country,
+                           from_accept_language as _country_from_header)
+except Exception:
+    _COUNTRIES, _COUNTRY_NAMES = [], {}
+    _norm_country = lambda c: ''            # noqa: E731
+    _country_from_header = lambda h: ''     # noqa: E731
+
 # 교정된 순우리말 이름 사전 (DB 유형 오분류·LLM 신호에 의존하지 않는 정본).
 # 여기 있으면 무조건 순우리말로 취급해 한자를 감추고 그 뜻을 쓴다.
 try:
@@ -1456,6 +1466,25 @@ _BUSY_BUDGET = ("We&rsquo;re getting a lot of requests right now. "
                 "Please try again later, or try a more common name.")
 
 
+def _country_of_request():
+    """
+    (사용자가 고른 국적, 헤더 추정 국적).
+
+    드롭박스는 선택 사항이다. 필수로 만들면 이름을 받으려는 사용자에게
+    마찰이 생기고 이탈이 늘어난다. 대신 Accept-Language 로 추정치를 함께
+    남겨, 비워 둔 경우에도 대략의 분포는 볼 수 있게 한다.
+    두 값은 신뢰도가 다르므로 섞지 않고 따로 저장한다.
+    """
+    raw = request.form.get('country', '')
+    if not raw and request.is_json:
+        try:
+            raw = (request.get_json(silent=True) or {}).get('country', '')
+        except Exception:
+            raw = ''
+    geo = _country_from_header(request.headers.get('Accept-Language', ''))
+    return _norm_country(raw), geo
+
+
 def _client_ip():
     """프록시(Render 등) 뒤에서는 X-Forwarded-For의 첫 IP가 실제 사용자."""
     xff = request.headers.get('X-Forwarded-For', '')
@@ -1475,7 +1504,7 @@ def _needs_llm(first_key, last_key, sex):
     return TRANSLIT.transliterate(first_key, sexk, allow_llm=False) is None
 
 
-def _log_conv(first_en, last_en, sex, is_new, data):
+def _log_conv(first_en, last_en, sex, is_new, data, country='', geo=''):
     """변환 1건을 통계에 기록(성공/실패 모두). 빈 입력은 제외."""
     if not (str(first_en).strip() and str(last_en).strip()):
         return
@@ -1500,6 +1529,8 @@ def _log_conv(first_en, last_en, sex, is_new, data):
         given=data.get('given', '') if ok else '',
         hangul=data.get('full_hangul', '') if ok else '',
         flags=' '.join(sorted({c for c, _d in findings})),
+        country=country,
+        geo=geo,
     )
     # 사용자가 실패를 겪은 경우 보고(입력 실수는 제외). 원인별로 묶는다.
     if not ok:
@@ -1553,7 +1584,10 @@ def _log_quality(first_en, last_en, data, findings=None):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # 국적은 한 번 고르면 쿠키에 남겨 다음 방문에 기본값으로 쓴다
+    return render_template('index.html', countries=_COUNTRIES,
+                           country=_norm_country(
+                               request.cookies.get('country', '')))
 
 
 @app.route('/result', methods=['GET', 'POST'])
@@ -1579,14 +1613,22 @@ def result():
                                first_name=first_en, last_name=last_en, sex=sex), 503
 
     data = convert_name(first_en, last_en, sex)
-    _log_conv(first_en, last_en, sex, is_new, data)
+    _picked, _geo = _country_of_request()
+    _log_conv(first_en, last_en, sex, is_new, data, _picked, _geo)
     if 'error' in data:
         return render_template('index.html', error=data['error'],
-                               first_name=first_en, last_name=last_en, sex=sex)
+                               first_name=first_en, last_name=last_en, sex=sex,
+                               countries=_COUNTRIES, country=_picked)
     if is_new:
         BUDGET.record()          # 새 이름 1건 소비 기록
-    return render_template('result.html', d=data,
-                           reason_json=json.dumps(data['reason'], ensure_ascii=False))
+    resp = make_response(render_template(
+        'result.html', d=data,
+        reason_json=json.dumps(data['reason'], ensure_ascii=False)))
+    if _picked:
+        # 다음 방문에 기본값으로 쓴다. 국가 코드 2글자뿐이라 민감정보가 아니다.
+        resp.set_cookie('country', _picked, max_age=60 * 60 * 24 * 365,
+                        samesite='Lax')
+    return resp
 
 
 @app.route('/api/convert', methods=['POST'])
@@ -1604,7 +1646,8 @@ def api_convert():
                         'message': 'High traffic right now — try again later '
                                    'or use a more common name.'}), 503
     data = convert_name(first_en, last_en, sex)
-    _log_conv(first_en, last_en, sex, is_new, data)
+    _api_picked, _api_geo = _country_of_request()
+    _log_conv(first_en, last_en, sex, is_new, data, _api_picked, _api_geo)
     if 'error' not in data and is_new:
         BUDGET.record()
     status = 400 if 'error' in data else 200
@@ -1833,7 +1876,15 @@ def admin():
         recent = STATS.recent(limit=60)
     except Exception:
         recent = []
-    return render_template('admin.html', s=s, op=op, iss=iss, recent=recent)
+    try:
+        ctry = STATS.countries(days=30, top_n=15)
+    except Exception:
+        ctry = {'picked': [], 'geo': [], 'picked_total': 0, 'geo_total': 0}
+    ctry['names'] = _COUNTRY_NAMES
+    ctry['peak'] = max([r['count'] for r in (ctry.get('picked') or [])]
+                       + [r['count'] for r in (ctry.get('geo') or [])] or [0])
+    return render_template('admin.html', s=s, op=op, iss=iss, recent=recent,
+                           ctry=ctry)
 
 
 @app.route('/admin/recent')
@@ -1852,7 +1903,7 @@ def admin_recent():
     except Exception:
         rows = []
     return jsonify({'rows': rows, 'severity': _Q_SEVERITY,
-                    'ts': int(_time.time())})
+                    'names': _COUNTRY_NAMES, 'ts': int(_time.time())})
 
 
 if __name__ == '__main__':
