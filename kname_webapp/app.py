@@ -472,7 +472,7 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False):
         ntype = MEANING.classify_name(given)
         chars = MEANING.pick_best_hanja(given) if ntype == 'hanja' else None
         out = {'hanja': '', 'hanja_detail': [], 'meaning_en': '',
-               'meaning_short': ''}
+               'meaning_short': '', 'meaning_stale': False}
 
         if chars:
             # chars: [(음, 한자, 뜻), ...]
@@ -501,6 +501,8 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False):
                 hanja_en=HANJA_EN,
             )
             en = en or ''
+            # 예전 캐시를 그대로 내보낸 경우 — 내용이 낡았으므로 기록한다
+            out['meaning_stale'] = bool(getattr(MEANING_EN, 'last_stale', False))
 
         # ② 실패 시 meaning.py로 폴백 (한국어+영어 생성, 비용 높음)
         if not en:
@@ -1220,6 +1222,7 @@ def convert_name(first_en, last_en, sex):
     meaning_error = None
     meaning_raw = ''
     meaning_short = ''      # LLM이 설명과 함께 써 준 카드 앞면 한 줄
+    meaning_stale = False   # 예전 캐시를 그대로 쓴 경우(내용이 낡았다)
     # 설명의 출처를 끝까지 따라간다: dict(미리 작성된 602개) / llm / template /
     # native(순우리말 로컬 설명). 점검 도구가 이 값을 그대로 읽으면 되므로,
     # 문체로 되짚다가 오판하는 일이 없어진다.
@@ -1239,6 +1242,7 @@ def convert_name(first_en, last_en, sex):
             meaning_error = gen.get('meaning_error')
             meaning_raw = gen.get('meaning_raw') or ''
             meaning_short = gen.get('meaning_short') or ''
+            meaning_stale = bool(gen.get('meaning_stale'))
 
     # 순우리말 정본 사전에 있으면: 한자를 감추고 그 뜻을 쓴다.
     # (DB 오분류·LLM 신호 여부와 무관하게 순우리말을 보장. HANJA_OK 이름은 한자 병기 허용)
@@ -1404,6 +1408,8 @@ def convert_name(first_en, last_en, sex):
         'meaning_error': meaning_error,
         # 설명 출처(dict / llm / native / template) — 점검 도구가 그대로 읽는다
         'meaning_source': meaning_source or ('dict' if meaning_en else 'none'),
+        # 프롬프트가 바뀐 뒤 재생성에 실패해 예전 캐시를 쓴 경우
+        'meaning_stale': bool(meaning_stale),
         'neutral_request': bool(neutral),
         'reason': reason,
     }

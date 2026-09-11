@@ -101,6 +101,11 @@ class MeaningEnGenerator:
         self._lock = threading.Lock()
         self._cache: Dict[str, object] = {}
         self.last_error: Optional[str] = None
+        # 직전 호출이 '예전 캐시를 그대로 내보낸' 것인지.
+        # 버전이 안 맞아 다시 만들려 했는데 실패한 경우다. 내용이 낡았으므로
+        # 호출부가 이를 기록·보고할 수 있어야 한다(새로 만든 것과 구분 불가하면
+        # 틀린 뜻이 조용히 계속 나간다).
+        self.last_stale: bool = False
         if cache_path and os.path.exists(cache_path):
             try:
                 with open(cache_path, encoding='utf-8') as f:
@@ -310,6 +315,7 @@ class MeaningEnGenerator:
         key = f'{given}:{sex}:{english_name or ""}'
         label, rom = self._label(given, hanja_chars)
 
+        self.last_stale = False
         cached = self._cache.get(key)
         if isinstance(cached, dict) and cached.get('v') == PROMPT_VERSION:
             return cached.get('text') or None, cached.get('short') or ''
@@ -320,6 +326,7 @@ class MeaningEnGenerator:
             cached.get('text') if isinstance(cached, dict) else None)
         if not self.api_key:
             if stale:
+                self.last_stale = True
                 return self._fix_opening(stale, given, label, rom), ''
             return None, ''
 
@@ -337,8 +344,10 @@ class MeaningEnGenerator:
         except Exception as e:
             # 호출부가 상황에 맞는 안내를 띄울 수 있도록 유형을 남긴다
             self.last_error = classify_error(e)
-            # 새로 만들지 못했으면 예전 캐시라도 내보낸다(빈 카드보다 낫다)
+            # 새로 만들지 못했으면 예전 캐시라도 내보낸다(빈 카드보다 낫다).
+            # 다만 낡은 내용이므로 반드시 표시한다.
             if stale:
+                self.last_stale = True
                 return self._fix_opening(stale, given, label, rom), ''
             return None, ''
 
@@ -346,6 +355,7 @@ class MeaningEnGenerator:
         text = self._clean(body)
         if not text:
             if stale:
+                self.last_stale = True
                 return self._fix_opening(stale, given, label, rom), ''
             return None, ''
         # 도입부는 지시가 아니라 코드로 보장한다

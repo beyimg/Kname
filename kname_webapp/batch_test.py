@@ -201,6 +201,9 @@ def main():
         # 눈에 띄는 문제만 표시
         flags = []
         if src == 'template': flags.append('템플릿(LLM실패)')
+        # 프롬프트·한자 뜻이 바뀐 뒤 재생성에 실패해 예전 캐시가 나온 경우.
+        # 새로 만든 것과 구분되지 않으면 틀린 뜻이 조용히 계속 나간다.
+        if d.get('meaning_stale'): flags.append('예전캐시(재생성실패)')
         if fallback: flags.append('설명없음')
         # 문법 검사는 템플릿이 조립한 문장에만 적용한다.
         # 사전 602개는 사람이 쓴 문장이라 검사 대상이 아니다.

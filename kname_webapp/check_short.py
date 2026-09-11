@@ -89,6 +89,31 @@ def main():
     print(f'한자쌍 {args.pairs}개 — 비문 {len(bad) - n_bad0}건, '
           f'문장 대신 라벨형 {label}건 ({label * 100 // max(args.pairs, 1)}%)')
 
+    # ------------------------------------------------------- 2b) 사전 자체의 뜻
+    # 사전 602개는 한자 뜻을 JSON 안에 따로(손으로 쓴 값) 들고 있고, 카드는
+    # 그 값을 쓴다. hanja_dict.xlsx 만 점검하면 이쪽이 통째로 빠진다.
+    d_unk, d_unusable = {}, []
+    n_line = 0
+    for sex in ('female', 'male'):
+        for _tr, e in dic['given'][sex].items():
+            for row in (e.get('hanja_detail') or []):
+                if len(row) < 3:
+                    continue
+                n_line += 1
+                gl = str(row[2] or '')
+                if not app._gloss_usable(gl):
+                    d_unusable.append(f'{row[1]}({gl})')
+                for t in gl.split(','):
+                    t = t.strip()
+                    if t and app._pos_of(t) is None:
+                        d_unk[t] = d_unk.get(t, 0) + 1
+    print(f'사전 자체의 한자 뜻 {n_line}줄 — 품사 미분류 {len(d_unk)}종, '
+          f'이름 뜻으로 쓸 수 없는 것 {len(set(d_unusable))}종')
+    if d_unk:
+        print('    미분류:', ', '.join(sorted(d_unk)[:12]))
+    if d_unusable:
+        print('    사용 불가:', ', '.join(sorted(set(d_unusable))[:12]))
+
     # ---------------------------------------------------------------- 3) 미분류
     unk = {}
     for _h, g in chars:
