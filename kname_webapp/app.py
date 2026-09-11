@@ -236,15 +236,27 @@ except Exception:
 try:
     from gloss_pos import (GLOSS_POS as _GLOSS_POS, VERB_FORM as _VERB_FORM,
                            FORCE_NOUNS as _FORCE_NOUNS,
-                           VERB_TRANSITIVE as _VERB_T)
+                           VERB_TRANSITIVE as _VERB_T,
+                           ADJ_NOT_PERSON as _ADJ_NOT_PERSON)
 except Exception:
     _GLOSS_POS, _VERB_FORM, _FORCE_NOUNS, _VERB_T = {}, {}, set(), set()
+    _ADJ_NOT_PERSON = set()
 
 # 사전 602개 중 설명문에서 한 줄을 뽑아내지 못하는 이름의 손으로 쓴 한 줄.
 try:
     from short_en import SHORT_EN as _SHORT_EN
 except Exception:
     _SHORT_EN = {}
+
+# 국적 — 입력 폼 드롭박스 + 로그 저장
+try:
+    from countries import (COUNTRIES as _COUNTRIES, NAMES as _COUNTRY_NAMES,
+                           normalize as _norm_country,
+                           from_accept_language as _country_from_header)
+except Exception:
+    _COUNTRIES, _COUNTRY_NAMES = [], {}
+    _norm_country = lambda c: ''            # noqa: E731
+    _country_from_header = lambda h: ''     # noqa: E731
 
 # 교정된 순우리말 이름 사전 (DB 유형 오분류·LLM 신호에 의존하지 않는 정본).
 # 여기 있으면 무조건 순우리말로 취급해 한자를 감추고 그 뜻을 쓴다.
@@ -256,7 +268,9 @@ except Exception:
 
 def _native_desc(given, meaning_en):
     """순우리말 이름 설명(영어). 순우리말 신호와 한줄의미 훅을 담는다."""
-    rom = romanize_hyphen(given)
+    # 도입부 로마자는 하이픈 없이 쓴다 — 사전 602개와 LLM 설명이 모두
+    # '하람 (Haram)' 형식이므로, 여기만 'Ha-ram' 이면 카드마다 형식이 달라진다.
+    rom = romanize_hyphen(given).replace('-', '')
     m = (meaning_en or '').strip().rstrip('.')
     return (f'{given} ({rom}) is a native Korean name — the native Korean word for "{m}." '
             f'It carries no Chinese characters; the meaning lives right in the sound. '
@@ -503,6 +517,7 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False):
             en = en or ''
             # 예전 캐시를 그대로 내보낸 경우 — 내용이 낡았으므로 기록한다
             out['meaning_stale'] = bool(getattr(MEANING_EN, 'last_stale', False))
+            out['meaning_stale_why'] = getattr(MEANING_EN, 'last_stale_why', None)
 
         # ② 실패 시 meaning.py로 폴백 (한국어+영어 생성, 비용 높음)
         if not en:
@@ -950,7 +965,12 @@ def _short_meaning(meaning_en, hanja_lines, given='', llm_short=''):
         words = [w.strip() for w in str(h.get('gloss') or '').split(',') if w.strip()]
         words = [w for w in words if not _has_hangul(w)]
         tagged = [(w, _pos_of(w)) for w in words]
-        usable = [(w, p) for w, p in tagged if p and p != 'S']
+        # 사람을 가리키는 문장을 만들므로, 사람에게 쓰면 영어에서 곤란해지는
+        # 형용사는 여기서 한 번에 거른다(white=인종 · dense=멍청한 · high=은어).
+        # 틀마다 따로 막으면 반드시 한 군데를 빠뜨린다 — 실제로 빠뜨렸다.
+        usable = [(w, p) for w, p in tagged
+                  if p and p != 'S'
+                  and not (p == 'A' and w.lower() in _ADJ_NOT_PERSON)]
         if not usable:
             # 뜻이 전부 '모르는 것' 또는 '쓸 수 없는 것' — 조립 불가
             if any(p is None for _w, p in tagged):
@@ -971,6 +991,10 @@ def _short_meaning(meaning_en, hanja_lines, given='', llm_short=''):
         return _label_form(hanja_lines) or 'A native Korean name'
 
     # 모든 글자가 형용사 → "A bright and gentle person"
+    #
+    # 단, 사람을 가리키는 형용사로 쓰면 영어에서 곤란해지는 말은 이 틀에
+    # 넣지 않는다(white=인종 · dense=멍청한 · high=약물 은어 · green=풋내기).
+    # 뜻은 고쳐 두었지만, 나중에 한자를 추가하다 같은 표현이 들어오는 것을 막는다.
     adjs = [s['adj'] for s in slots if s['adj']]
     if len(adjs) == len(slots):
         uniq = list(dict.fromkeys(a.lower() for a in adjs))
@@ -1223,6 +1247,7 @@ def convert_name(first_en, last_en, sex):
     meaning_raw = ''
     meaning_short = ''      # LLM이 설명과 함께 써 준 카드 앞면 한 줄
     meaning_stale = False   # 예전 캐시를 그대로 쓴 경우(내용이 낡았다)
+    meaning_stale_why = None
     # 설명의 출처를 끝까지 따라간다: dict(미리 작성된 602개) / llm / template /
     # native(순우리말 로컬 설명). 점검 도구가 이 값을 그대로 읽으면 되므로,
     # 문체로 되짚다가 오판하는 일이 없어진다.
@@ -1243,6 +1268,7 @@ def convert_name(first_en, last_en, sex):
             meaning_raw = gen.get('meaning_raw') or ''
             meaning_short = gen.get('meaning_short') or ''
             meaning_stale = bool(gen.get('meaning_stale'))
+            meaning_stale_why = gen.get('meaning_stale_why')
 
     # 순우리말 정본 사전에 있으면: 한자를 감추고 그 뜻을 쓴다.
     # (DB 오분류·LLM 신호 여부와 무관하게 순우리말을 보장. HANJA_OK 이름은 한자 병기 허용)
@@ -1410,6 +1436,7 @@ def convert_name(first_en, last_en, sex):
         'meaning_source': meaning_source or ('dict' if meaning_en else 'none'),
         # 프롬프트가 바뀐 뒤 재생성에 실패해 예전 캐시를 쓴 경우
         'meaning_stale': bool(meaning_stale),
+        'meaning_stale_why': meaning_stale_why,
         'neutral_request': bool(neutral),
         'reason': reason,
     }
@@ -1439,6 +1466,25 @@ _BUSY_BUDGET = ("We&rsquo;re getting a lot of requests right now. "
                 "Please try again later, or try a more common name.")
 
 
+def _country_of_request():
+    """
+    (사용자가 고른 국적, 헤더 추정 국적).
+
+    드롭박스는 선택 사항이다. 필수로 만들면 이름을 받으려는 사용자에게
+    마찰이 생기고 이탈이 늘어난다. 대신 Accept-Language 로 추정치를 함께
+    남겨, 비워 둔 경우에도 대략의 분포는 볼 수 있게 한다.
+    두 값은 신뢰도가 다르므로 섞지 않고 따로 저장한다.
+    """
+    raw = request.form.get('country', '')
+    if not raw and request.is_json:
+        try:
+            raw = (request.get_json(silent=True) or {}).get('country', '')
+        except Exception:
+            raw = ''
+    geo = _country_from_header(request.headers.get('Accept-Language', ''))
+    return _norm_country(raw), geo
+
+
 def _client_ip():
     """프록시(Render 등) 뒤에서는 X-Forwarded-For의 첫 IP가 실제 사용자."""
     xff = request.headers.get('X-Forwarded-For', '')
@@ -1458,11 +1504,20 @@ def _needs_llm(first_key, last_key, sex):
     return TRANSLIT.transliterate(first_key, sexk, allow_llm=False) is None
 
 
-def _log_conv(first_en, last_en, sex, is_new, data):
+def _log_conv(first_en, last_en, sex, is_new, data, country='', geo=''):
     """변환 1건을 통계에 기록(성공/실패 모두). 빈 입력은 제외."""
     if not (str(first_en).strip() and str(last_en).strip()):
         return
     ok = 'error' not in data
+    # 품질 점검을 먼저 돌려, 그 결과를 같은 행에 남긴다.
+    # 그러면 /admin 의 변환 로그에서 '이 변환에 무슨 문제가 있었는지'가
+    # 한 줄로 보인다(집계만 있으면 개별 건을 되짚을 수 없다).
+    findings = []
+    if ok and _audit is not None:
+        try:
+            findings = _audit(data, pos_of=_pos_of)
+        except Exception:
+            findings = []
     STATS.record(
         ok=ok,
         is_new=is_new,
@@ -1473,6 +1528,9 @@ def _log_conv(first_en, last_en, sex, is_new, data):
         last_en=last_en,
         given=data.get('given', '') if ok else '',
         hangul=data.get('full_hangul', '') if ok else '',
+        flags=' '.join(sorted({c for c, _d in findings})),
+        country=country,
+        geo=geo,
     )
     # 사용자가 실패를 겪은 경우 보고(입력 실수는 제외). 원인별로 묶는다.
     if not ok:
@@ -1486,10 +1544,10 @@ def _log_conv(first_en, last_en, sex, is_new, data):
                    detail=err[:140])
         return
 
-    _log_quality(first_en, last_en, data)
+    _log_quality(first_en, last_en, data, findings)
 
 
-def _log_quality(first_en, last_en, data):
+def _log_quality(first_en, last_en, data, findings=None):
     """
     변환은 성공했지만 결과물이 이상한 경우를 기록·보고한다.
 
@@ -1502,10 +1560,11 @@ def _log_quality(first_en, last_en, data):
     """
     if _audit is None:
         return
-    try:
-        findings = _audit(data, pos_of=_pos_of)
-    except Exception:
-        return                      # 점검 자체가 서비스를 막아서는 안 된다
+    if findings is None:
+        try:
+            findings = _audit(data, pos_of=_pos_of)
+        except Exception:
+            return                  # 점검 자체가 서비스를 막아서는 안 된다
 
     name = f'{first_en} {last_en}'.strip()
     seen = set()
@@ -1525,7 +1584,10 @@ def _log_quality(first_en, last_en, data):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # 국적은 한 번 고르면 쿠키에 남겨 다음 방문에 기본값으로 쓴다
+    return render_template('index.html', countries=_COUNTRIES,
+                           country=_norm_country(
+                               request.cookies.get('country', '')))
 
 
 @app.route('/result', methods=['GET', 'POST'])
@@ -1551,14 +1613,22 @@ def result():
                                first_name=first_en, last_name=last_en, sex=sex), 503
 
     data = convert_name(first_en, last_en, sex)
-    _log_conv(first_en, last_en, sex, is_new, data)
+    _picked, _geo = _country_of_request()
+    _log_conv(first_en, last_en, sex, is_new, data, _picked, _geo)
     if 'error' in data:
         return render_template('index.html', error=data['error'],
-                               first_name=first_en, last_name=last_en, sex=sex)
+                               first_name=first_en, last_name=last_en, sex=sex,
+                               countries=_COUNTRIES, country=_picked)
     if is_new:
         BUDGET.record()          # 새 이름 1건 소비 기록
-    return render_template('result.html', d=data,
-                           reason_json=json.dumps(data['reason'], ensure_ascii=False))
+    resp = make_response(render_template(
+        'result.html', d=data,
+        reason_json=json.dumps(data['reason'], ensure_ascii=False)))
+    if _picked:
+        # 다음 방문에 기본값으로 쓴다. 국가 코드 2글자뿐이라 민감정보가 아니다.
+        resp.set_cookie('country', _picked, max_age=60 * 60 * 24 * 365,
+                        samesite='Lax')
+    return resp
 
 
 @app.route('/api/convert', methods=['POST'])
@@ -1576,7 +1646,8 @@ def api_convert():
                         'message': 'High traffic right now — try again later '
                                    'or use a more common name.'}), 503
     data = convert_name(first_en, last_en, sex)
-    _log_conv(first_en, last_en, sex, is_new, data)
+    _api_picked, _api_geo = _country_of_request()
+    _log_conv(first_en, last_en, sex, is_new, data, _api_picked, _api_geo)
     if 'error' not in data and is_new:
         BUDGET.record()
     status = 400 if 'error' in data else 200
@@ -1694,6 +1765,8 @@ def status():
         'meaning': {
             'llm': MEANING_EN is not None,
             'last_error': getattr(MEANING_EN, 'last_error', None),
+            # 있으면 캐시가 파일에 안 써지고 있다 — 매 요청이 재생성된다
+            'cache_write_error': getattr(MEANING_EN, 'cache_write_error', None),
         },
         # 지금 돌고 있는 코드가 어느 커밋인지. 배포가 반영됐는지 확인할 때
         # 업타임만으로는 부족하다(재시작만 해도 0으로 돌아간다).
@@ -1799,7 +1872,38 @@ def admin():
         iss = {'ok': False, 'by_code': [], 'recent': [], 'total': 0}
     iss['peak'] = max([r['count'] for r in iss.get('by_code') or []] or [0])
     iss['severity'] = _Q_SEVERITY
-    return render_template('admin.html', s=s, op=op, iss=iss)
+    try:
+        recent = STATS.recent(limit=60)
+    except Exception:
+        recent = []
+    try:
+        ctry = STATS.countries(days=30, top_n=15)
+    except Exception:
+        ctry = {'picked': [], 'geo': [], 'picked_total': 0, 'geo_total': 0}
+    ctry['names'] = _COUNTRY_NAMES
+    ctry['peak'] = max([r['count'] for r in (ctry.get('picked') or [])]
+                       + [r['count'] for r in (ctry.get('geo') or [])] or [0])
+    return render_template('admin.html', s=s, op=op, iss=iss, recent=recent,
+                           ctry=ctry)
+
+
+@app.route('/admin/recent')
+def admin_recent():
+    """
+    최근 변환 로그(JSON). /admin 화면이 주기적으로 불러 실시간처럼 갱신한다.
+    쿠키/토큰 인증은 /admin 과 동일하다.
+    """
+    want = os.environ.get('ADMIN_TOKEN')
+    tok = request.args.get('token', '') or request.cookies.get('admin_auth', '')
+    if not (want and tok == want):
+        return ('Not found', 404)
+    try:
+        since = request.args.get('since', type=int)
+        rows = STATS.recent(limit=60, since_ts=since)
+    except Exception:
+        rows = []
+    return jsonify({'rows': rows, 'severity': _Q_SEVERITY,
+                    'names': _COUNTRY_NAMES, 'ts': int(_time.time())})
 
 
 if __name__ == '__main__':

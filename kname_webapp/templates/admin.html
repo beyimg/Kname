@@ -228,6 +228,87 @@
   </div>
   {% endif %}
 
+  <div class="sec-label" style="margin-top:26px;">
+    실시간 변환 로그
+    <label style="float:right;font-size:11px;letter-spacing:0;text-transform:none;
+                  color:var(--faint);cursor:pointer;">
+      <input type="checkbox" id="live" checked> 자동 갱신 (10초)
+      <span id="livedot" style="color:var(--ok)">●</span>
+    </label>
+  </div>
+  <div class="list" style="margin-bottom:12px;max-height:420px;overflow-y:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="color:var(--faint);text-align:left;">
+        <th style="padding:4px 6px;font-weight:400;width:78px;">시각(UTC)</th>
+        <th style="padding:4px 6px;font-weight:400;">입력</th>
+        <th style="padding:4px 6px;font-weight:400;">결과</th>
+        <th style="padding:4px 6px;font-weight:400;width:120px;">국적</th>
+        <th style="padding:4px 6px;font-weight:400;width:110px;">구분</th>
+        <th style="padding:4px 6px;font-weight:400;">품질 플래그</th>
+      </tr></thead>
+      <tbody id="logbody">
+      {% for r in recent %}
+        <tr style="border-top:1px solid var(--line);">
+          <td style="padding:4px 6px;color:var(--faint);font-family:ui-monospace,monospace;">{{ r.when }}</td>
+          <td style="padding:4px 6px;">{{ r.input }}</td>
+          <td style="padding:4px 6px;font-weight:600;">{{ r.result or '—' }}</td>
+          <td style="padding:4px 6px;font-size:11.5px;">
+            {% if r.country %}{{ ctry.names.get(r.country, r.country) }}
+            {% elif r.geo %}<span style="color:var(--faint)">{{ ctry.names.get(r.geo, r.geo) }} <i>추정</i></span>
+            {% else %}<span style="color:var(--faint)">—</span>{% endif %}
+          </td>
+          <td style="padding:4px 6px;color:var(--faint);">
+            {% if not r.ok %}<span style="color:var(--bad)">실패</span>
+            {% else %}{{ r.quality }}{% if r.is_new %} · 신규{% endif %}{% if r.native %} · 순우리말{% endif %}{% endif %}
+          </td>
+          <td style="padding:4px 6px;font-family:ui-monospace,monospace;font-size:11px;">
+            {% for f in r.flags %}<span style="color:{{ 'var(--bad)' if iss.severity.get(f) == 'error' else ('var(--warn)' if iss.severity.get(f) == 'warning' else 'var(--faint)') }}">{{ f }}</span>{% if not loop.last %} {% endif %}{% endfor %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% if not recent %}<div class="empty" style="border:0;">아직 변환 기록이 없습니다</div>{% endif %}
+  </div>
+
+  <div class="sec-label" style="margin-top:26px;">접속 국적 (최근 {{ ctry.window or 30 }}일)</div>
+  <div class="grid2" style="display:flex;gap:16px;align-items:flex-start;margin-bottom:12px;">
+    <div style="flex:1;">
+      <div class="sub" style="color:var(--faint);font-size:11.5px;margin-bottom:6px;">
+        직접 선택 — {{ ctry.picked_total }}건{% if ctry.blank %} · 미선택 {{ ctry.blank }}건{% endif %}
+      </div>
+      {% if ctry.picked %}
+      <div class="list">
+        {% for r in ctry.picked %}
+        <div class="row">
+          <div class="rank">{{ loop.index }}</div>
+          <div class="nm">{{ ctry.names.get(r.code, r.code) }}</div>
+          <div class="rb"><span style="width:{{ (100 * r.count / ctry.peak) if ctry.peak else 0 }}%"></span></div>
+          <div class="ct">{{ r.count }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty">아직 선택된 국적이 없습니다</div>{% endif %}
+    </div>
+    <div style="flex:1;">
+      <div class="sub" style="color:var(--faint);font-size:11.5px;margin-bottom:6px;">
+        브라우저 언어 추정 — {{ ctry.geo_total }}건 <i>(참고용, 정확도 낮음)</i>
+      </div>
+      {% if ctry.geo %}
+      <div class="list">
+        {% for r in ctry.geo %}
+        <div class="row">
+          <div class="rank">{{ loop.index }}</div>
+          <div class="nm">{{ ctry.names.get(r.code, r.code) }}</div>
+          <div class="rb"><span style="width:{{ (100 * r.count / ctry.peak) if ctry.peak else 0 }}%"></span></div>
+          <div class="ct">{{ r.count }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty">데이터 없음</div>{% endif %}
+    </div>
+  </div>
+
   <div class="sec-label" style="margin-top:26px;">결과물 품질 (최근 {{ iss.window or 7 }}일)</div>
   {% if iss.by_code %}
   <div class="list" style="margin-bottom:12px;">
@@ -270,5 +351,59 @@
   </div>
 
 </div>
+<script>
+// 최근 변환 로그를 주기적으로 불러 맨 위에 덧붙인다.
+// 전체 페이지를 새로 고치면 스크롤·펼친 상태가 초기화되므로 부분 갱신한다.
+(function () {
+  var SEV = {{ iss.severity | tojson }};
+  var CN = {{ ctry.names | tojson }};
+  var body = document.getElementById('logbody');
+  var live = document.getElementById('live');
+  var dot = document.getElementById('livedot');
+  var last = {{ (recent[0].ts if recent else 0) }};
+  function color(f) {
+    var s = SEV[f];
+    return s === 'error' ? 'var(--bad)' : (s === 'warning' ? 'var(--warn)' : 'var(--faint)');
+  }
+  function row(r) {
+    var tr = document.createElement('tr');
+    tr.style.borderTop = '1px solid var(--line)';
+    tr.style.background = 'rgba(63,111,95,.07)';   // 새로 들어온 행을 잠깐 강조
+    var kind = !r.ok ? '<span style="color:var(--bad)">실패</span>'
+      : (r.quality + (r.is_new ? ' · 신규' : '') + (r.native ? ' · 순우리말' : ''));
+    var fl = (r.flags || []).map(function (f) {
+      return '<span style="color:' + color(f) + '">' + f + '</span>';
+    }).join(' ');
+    var ct = r.country ? (CN[r.country] || r.country)
+      : (r.geo ? '<span style="color:var(--faint)">' + (CN[r.geo] || r.geo) + ' <i>추정</i></span>'
+               : '<span style="color:var(--faint)">—</span>');
+    tr.innerHTML =
+      '<td style="padding:4px 6px;color:var(--faint);font-family:ui-monospace,monospace">' + r.when + '</td>' +
+      '<td style="padding:4px 6px">' + (r.input || '') + '</td>' +
+      '<td style="padding:4px 6px;font-weight:600">' + (r.result || '—') + '</td>' +
+      '<td style="padding:4px 6px;font-size:11.5px">' + ct + '</td>' +
+      '<td style="padding:4px 6px;color:var(--faint)">' + kind + '</td>' +
+      '<td style="padding:4px 6px;font-family:ui-monospace,monospace;font-size:11px">' + fl + '</td>';
+    setTimeout(function () { tr.style.background = ''; }, 2500);
+    return tr;
+  }
+  function poll() {
+    if (!live.checked) { dot.style.color = 'var(--faint)'; return; }
+    fetch('/admin/recent?since=' + last, { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.rows) return;
+        dot.style.color = 'var(--ok)';
+        d.rows.slice().reverse().forEach(function (r) {
+          if (r.ts > last) last = r.ts;
+          body.insertBefore(row(r), body.firstChild);
+        });
+        while (body.rows.length > 200) body.deleteRow(body.rows.length - 1);
+      })
+      .catch(function () { dot.style.color = 'var(--bad)'; });
+  }
+  setInterval(poll, 10000);
+})();
+</script>
 </body>
 </html>

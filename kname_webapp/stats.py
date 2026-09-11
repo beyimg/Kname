@@ -51,8 +51,17 @@ class Stats:
                 first_en TEXT,
                 last_en  TEXT,
                 given    TEXT,
-                hangul   TEXT
+                hangul   TEXT,
+                flags    TEXT,
+                country  TEXT,
+                geo      TEXT
             )''')
+            # 이미 만들어진 DB 에는 칼럼이 없다 — 한 번만 붙인다
+            for _col in ('flags TEXT', 'country TEXT', 'geo TEXT'):
+                try:
+                    c.execute(f'ALTER TABLE conv ADD COLUMN {_col}')
+                except Exception:
+                    pass
             c.execute('CREATE INDEX IF NOT EXISTS idx_conv_ts ON conv(ts)')
             # 결과물 품질 문제(비문·의미설명 없음 등). 변환은 성공했지만
             # 카드에 실린 결과가 이상한 경우를 여기 쌓는다.
@@ -67,21 +76,72 @@ class Stats:
 
     # ------------------------------------------------------------ 기록
     def record(self, *, ok, is_new, native, quality, sex,
-               first_en, last_en, given, hangul):
+               first_en, last_en, given, hangul, flags='',
+               country='', geo=''):
         if not self.ok:
             return
         try:
             with self._lock, self._conn() as c:
                 c.execute(
                     'INSERT INTO conv(ts,ok,is_new,native,quality,sex,'
-                    'first_en,last_en,given,hangul) VALUES(?,?,?,?,?,?,?,?,?,?)',
+                    'first_en,last_en,given,hangul,flags,country,geo) '
+                    'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
                     (int(time.time()), int(bool(ok)), int(bool(is_new)),
                      int(bool(native)), (quality or '')[:8], (sex or '')[:8],
                      (first_en or '')[:40].strip().lower(),
                      (last_en or '')[:40].strip().lower(),
-                     (given or '')[:20], (hangul or '')[:20]))
+                     (given or '')[:20], (hangul or '')[:20],
+                     (flags or '')[:120],
+                     (country or '')[:2].upper(),
+                     (geo or '')[:2].upper()))
         except Exception:
             pass
+
+    def recent(self, limit=60, since_ts=None):
+        """
+        최근 변환 로그. /admin 이 실시간으로 뿌린다.
+
+        집계만으로는 '지금 사용자가 무엇을 넣고 무엇을 받았는지'를 볼 수 없다.
+        since_ts 를 주면 그 이후 것만 돌려주므로 폴링이 가벼워진다.
+        """
+        if not self.ok:
+            return []
+        try:
+            with self._conn() as c:
+                if since_ts:
+                    rows = c.execute(
+                        'SELECT ts,ok,is_new,native,quality,sex,first_en,'
+                        'last_en,given,hangul,flags,country,geo FROM conv '
+                        'WHERE ts>? ORDER BY ts DESC LIMIT ?',
+                        (int(since_ts), limit)
+                    ).fetchall()
+                else:
+                    rows = c.execute(
+                        'SELECT ts,ok,is_new,native,quality,sex,first_en,'
+                        'last_en,given,hangul,flags,country,geo FROM conv '
+                        'ORDER BY ts DESC LIMIT ?', (limit,)).fetchall()
+            out = []
+            for (ts, ok, is_new, native, q, sex, fe, le, gv, hg, fl,
+                 ctry, geo) in rows:
+                out.append({
+                    'ts': ts,
+                    'when': time.strftime('%m/%d %H:%M:%S', time.gmtime(ts)),
+                    'ok': bool(ok), 'is_new': bool(is_new),
+                    'native': bool(native), 'quality': q or '',
+                    'sex': sex or '',
+                    'input': f'{(fe or "").title()} {(le or "").title()}'.strip(),
+                    'result': hg or gv or '',
+                    'flags': [x for x in (fl or '').split(' ') if x],
+                    # country = 사용자가 직접 고른 값, geo = 헤더 추정치.
+                    # 둘을 섞으면 신뢰도가 다른 데이터가 한 칸에 들어간다.
+                    'country': ctry or '',
+                    'geo': geo or '',
+                })
+            return out
+        except Exception as e:
+            import sys
+            print(f'[stats] recent failed: {e}', file=sys.stderr, flush=True)
+            return []
 
     def record_issue(self, code, given='', detail=''):
         """결과물 품질 문제 1건 기록."""
@@ -130,6 +190,42 @@ class Stats:
         except Exception as e:
             import sys
             print(f'[stats] issues failed: {e}', file=sys.stderr, flush=True)
+            return out
+
+    def countries(self, days=30, top_n=15):
+        """
+        국적 분포. 직접 고른 값(country)과 헤더 추정치(geo)를 따로 센다.
+        추정치는 정확도가 낮으므로 섞지 않는다.
+        """
+        out = {'ok': self.ok, 'picked': [], 'geo': [], 'picked_total': 0,
+               'geo_total': 0, 'blank': 0, 'window': days}
+        if not self.ok:
+            return out
+        try:
+            since = int(time.time()) - days * 86400
+            with self._conn() as c:
+                cur = c.cursor()
+                for key in ('country', 'geo'):
+                    rows = cur.execute(
+                        f'SELECT {key}, COUNT(*) n FROM conv '
+                        f'WHERE ts>=? AND {key} IS NOT NULL AND {key}!="" '
+                        f'GROUP BY {key} ORDER BY n DESC LIMIT ?',
+                        (since, top_n)).fetchall()
+                    tot = cur.execute(
+                        f'SELECT COUNT(*) FROM conv WHERE ts>=? '
+                        f'AND {key} IS NOT NULL AND {key}!=""',
+                        (since,)).fetchone()[0]
+                    out['picked' if key == 'country' else 'geo'] = [
+                        {'code': k, 'count': n} for k, n in rows]
+                    out['picked_total' if key == 'country'
+                        else 'geo_total'] = tot
+                out['blank'] = cur.execute(
+                    'SELECT COUNT(*) FROM conv WHERE ts>=? AND '
+                    '(country IS NULL OR country="")', (since,)).fetchone()[0]
+            return out
+        except Exception as e:
+            import sys
+            print(f'[stats] countries failed: {e}', file=sys.stderr, flush=True)
             return out
 
     # ------------------------------------------------------------ 집계

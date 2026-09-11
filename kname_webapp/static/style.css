@@ -69,6 +69,24 @@ html,body{
 .field input[type=text]::placeholder{color:#c8c8c8;font-style:italic;}
 .field input[type=text]:focus{outline:none;border-bottom-color:var(--ink);}
 
+/* 국적 드롭박스 — 텍스트 입력과 같은 모양을 유지한다.
+   브라우저 기본 화살표는 플랫폼마다 달라 카드 톤을 깨뜨리므로,
+   appearance:none 으로 지우고 같은 잉크색 화살표를 직접 그린다. */
+.field select{
+  width:100%;height:44px;padding:0 30px 0 12px;
+  font-size:17px;font-family:var(--serif);color:var(--ink);
+  background:transparent;border:none;border-bottom:1px solid var(--line);
+  border-radius:0;transition:border-color .2s;cursor:pointer;
+  -webkit-appearance:none;-moz-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a8a8a8'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+}
+.field select:focus{outline:none;border-bottom-color:var(--ink);}
+/* 아직 고르지 않은 상태는 입력칸 placeholder 와 같은 톤으로.
+   (required 를 걸 수 없어 :invalid 가 안 잡히므로 JS 가 .is-empty 를 붙인다) */
+.field select.is-empty{color:#c8c8c8;font-style:italic;}
+.field select option{color:var(--ink);font-style:normal;}
+
 .seg{display:flex;border:1px solid var(--line);border-radius:2px;overflow:hidden;}
 .seg input{position:absolute;opacity:0;pointer-events:none;}
 .seg label{

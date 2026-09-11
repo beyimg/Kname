@@ -218,3 +218,30 @@ GLOSS_POS.update({
     # 불가산·집합명사
     'all things': 'M',
 })
+
+# ---------------------------------------------------------------- 영어 가독성 검수
+# "A ___ person" 틀에 넣어 읽어보니 영어로 곤란한 형용사들이 있었다.
+#   white  → 인종 표현으로 읽힌다        green → '풋내기'
+#   dense  → '멍청한'                  high  → 약물 은어
+#   certain→ 'a certain person'(어떤 사람)  cool → 은어
+# 해당 한자의 뜻을 고쳤고(白→pure, 綠→greenery ...), 여기에 새 표현의 품사를 등록한다.
+GLOSS_POS.update({
+    'far-reaching': 'A', 'discreet': 'A', 'careful': 'A', 'agreeable': 'A',
+    'earnest': 'A', 'fresh': 'A', 'level': 'A', 'sure': 'A',
+    'greenery': 'M', 'abundance': 'X',
+    # 색은 사람을 가리키는 형용사로 쓰면 어색하다 — 명사로 두어
+    # "Someone bright as crimson" / "A name of crimson and ..." 형태로만 쓰이게 한다
+    'crimson': 'M', 'purple': 'M',
+})
+
+# "A ___ person" 틀에 넣으면 안 되는 형용사.
+#
+# 데이터를 고쳤으니 지금은 해당하는 한자가 없다. 그래도 목록을 남긴다 —
+# 나중에 한자를 추가하다 같은 표현이 들어오면 이 틀을 피하게 된다.
+# (사람을 가리키는 문장이라 뜻이 맞아도 영어로 곤란해지는 부류다)
+ADJ_NOT_PERSON = {
+    'white', 'black', 'yellow', 'red', 'green', 'blue', 'purple', 'crimson',
+    'blue-green', 'indigo', 'dense', 'high', 'certain', 'cool', 'far',
+    'close', 'taut', 'sudden', 'countless', 'new', 'eldest', 'right',
+    'real', 'plain', 'thick', 'flat', 'odd', 'strange', 'simple',
+}

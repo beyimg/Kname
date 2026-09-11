@@ -98,6 +98,16 @@
                autocapitalize="words" spellcheck="false" required>
       </div>
 
+      <div class="field">
+        <label for="country">Where are you from? <span class="opt">(optional)</span></label>
+        <select id="country" name="country" autocomplete="country">
+          <option value="">Prefer not to say</option>
+          {% for code, name in (countries or []) %}
+          <option value="{{ code }}" {% if country == code %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
       <div class="field field-last">
         <label id="sexLabel">Name style</label>
         <div class="seg seg-3" role="radiogroup" aria-labelledby="sexLabel">
@@ -129,11 +139,21 @@
     </div>
   </div>
 
-  <p class="privacy-note">Your name is sent to our AI to create the result and saved briefly to speed up repeat lookups. It isn&rsquo;t used for anything else.</p>
+  <p class="privacy-note">Your name is sent to our AI to create the result and saved briefly to speed up repeat lookups. If you pick a country, we keep it only to see where visitors come from. Nothing here is sold or shared.</p>
 
 </div>
 
 <script>
+// 국적 드롭박스: 아직 고르지 않았으면 입력칸 placeholder 와 같은 흐린 색으로.
+// select 는 :placeholder-shown 이 없고 :invalid 는 required 가 있어야 걸리므로
+// (선택 사항이라 required 를 걸 수 없다) 클래스로 처리한다.
+(function () {
+  var sel = document.getElementById('country');
+  if (!sel) return;
+  function tone() { sel.classList.toggle('is-empty', !sel.value); }
+  sel.addEventListener('change', tone);
+  tone();
+})();
 (function () {
   var first = document.getElementById('first_name');
   var last  = document.getElementById('last_name');

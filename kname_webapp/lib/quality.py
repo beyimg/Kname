@@ -182,7 +182,8 @@ def audit(data, pos_of=None):
     elif data.get('meaning_stale'):
         # 프롬프트나 한자 뜻이 바뀌었는데 재생성에 실패해 예전 설명이 나갔다.
         # 새로 만든 것과 구분되지 않으면 틀린 뜻이 조용히 계속 나간다.
-        out.append(('meaning/stale', given))
+        out.append(('meaning/stale',
+                    f'{given} (why={data.get("meaning_stale_why") or "?"})'))
     elif source == 'template':
         # LLM이 실패해 로컬 템플릿으로 만든 설명. 늘어나면 API 쪽을 봐야 한다
         out.append(('meaning/template',
