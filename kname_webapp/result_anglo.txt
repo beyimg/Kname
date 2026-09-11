@@ -1,0 +1,617 @@
+==========================================================================
+배치 테스트 100건
+==========================================================================
+
+  1. Abigail Ashford (여)
+     음차   : 애비게일
+     이름   : 안예빈 (Ahn Ye-bin)  安叡彬  [Q1]
+     한 줄  : A wise and shining person
+     의미   : [사전602] 예빈 (叡彬, Yebin) joins 예 (叡, ye), "bright and wise," with 빈 (彬, bin), "shining and refined." It's a much-loved girl's name. 예 is a top-favored first syllable, as in 예린 (Yerin); 빈 is a refined ending, as in 수빈 (Subin) — two
+
+  2. Adeline Bancroft (여)
+     음차   : 애덜라인
+     이름   : 박예인 (Park Ye-in)  朴叡仁  [Q1]
+     한 줄  : Someone wise and kind-hearted
+     의미   : [사전602] 예인 (叡仁, Yein) pairs 예 (叡, ye), "bright and wise," with 인 (仁, in), "benevolent and kind." It pictures someone wise and kind-hearted. It also sounds like 예인 (藝人), "an artist," adding a creative note. Soft and refined, wisd
+
+  3. Ainsley Blackwood (여)
+     음차   : 에인즐리
+     이름   : 박예린 (Park Ye-rin)  朴叡璘  [Q1]
+     한 줄  : Someone wise as jade radiance
+     의미   : [사전602] 예린 (叡璘, Yerin) joins 예 (叡, ye), "bright and wise," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name — K-pop fans know it as Yerin of GFRIEND. 예 is a top-favored syllable, as in 예은 (Yeeun); 린 sparkles,
+
+  4. Alexis Caldwell (여)
+     음차   : 알렉시스
+     이름   : 김아린 (Kim A-rin)  金雅璘  [Q1]
+     한 줄  : Someone refined as jade radiance
+     의미   : [사전602] 아린 (雅璘, Arin) joins 아 (雅, a), "elegant and refined," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name today — K-pop fans know it as Arin of OH MY GIRL. The 린 syllable sparkles, as in 예린 (Yerin) — grac
+
+  5. Amelia Carmichael (여)
+     음차   : 어밀리아
+     이름   : 김아린 (Kim A-rin)  金雅璘  [Q1]
+     한 줄  : Someone refined as jade radiance
+     의미   : [사전602] 아린 (雅璘, Arin) joins 아 (雅, a), "elegant and refined," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name today — K-pop fans know it as Arin of OH MY GIRL. The 린 syllable sparkles, as in 예린 (Yerin) — grac
+
+  6. Annabelle Chandler (여)
+     음차   : 애너벨
+     이름   : 채예나 (Chae Ye-na)  蔡叡娜  [Q1]
+     한 줄  : Someone wise who shines with grace
+     의미   : [사전602] 예나 (叡娜, Yena) joins 예 (叡, ye), "bright and wise," with 나 (娜, na), "graceful and beautiful." It's a girl's name meaning someone wise who shines with grace. 예 is a top-favored syllable, as in 예린 (Yerin); 나 is soft, as in 유
+
+  7. Arabella Covington (여)
+     음차   : 애러벨라
+     이름   : 김예랑 (Kim Ye-rang)  金叡朗  [Q2]
+     한 줄  : A wise and bright person
+     의미   : [사전602] 예랑 (叡朗, Yerang) joins 예 (叡, ye), "bright and wise," with 랑 (朗, rang), "bright, cheerful." It evokes 사랑 ("love") in the 랑 ending, a tender ring. It's a girl's name, bright and lovable — wisdom and cheer for a sunny impres
+
+  8. Ashley Delaney (여)
+     음차   : 애슐리
+     이름   : 진예린 (Jin Ye-rin)  陳叡璘  [Q1]
+     한 줄  : Someone wise as jade radiance
+     의미   : [사전602] 예린 (叡璘, Yerin) joins 예 (叡, ye), "bright and wise," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name — K-pop fans know it as Yerin of GFRIEND. 예 is a top-favored syllable, as in 예은 (Yeeun); 린 sparkles,
+
+  9. Aubrey Eastwood (여)
+     음차   : 오브리
+     이름   : 이우리 (Lee U-ri)  李旭悧  [Q1]
+     한 줄  : Togetherness — “us” in native Korean
+     의미   : [사전602] 우리 (旭悧, Uri) joins 우 (旭, u), "the rising sun," with 리 (悧, ri), "clever and bright." But above all, 우리 is the native Korean word for "we, us" — it holds the warmth of togetherness and community. Round and endearing, said 
+
+ 10. Audrey Ellsworth (여)
+     음차   : 오드리
+     이름   : 이우리 (Lee U-ri)  李旭悧  [Q1]
+     한 줄  : Togetherness — “us” in native Korean
+     의미   : [사전602] 우리 (旭悧, Uri) joins 우 (旭, u), "the rising sun," with 리 (悧, ri), "clever and bright." But above all, 우리 is the native Korean word for "we, us" — it holds the warmth of togetherness and community. Round and endearing, said 
+
+ 11. Autumn Fairbanks (여)
+     음차   : 오텀
+     이름   : 배온유 (Bae On-yu)  裵溫愈  [Q1]
+     한 줄  : Someone warm who excels
+     의미   : [사전602] 온유 (溫愈, Onyu) pairs 온 (溫, on), "warm," with 유 (愈, yu), "kind and gentle." It's literally the word 온유하다, "gentle and tender." Soft from the very sound, it suits boys and girls alike, and K-pop fans will think of SHINee's 
+
+ 12. Beatrice Fitzgerald (여)
+     음차   : 비어트리스
+     이름   : 박비아 (Park Bi-a)  朴丕雅  [Q2]
+     한 줄  : Someone grand and graceful
+     의미   : [사전602] 비아 (丕雅, Bia) joins 비 (丕, bi), "great and grand," with 아 (雅, a), "elegant and refined." It's a girl's name meaning someone grand and graceful. Short and crisp, it matches the English "Via," so it travels effortlessly. Flo
+
+ 13. Bethany Gallagher (여)  ⚠ 예전캐시(재생성실패)
+     음차   : 베서니
+     이름   : 김빛나 (Kim Bit-na)  金  [Q2]
+     한 줄  : Someone who shines brightly wherever they are
+     의미   : [사전602] 빛나 (Bitna) is a purely native Korean name meaning "to shine." It carries, directly, the wish for someone who shines brightly wherever they are. The name sparkles from its very sound; just calling it becomes a cheer of "s
+
+ 14. Bridget Hawthorne (여)
+     음차   : 브리짓
+     이름   : 홍부경 (Hong Bu-gyeong)  洪芙冏  [Q2]
+     한 줄  : Someone noble as a lotus and brightly shining
+     의미   : [사전602] 부경 (芙冏, Bugyeong) joins 부 (芙, bu), "lotus blossom," with 경 (冏, gyeong), "bright and radiant." It's a girl's name meaning someone noble as a lotus and brightly shining. 부 lends a lotus's grace; 경 lends radiance — a subtle
+
+ 15. Brooke Holloway (여)
+     음차   : 브룩
+     이름   : 한보라 (Han Bo-ra)  韓普羅  [Q2]
+     한 줄  : Someone special as a mystical, elegant shade of violet
+     의미   : [사전602] 보라 (普羅, Bora) — above all, this is the native Korean word for the color "purple." It carries the wish for someone special as a mystical, elegant shade of violet. The characters echo beneath, but the color leads. A girl's
+
+ 16. Caitlin Kingsley (여)
+     음차   : 케이틀린
+     이름   : 김가은 (Kim Ga-eun)  金嘉恩  [Q1]
+     한 줄  : Someone lovely and full of goodwill
+     의미   : [사전602] 가은 (嘉恩, Gaeun) joins 가 (嘉, ga), "beautiful," with 은 (恩, eun), "grace and kindness." It describes someone lovely and full of goodwill. Soft and warm, 가은 is a long-time favorite whose 은 ending appears in some of the most l
+
+ 17. Camilla Langford (여)
+     음차   : 커밀라
+     이름   : 이가민 (Lee Ga-min)  李嘉旻  [Q2]
+     한 줄  : Someone as clear and lovely as a bright fall day
+     의미   : [사전602] 가민 (嘉旻, Gamin) pairs 가 (嘉, ga), "beautiful," with 민 (旻, min), "the wide autumn sky." It pictures someone as clear and lovely as a bright fall day. Crisp and refreshing, 가민 draws on 민, one of Korea's most loved unisex syl
+
+ 18. Cassidy Lockhart (여)
+     음차   : 캐시디
+     이름   : 오가빈 (Oh Ga-bin)  吳嘉彬  [Q1]
+     한 줄  : Someone lovely both inside and out
+     의미   : [사전602] 가빈 (嘉彬, Gabin) joins 가 (嘉, ga), "beautiful," with 빈 (彬, bin), "refined and shining." It describes someone lovely both inside and out. Polished and modern, 가빈 shares its 빈 ending with some of today's most popular names — 
+
+ 19. Charlotte Merriweather (여)
+     음차   : 샬럿
+     이름   : 문사랑 (Moon Sa-rang)  文  [Q1]
+     한 줄  : Someone showered in love who shares it in turn
+     의미   : [사전602] 사랑 (Sarang) — above all, this is the native Korean word for "love." It carries, directly, the wish for someone showered in love who shares it in turn. A girl's name, soft and affectionate. Like the beloved little "Sarang
+
+ 20. Chloe Montgomery (여)
+     음차   : 클로이
+     이름   : 문근영 (Moon Geun-yeong)  文漌瑩  [Q2]
+     한 줄  : Someone clean as water and glowing as jade
+     의미   : [사전602] 근영 (漌瑩, Geunyeong) pairs 근 (漌, geun), "clear water," with 영 (瑩, yeong), "bright and jade-clear." It pictures someone clean as water and glowing as jade. Neat and familiar, its 영 syllable appears in timeless names like 지영
+
+ 21. Clara Northrop (여)
+     음차   : 클라라
+     이름   : 오근아 (Oh Geun-a)  吳漌雅  [Q2]
+     한 줄  : Someone as clean and graceful as clear water
+     의미   : [사전602] 근아 (漌雅, Geuna) joins 근 (漌, geun), "clear, pure water," with 아 (雅, a), "elegant and refined." It pictures someone as clean and graceful as clear water. Soft and neat, its 아 ending is among today's most loved for girls — 수
+
+ 22. Colette Pemberton (여)
+     음차   : 컬렛
+     이름   : 배가람 (Bae Ga-ram)  裵嘉覽  [Q1]
+     한 줄  : Someone generous and flowing like a great river
+     의미   : [사전602] 가람 (嘉覽, Garam) joins 가 (嘉, ga), "beautiful and praiseworthy," with 람 (覽, ram), "to look over and care for." But 가람 is also an old native Korean word for "river," so the name carries the image of someone generous and flow
+
+ 23. Cordelia Prescott (여)
+     음차   : 코델리아
+     이름   : 박고은 (Park Go-eun)  朴暠恩  [Q1]
+     한 줄  : Someone bright and full of kindness
+     의미   : [사전602] 고은 (暠恩, Goeun) joins 고 (暠, go), "bright," with 은 (恩, eun), "grace and kindness." It also plays on the native word 곱다, "lovely," giving the sense of "a lovely, gracious person." Soft and warm, 은 is one of the most loved e
+
+ 24. Daphne Radcliffe (여)
+     음차   : 대프니
+     이름   : 이제니 (Lee Je-ni)  李  [Q2]
+     한 줄  : Someone bright and warm-hearted
+     의미   : [사전602] 제니 (Jeni) is carried as a native Korean name. It pictures someone bright and warm-hearted. Crisp and light on the tongue, it sits right beside the Western "Jenny," so it feels familiar around the world — and K-pop fans w
+
+ 25. Delilah Rutherford (여)
+     음차   : 딜라일라
+     이름   : 엄지이 (Eom Ji-i)  嚴智璃  [Q1]
+     한 줄  : Someone wise and clear as glass
+     의미   : [사전602] 지이 (智璃, Jii) joins 지 (智, ji), "wisdom," with 이 (璃, i), "clear crystal." It pictures someone wise and clear as glass. Short and lively, it chimes with the Western "Gigi." Wisdom and clarity meet in a transparent, stylish 
+
+ 26. Eleanor Sinclair (여)
+     음차   : 엘리너
+     이름   : 신예린 (Shin Ye-rin)  申叡璘  [Q1]
+     한 줄  : Someone wise as jade radiance
+     의미   : [사전602] 예린 (叡璘, Yerin) joins 예 (叡, ye), "bright and wise," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name — K-pop fans know it as Yerin of GFRIEND. 예 is a top-favored syllable, as in 예은 (Yeeun); 린 sparkles,
+
+ 27. Elise Stanton (여)
+     음차   : 엘리스
+     이름   : 서예린 (Seo Ye-rin)  徐叡璘  [Q1]
+     한 줄  : Someone wise as jade radiance
+     의미   : [사전602] 예린 (叡璘, Yerin) joins 예 (叡, ye), "bright and wise," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name — K-pop fans know it as Yerin of GFRIEND. 예 is a top-favored syllable, as in 예은 (Yeeun); 린 sparkles,
+
+ 28. Ellery Thackeray (여)
+     음차   : 엘러리
+     이름   : 서예린 (Seo Ye-rin)  徐叡璘  [Q1]
+     한 줄  : Someone wise as jade radiance
+     의미   : [사전602] 예린 (叡璘, Yerin) joins 예 (叡, ye), "bright and wise," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name — K-pop fans know it as Yerin of GFRIEND. 예 is a top-favored syllable, as in 예은 (Yeeun); 린 sparkles,
+
+ 29. Eloise Underwood (여)
+     음차   : 엘로이즈
+     이름   : 이예주 (Lee Ye-ju)  李叡珠  [Q1]
+     한 줄  : Someone wise and precious as a pearl
+     의미   : [사전602] 예주 (叡珠, Yeju) pairs 예 (叡, ye), "bright and wise," with 주 (珠, ju), "pearl, jewel." It pictures someone wise and precious as a pearl. Soft and pretty, its 예 (as in 예린, Yerin) is bright, while 주 (as in 은주, Eunju) carries je
+
+ 30. Emmeline Waverly (여)
+     음차   : 에멀린
+     이름   : 이예린 (Lee Ye-rin)  李叡璘  [Q1]
+     한 줄  : Someone wise as jade radiance
+     의미   : [사전602] 예린 (叡璘, Yerin) joins 예 (叡, ye), "bright and wise," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name — K-pop fans know it as Yerin of GFRIEND. 예 is a top-favored syllable, as in 예은 (Yeeun); 린 sparkles,
+
+ 31. Erin Whitmore (여)
+     음차   : 에린
+     이름   : 이예린 (Lee Ye-rin)  李叡璘  [Q1]
+     한 줄  : Someone wise as jade radiance
+     의미   : [사전602] 예린 (叡璘, Yerin) joins 예 (叡, ye), "bright and wise," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name — K-pop fans know it as Yerin of GFRIEND. 예 is a top-favored syllable, as in 예은 (Yeeun); 린 sparkles,
+
+ 32. Evelyn Winslow (여)
+     음차   : 에벌린
+     이름   : 이예린 (Lee Ye-rin)  李叡璘  [Q1]
+     한 줄  : Someone wise as jade radiance
+     의미   : [사전602] 예린 (叡璘, Yerin) joins 예 (叡, ye), "bright and wise," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name — K-pop fans know it as Yerin of GFRIEND. 예 is a top-favored syllable, as in 예은 (Yeeun); 린 sparkles,
+
+ 33. Fiona Ashford (여)
+     음차   : 피오나
+     이름   : 안빈나 (Ahn Bin-na)  安彬娜  [Q2]
+     한 줄  : Someone radiantly beautiful
+     의미   : [사전602] 빈나 (彬娜, Binna) joins 빈 (彬, bin), "shining and refined," with 나 (娜, na), "graceful and beautiful." It's a girl's name meaning someone radiantly beautiful. It echoes 빛나 ("to shine"), a sparkling note. Bright and lovable in
+
+ 34. Freya Bancroft (여)
+     음차   : 프레야
+     이름   : 박부경 (Park Bu-gyeong)  朴芙冏  [Q2]
+     한 줄  : Someone noble as a lotus and brightly shining
+     의미   : [사전602] 부경 (芙冏, Bugyeong) joins 부 (芙, bu), "lotus blossom," with 경 (冏, gyeong), "bright and radiant." It's a girl's name meaning someone noble as a lotus and brightly shining. 부 lends a lotus's grace; 경 lends radiance — a subtle
+
+ 35. Genevieve Blackwood (여)
+     음차   : 제너비브
+     이름   : 박채빈 (Park Chae-bin)  朴彩彬  [Q1]
+     한 줄  : Someone vibrant and radiant
+     의미   : [사전602] 채빈 (彩彬, Chaebin) pairs 채 (彩, chae), "vivid color," with 빈 (彬, bin), "refined and shining." It pictures someone vibrant and radiant. Crisp and stylish, 채 signals brilliance while 빈 (as in 수빈, Subin) is a top-loved ending.
+
+ 36. Georgia Caldwell (여)
+     음차   : 조지아
+     이름   : 김주아 (Kim Ju-a)  金珠雅  [Q1]
+     한 줄  : Someone precious as a pearl and graceful
+     의미   : [사전602] 주아 (珠雅, Jua) pairs 주 (珠, ju), "pearl, jewel," with 아 (雅, a), "elegant and refined." It pictures someone precious as a pearl and graceful. Soft and stylish, 주 carries jewel-value while 아 (as in 수아, Sua) is a top-loved end
+
+ 37. Gwendolyn Carmichael (여)
+     음차   : 그웬덜린
+     이름   : 김규리 (Kim Gyu-ri)  金奎悧  [Q1]
+     한 줄  : Someone twinkling like a star and quick of mind
+     의미   : [사전602] 규리 (奎悧, Gyuri) pairs 규 (奎, gyu), "the star that governs learning," with 리 (悧, ri), "clever and bright." It pictures someone twinkling like a star and quick of mind. Round and stylish, its 리 ending gives a soft, refined s
+
+ 38. Harriet Chandler (여)
+     음차   : 해리엇
+     이름   : 채혜린 (Chae Hye-rin)  蔡慧璘  [Q1]
+     한 줄  : Someone wise who shines like a jewel
+     의미   : [사전602] 혜린 (慧璘, Hyerin) pairs 혜 (慧, hye), "wise and intelligent," with 린 (璘, rin), "the luster of jade." It pictures someone wise who shines like a jewel. Soft and stylish, 혜 (as in 지혜, Jihye) signals wisdom while 린 (as in 예린, Y
+
+ 39. Hazel Covington (여)
+     음차   : 헤이즐
+     이름   : 김혜인 (Kim Hye-in)  金慧仁  [Q1]
+     한 줄  : Someone wise and kind
+     의미   : [사전602] 혜인 (慧仁, Hyein) pairs 혜 (慧, hye), "wise and intelligent," with 인 (仁, in), "benevolent and kind." It pictures someone wise and kind. Soft and demure, 혜 signals wisdom while 인 signals a kind heart. Wisdom and kindness meet 
+
+ 40. Heather Delaney (여)
+     음차   : 헤더
+     이름   : 진혜정 (Jin Hye-jeong)  陳慧晶  [Q2]
+     한 줄  : Someone wise and clear as crystal
+     의미   : [사전602] 혜정 (慧晶, Hyejeong) joins 혜 (慧, hye), "wise and intelligent," with 정 (晶, jeong), "crystal-clear." It pictures someone wise and clear as crystal. Neat and demure, 혜 signals wisdom while 정 (as in 은정, Eunjeong) is clear and t
+
+ 41. Imogen Eastwood (여)
+     음차   : 이모젠
+     이름   : 임이재 (Im I-jae)  林利才  [Q2]
+     한 줄  : Talent that brings good to others
+     의미   : [LLM] 이재 (利才, Ijae) joins the idea of benefit with the idea of talent, painting a picture of someone whose gifts are meant to do good — a mind quick and capable, used not only for herself but to help and brighten those around 
+
+ 42. Ingrid Ellsworth (여)
+     음차   : 잉그리드
+     이름   : 임이림 (Im I-rim)  林璃林  [Q2]
+     한 줄  : Someone clear as glass who grows up green as a woodland
+     의미   : [사전602] 이림 (璃林, Irim) pairs 이 (璃, i), "clear crystal," with 림 (林, rim), "forest." It pictures someone clear as glass who grows up green as a woodland. Soft and fresh, 이 signals clarity while 림 carries nature's green. Clarity and
+
+ 43. Iris Fairbanks (여)
+     음차   : 아이리스
+     이름   : 배아린 (Bae A-rin)  裵雅璘  [Q1]
+     한 줄  : Someone refined as jade radiance
+     의미   : [사전602] 아린 (雅璘, Arin) joins 아 (雅, a), "elegant and refined," with 린 (璘, rin), "the luster of jade." It's a much-loved girl's name today — K-pop fans know it as Arin of OH MY GIRL. The 린 syllable sparkles, as in 예린 (Yerin) — grac
+
+ 44. Isla Fitzgerald (여)
+     음차   : 아일라
+     이름   : 박아인 (Park A-in)  朴雅仁  [Q1]
+     한 줄  : A refined and benevolent person
+     의미   : [사전602] 아인 (雅仁, Ain) joins 아 (雅, a), "elegant and refined," with 인 (仁, in), "benevolent and kind." It matches "Ein" (German for "one") and echoes Einstein, an intelligent ring. Familiar from actor Yoo Ah-in — grace and kindness 
+
+ 45. Jocelyn Gallagher (여)
+     음차   : 조슬린
+     이름   : 김주리 (Kim Ju-ri)  金珠悧  [Q2]
+     한 줄  : Someone precious as a pearl and quick of mind
+     의미   : [사전602] 주리 (珠悧, Juri) pairs 주 (珠, ju), "pearl, jewel," with 리 (悧, ri), "clever and bright." It pictures someone precious as a pearl and quick of mind. Round and lovable, it matches the Western "Julie" and "Juri." Preciousness an
+
+ 46. Josephine Hawthorne (여)
+     음차   : 조지핀
+     이름   : 홍조안 (Hong Jo-an)  洪照安  [Q2]
+     한 줄  : Someone who shines and brings peace
+     의미   : [사전602] 조안 (照安, Joan) pairs 조 (照, jo), "to shine," with 안 (安, an), "peaceful and tranquil." It pictures someone who shines and brings peace. Soft and elegant, it matches the Western "Joan" and "Joanne," and recalls the actress J
+
+ 47. Juliet Holloway (여)
+     음차   : 줄리엣
+     이름   : 한주리 (Han Ju-ri)  韓珠悧  [Q2]
+     한 줄  : Someone precious as a pearl and quick of mind
+     의미   : [사전602] 주리 (珠悧, Juri) pairs 주 (珠, ju), "pearl, jewel," with 리 (悧, ri), "clever and bright." It pictures someone precious as a pearl and quick of mind. Round and lovable, it matches the Western "Julie" and "Juri." Preciousness an
+
+ 48. Kendall Kingsley (여)
+     음차   : 켄들
+     이름   : 김가은 (Kim Ga-eun)  金嘉恩  [Q1]
+     한 줄  : Someone lovely and full of goodwill
+     의미   : [사전602] 가은 (嘉恩, Gaeun) joins 가 (嘉, ga), "beautiful," with 은 (恩, eun), "grace and kindness." It describes someone lovely and full of goodwill. Soft and warm, 가은 is a long-time favorite whose 은 ending appears in some of the most l
+
+ 49. Lacey Langford (여)
+     음차   : 레이시
+     이름   : 이래인 (Lee Rae-in)  李來仁  [Q2]
+     한 줄  : Someone toward whom kindness comes
+     의미   : [사전602] 래인 (來仁, Raein) joins 래 (來, rae), "to come, to arrive," with 인 (仁, in), "benevolent and kind." It's a girl's name meaning someone toward whom kindness comes. It matches the English "Raine/Lane," so it's easy abroad. With 
+
+ 50. Larkin Lockhart (여)
+     음차   : 라킨
+     이름   : 오라임 (Oh Ra-im)  吳羅壬  [Q1]
+     한 줄  : Someone soft as silk and zesty as lime
+     의미   : [사전602] 라임 (羅壬, Raim) joins 라 (羅, ra), "silk," with 임 (壬, im), "kind and great." Above all, it evokes the fresh fruit "lime," a crisp, tangy image. It's a girl's name meaning someone soft as silk and zesty as lime. Familiar in s
+
+ 51. Lila Merriweather (여)
+     음차   : 라일라
+     이름   : 문라이 (Moon Ra-i)  文羅璃  [Q1]
+     한 줄  : Someone soft as silk and pure as glass
+     의미   : [사전602] 라이 (羅璃, Rai) joins 라 (羅, ra), "silk, to spread out," with 이 (璃, i), "crystal, clear glass." It's a girl's name meaning someone soft as silk and pure as glass. Short and crisp, it matches the English "Rai/Rye," so it's ea
+
+ 52. Lorelei Montgomery (여)
+     음차   : 로럴라이
+     이름   : 문로라 (Moon Ro-ra)  文鷺羅  [Q2]
+     한 줄  : Someone graceful as a heron, unfolding soft as silk
+     의미   : [사전602] 로라 (鷺羅, Rora) joins 로 (鷺, ro), "heron, egret," with 라 (羅, ra), "silk, to spread out." It's a girl's name meaning someone graceful as a heron, unfolding soft as silk. It matches the English "Laura" exactly, so it travels 
+
+ 53. Lydia Northrop (여)
+     음차   : 리디아
+     이름   : 오리안 (Oh Ri-an)  吳悧安  [Q2]
+     한 줄  : Someone clever and ever at peace
+     의미   : [사전602] 리안 (悧安, Rian) joins 리 (悧, ri), "clever and bright," with 안 (安, an), "peaceful and tranquil." It's a name meaning someone clever and ever at peace. Gender-neutral, it matches the English "Liam/Rian," so it travels effortl
+
+ 54. Mabel Pemberton (여)
+     음차   : 메이블
+     이름   : 배미우 (Bae Mi-u)  裵美旭  [Q2]
+     한 줄  : Someone beautiful who rises bright as morning
+     의미   : [사전602] 미우 (美旭, Miu) joins 미 (美, mi), "beautiful," with 우 (旭, u), "the rising morning sun." It's a girl's name meaning someone beautiful who rises bright as morning. It matches "Miu," familiar in Japan too, so it's friendly abro
+
+ 55. Madeleine Prescott (여)
+     음차   : 매들린
+     이름   : 박민주 (Park Min-ju)  朴旻珠  [Q1]
+     한 줄  : A name of the sky and a pearl
+     의미   : [사전602] 민주 (旻珠, Minju) joins 민 (旻, min), "the vast sky," with 주 (珠, ju), "pearl, jewel." It sounds like 민주 (民主, "democracy"), a free, dignified ring. It's a girl's name; the 주 syllable, as in 현주 (Hyeonju), carries jewel-like pre
+
+ 56. Margot Radcliffe (여)
+     음차   : 마르고
+     이름   : 이마음 (Lee Ma-eum)  李  [Q2]
+     한 줄  : Heart in native Korean
+     의미   : [사전602] 마음 (Maeum) is a pure native Korean name — it is the native Korean word for "heart," the mind and feeling themselves. It needs no Chinese characters; the meaning lives in the sound. Soft and open, with no hard stops, it f
+
+ 57. Marlowe Rutherford (여)
+     음차   : 말로
+     이름   : 엄마리 (Eom Ma-ri)  嚴瑪悧  [Q2]
+     한 줄  : Someone who shines like a gem and is clever
+     의미   : [사전602] 마리 (瑪悧, Mari) joins 마 (瑪, ma), "agate, a beautiful gemstone," with 리 (悧, ri), "clever and bright." It's a girl's name meaning someone who shines like a gem and is clever. It matches the English "Mari/Marie," so it travel
+
+ 58. Maisie Sinclair (여)
+     음차   : 메이지
+     이름   : 신민지 (Shin Min-ji)  申旻智  [Q1]
+     한 줄  : A name of the sky and wisdom
+     의미   : [사전602] 민지 (旻智, Minji) joins 민 (旻, min), "the vast sky," with 지 (智, ji), "wisdom." It's a long-beloved girl's name — and K-pop fans know it instantly as Minji of NewJeans. The 지 syllable, as in 지혜 (Jihye) and 은지 (Eunji), symboli
+
+ 59. Meredith Stanton (여)
+     음차   : 메러디스
+     이름   : 서민정 (Seo Min-jeong)  徐旻晶  [Q1]
+     한 줄  : Someone sky-wide and clear as crystal
+     의미   : [사전602] 민정 (旻晶, Minjeong) joins 민 (旻, min), "the vast sky," with 정 (晶, jeong), "crystal-clear and bright." It's a girl's name meaning someone sky-wide and clear as crystal. The 정 syllable, as in 수정 (Sujeong) and 유정 (Yujeong), is
+
+ 60. Miriam Thackeray (여)
+     음차   : 미리엄
+     이름   : 서민아 (Seo Min-a)  徐旻雅  [Q1]
+     한 줄  : Someone sky-wide and graceful
+     의미   : [사전602] 민아 (旻雅, Mina) joins 민 (旻, min), "the vast sky," with 아 (雅, a), "elegant and refined." It's a girl's name meaning someone sky-wide and graceful. The 민 syllable is beloved; 아 is among the most popular endings. K-pop fans m
+
+ 61. Nadine Underwood (여)
+     음차   : 너딘
+     이름   : 이나진 (Lee Na-jin)  李娜辰  [Q2]
+     한 줄  : Someone lovely who shines like a star
+     의미   : [사전602] 나진 (娜辰, Najin) joins 나 (娜, na), "graceful," with 진 (辰, jin), "a star." It pictures someone lovely who shines like a star. Clear and distinctive, its 진 syllable (as in 수진, Sujin) carries a true, upright feel. Beauty and s
+
+ 62. Naomi Waverly (여)
+     음차   : 나오미
+     이름   : 이나온 (Lee Na-on)  李娜溫  [Q2]
+     한 줄  : Someone lovely and warm-hearted
+     의미   : [사전602] 나온 (娜溫, Naon) joins 나 (娜, na), "graceful," with 온 (溫, on), "warm and gentle." It pictures someone lovely and warm-hearted, and echoes 나오다, "to come forth," for the image of a child who arrived brightly. Soft and cozy, it
+
+ 63. Nell Whitmore (여)
+     음차   : 넬
+     이름   : 이나은 (Lee Na-eun)  李娜恩  [Q1]
+     한 줄  : Graceful kindness shown through warmth to others
+     의미   : [LLM] 나은 (娜恩, Naeun) joins 娜, grace and loveliness, with 恩, kindness, so that someone carrying it is wished a gentle grace paired with a warm, generous heart — beauty that shows itself through goodness to others. Said aloud, t
+
+ 64. Nora Winslow (여)
+     음차   : 노라
+     이름   : 이노을 (Lee No-eul)  李  [Q2]
+     한 줄  : Someone who colors the world beautifully
+     의미   : [사전602] 노을 (Noeul) — above all, this is the native Korean word for the sunset glow, the sky flushed red at dusk. It carries no Chinese characters; the meaning lives right in the sound. It holds the poetic wish for someone who co
+
+ 65. Olive Ashford (여)
+     음차   : 올리브
+     이름   : 안우리 (Ahn U-ri)  安旭悧  [Q1]
+     한 줄  : Togetherness — “us” in native Korean
+     의미   : [사전602] 우리 (旭悧, Uri) joins 우 (旭, u), "the rising sun," with 리 (悧, ri), "clever and bright." But above all, 우리 is the native Korean word for "we, us" — it holds the warmth of togetherness and community. Round and endearing, said 
+
+ 66. Ophelia Bancroft (여)
+     음차   : 오필리아
+     이름   : 박온유 (Park On-yu)  朴溫愈  [Q1]
+     한 줄  : Someone warm who excels
+     의미   : [사전602] 온유 (溫愈, Onyu) pairs 온 (溫, on), "warm," with 유 (愈, yu), "kind and gentle." It's literally the word 온유하다, "gentle and tender." Soft from the very sound, it suits boys and girls alike, and K-pop fans will think of SHINee's 
+
+ 67. Paisley Blackwood (여)
+     음차   : 페이즐리
+     이름   : 박혜린 (Park Hye-rin)  朴慧璘  [Q1]
+     한 줄  : Someone wise who shines like a jewel
+     의미   : [사전602] 혜린 (慧璘, Hyerin) pairs 혜 (慧, hye), "wise and intelligent," with 린 (璘, rin), "the luster of jade." It pictures someone wise who shines like a jewel. Soft and stylish, 혜 (as in 지혜, Jihye) signals wisdom while 린 (as in 예린, Y
+
+ 68. Penelope Caldwell (여)
+     음차   : 퍼넬러피
+     이름   : 김하니 (Kim Ha-ni)  金  [Q2]
+     한 줄  : Someone sweet and warm
+     의미   : [사전602] 하니 (Hani) is carried as a native Korean name. It pictures someone sweet and warm. Open and gentle, with no hard stops, it flows softly — it even echoes the English "honey" — and K-pop fans may think of Hanni of NewJeans.
+
+ 69. Phoebe Carmichael (여)
+     음차   : 피비
+     이름   : 김빛나 (Kim Bit-na)  金  [Q2]
+     한 줄  : Someone who shines brightly wherever they are
+     의미   : [사전602] 빛나 (Bitna) is a purely native Korean name meaning "to shine." It carries, directly, the wish for someone who shines brightly wherever they are. The name sparkles from its very sound; just calling it becomes a cheer of "s
+
+ 70. Piper Chandler (여)
+     음차   : 파이퍼
+     이름   : 채하이 (Chae Ha-i)  蔡荷璃  [Q2]
+     한 줄  : Someone noble as a lotus and clear as glass
+     의미   : [사전602] 하이 (荷璃, Hai) pairs 하 (荷, ha), "lotus flower," with 이 (璃, i), "clear crystal." It pictures someone noble as a lotus and clear as glass. Short and lively, it sounds like the greeting "Hi," for a bright, friendly ring. Endi
+
+ 71. Alistair Delaney (남)
+     음차   : 앨러스터
+     이름   : 진예성 (Jin Ye-seong)  陳叡聖  [Q1]
+     한 줄  : Someone wise and high in virtue
+     의미   : [사전602] 예성 (叡聖, Yeseong) joins 예 (叡, ye), "bright and wise," with 성 (聖, seong), "sacred and virtuous." It's a boy's name meaning someone wise and high in virtue. K-pop fans know it as Yesung of Super Junior — nicknamed for an "a
+
+ 72. Archer Eastwood (남)
+     음차   : 아처
+     이름   : 이아성 (Lee A-seong)  李雅聖  [Q2]
+     한 줄  : A refined and holy person
+     의미   : [사전602] 아성 (雅聖, Aseong) joins 아 (雅, a), "elegant and refined," with 성 (聖, seong), "sacred and virtuous." It sounds like 아성 (牙城, "stronghold"), a firm, solid ring. It's a boy's name, soft yet dependable — grace and virtue for an 
+
+ 73. Barnaby Ellsworth (남)
+     음차   : 바너비
+     이름   : 이반석 (Lee Ban-seok)  李磐晳  [Q2]
+     한 줄  : Someone steadfast as bedrock and clear-minded
+     의미   : [사전602] 반석 (磐晳, Banseok) joins 반 (磐, ban), "a broad, steadfast rock," with 석 (晳, seok), "bright and clear." It's a boy's name meaning someone steadfast as bedrock and clear-minded — "built on a rock," an unshakable foundation. W
+
+ 74. Bennett Fairbanks (남)
+     음차   : 베넷
+     이름   : 배백호 (Bae Baek-ho)  裵白晧  [Q2]
+     한 줄  : A white and shining person
+     의미   : [사전602] 백호 (白晧, Baekho) joins 백 (白, baek), "pure white," with 호 (晧, ho), "bright and luminous." Above all, 백호 (白虎) is the "White Tiger," the guardian of the west among the Four Symbols — a brave, sacred image. Firm and spirited,
+
+ 75. Callum Fitzgerald (남)
+     음차   : 칼럼
+     이름   : 박가람 (Park Ga-ram)  朴嘉覽  [Q1]
+     한 줄  : Someone generous and flowing like a great river
+     의미   : [사전602] 가람 (嘉覽, Garam) joins 가 (嘉, ga), "beautiful and praiseworthy," with 람 (覽, ram), "to look over and care for." But 가람 is also an old native Korean word for "river," so the name carries the image of someone generous and flow
+
+ 76. Cedric Gallagher (남)
+     음차   : 세드릭
+     이름   : 김세준 (Kim Se-jun)  金歲峻  [Q1]
+     한 줄  : Someone who stands ever taller through the years
+     의미   : [사전602] 세준 (歲峻, Sejun) joins 세 (歲, se), "year, time," with 준 (峻, jun), "lofty and towering." It's a boy's name meaning someone who stands ever taller through the years. The 준 syllable is among the most beloved, as in 민준 (Minjun)
+
+ 77. Colton Hawthorne (남)
+     음차   : 콜턴
+     이름   : 홍건아 (Hong Geon-a)  洪虔雅  [Q1]
+     한 줄  : Someone earnest yet graceful
+     의미   : [사전602] 건아 (虔雅, Geona) pairs 건 (虔, geon), "sincere and devoted," with 아 (雅, a), "elegant and refined." It pictures someone earnest yet graceful. It also sounds like 건아 (健兒), "a spirited young person," adding a bright, healthy no
+
+ 78. Damon Holloway (남)
+     음차   : 데이먼
+     이름   : 한대일 (Han Dae-il)  韓旲日  [Q3]
+     한 줄  : Someone radiant beyond measure
+     의미   : [사전602] 대일 (旲日, Daeil) doubles the sun: 대 (旲, dae), "sunlight," and 일 (日, il), "the sun." It pictures someone radiant beyond measure. Short and firm, both characters carry bright, supreme meaning. A bold, standing-tall name full
+
+ 79. Desmond Kingsley (남)
+     음차   : 데즈먼드
+     이름   : 김대준 (Kim Dae-jun)  金旲峻  [Q1]
+     한 줄  : Someone bright who stands tall like a mountain
+     의미   : [사전602] 대준 (旲峻, Daejun) joins 대 (旲, dae), "great light," with 준 (峻, jun), "lofty and towering." It pictures someone bright who stands tall like a mountain. Firm and bracing, 대 signals a large vessel while 준 is the most loved end
+
+ 80. Duncan Langford (남)
+     음차   : 던컨
+     이름   : 이덕현 (Lee Deok-hyeon)  李德炫  [Q2]
+     한 줄  : Someone virtuous who shines brilliantly
+     의미   : [사전602] 덕현 (德炫, Deokhyeon) pairs 덕 (德, deok), "virtue, a kind heart," with 현 (炫, hyeon), "dazzling and bright." It pictures someone virtuous who shines brilliantly. Neat and upright, 덕 signals character and merit, while 현 (as in
+
+ 81. Edmund Lockhart (남)
+     음차   : 에드먼드
+     이름   : 오예준 (Oh Ye-jun)  吳叡峻  [Q1]
+     한 줄  : Someone wise who stands tall like a mountain
+     의미   : [사전602] 예준 (叡峻, Yejun) joins 예 (叡, ye), "bright and wise," with 준 (峻, jun), "lofty and towering." It pictures someone wise who stands tall like a mountain. In recent years 예준 has topped Korea's boys'-name charts — 예 signals wisd
+
+ 82. Elliot Merriweather (남)
+     음차   : 엘리엇
+     이름   : 문예일 (Moon Ye-il)  文叡日  [Q2]
+     한 줄  : Someone wise who shines like the sun
+     의미   : [사전602] 예일 (叡日, Yeil) joins 예 (叡, ye), "bright and wise," with 일 (日, il), "the sun." It pictures someone wise who shines like the sun. It also matches "Yale," the famous university, for an especially scholarly ring. Short and up
+
+ 83. Emmett Montgomery (남)
+     음차   : 에밋
+     이름   : 문해민 (Moon Hae-min)  文楷旻  [Q2]
+     한 줄  : Someone bright and broad-minded
+     의미   : [사전602] 해민 (楷旻, Haemin) joins 해 (楷, hae), "model, exemplary," with 민 (旻, min), "the wide sky." With the native echo of 해, "sun," it pictures someone bright and broad-minded. Clear and stylish, 민 (as in 지민, Jimin) is sleek. Brigh
+
+ 84. Everett Northrop (남)
+     음차   : 에버렛
+     이름   : 오예범 (Oh Ye-beom)  吳叡汎  [Q2]
+     한 줄  : Someone whose wisdom reaches far
+     의미   : [사전602] 예범 (叡汎, Yebeom) joins 예 (叡, ye), "bright and wise," with 범 (汎, beom), "broad, far-reaching." It's a boy's name meaning someone whose wisdom reaches far. 예 lends brilliance; 범 lends a magnanimous vessel, echoing 모범 ("mode
+
+ 85. Finnegan Pemberton (남)
+     음차   : 피네건
+     이름   : 배희건 (Bae Hui-geon)  裵喜建  [Q2]
+     한 줄  : One who builds a lasting foundation of gladness
+     의미   : [LLM] 희건 (喜建, Huigeon) joins gladness with the act of building, carrying the hope that someone will lay down, brick by brick, a life founded on joy — not fleeting happiness but something sturdy and lasting, a home for gladness
+
+ 86. Fletcher Prescott (남)
+     음차   : 플레처
+     이름   : 박범석 (Park Beom-seok)  朴汎晳  [Q2]
+     한 줄  : Someone broad-minded and clear
+     의미   : [사전602] 범석 (汎晳, Beomseok) joins 범 (汎, beom), "broad, far-reaching," with 석 (晳, seok), "bright and clear." It's a boy's name meaning someone broad-minded and clear. 범 lends a magnanimous vessel; 석 is a classic, as in 재석 (Jaeseok)
+
+ 87. Gideon Radcliffe (남)
+     음차   : 기디언
+     이름   : 이기민 (Lee Gi-min)  李琦旻  [Q2]
+     한 줄  : Someone gifted and broad-minded
+     의미   : [사전602] 기민 (琦旻, Gimin) pairs 기 (琦, gi), "fine jade, outstanding," with 민 (旻, min), "the wide sky." It pictures someone gifted and broad-minded. It also sounds like 기민하다, "quick-witted and nimble," adding a bright, sharp note. Th
+
+ 88. Grayson Rutherford (남)
+     음차   : 그레이슨
+     이름   : 엄근우 (Eom Geun-u)  嚴漌旭  [Q1]
+     한 줄  : Someone clean as water and bright as the dawn
+     의미   : [사전602] 근우 (漌旭, Geunu) joins 근 (漌, geun), "clear water," with 우 (旭, u), "the rising sun." It pictures someone clean as water and bright as the dawn. Soft and stylish, its 우 ending is one of the most loved today — 준우 (Junu), 지우 (
+
+ 89. Harrison Sinclair (남)
+     음차   : 해리슨
+     이름   : 신해승 (Shin Hae-seung)  申楷勝  [Q2]
+     한 줄  : Someone bright who triumphs
+     의미   : [사전602] 해승 (楷勝, Haeseung) joins 해 (楷, hae), "model, exemplary," with 승 (勝, seung), "to win, to excel." With the native echo of 해, "sun," it pictures someone bright who triumphs. Firm and spirited, 승 (as in 승우, Seungu) signals vi
+
+ 90. Hugo Stanton (남)
+     음차   : 휴고
+     이름   : 서유건 (Seo Yu-geon)  徐愈虔  [Q1]
+     한 줄  : Someone kind and utterly earnest
+     의미   : [사전602] 유건 (愈虔, Yugeon) joins 유 (愈, yu), "kind and virtuous," with 건 (虔, geon), "sincere and devoted." It pictures someone kind and utterly earnest. Soft and neat, its 유 (as in 유준, Yujun) is a gentle opener, and 건 (as in 건우, Geo
+
+ 91. Jasper Thackeray (남)
+     음차   : 재스퍼
+     이름   : 서재승 (Seo Jae-seung)  徐才承  [Q1]
+     한 줄  : Someone gifted who carries a legacy forward
+     의미   : [사전602] 재승 (才承, Jaeseung) joins 재 (才, jae), “talent, a natural gift,” with 승 (承, seung), “to carry on, to inherit.” It pictures someone gifted who carries a legacy forward. A warm, classic boy’s name — 재 opens brightly and 승 lan
+
+ 92. Jonah Underwood (남)
+     음차   : 조나
+     이름   : 이종찬 (Lee Jong-chan)  李宗讚  [Q2]
+     한 줄  : Someone well-grounded who shines and earns praise
+     의미   : [사전602] 종찬 (宗讚, Jongchan) joins 종 (宗, jong), "foundation, lineage," with 찬 (讚, chan), "radiant, praised." It pictures someone well-grounded who shines and earns praise. Firm and lively, 종 signals roots while 찬 (as in 우찬, Uchan) 
+
+ 93. Julian Waverly (남)
+     음차   : 줄리언
+     이름   : 이주언 (Lee Ju-eon)  李珠彦  [Q1]
+     한 줄  : Someone precious and accomplished
+     의미   : [사전602] 주언 (珠彦, Jueon) pairs 주 (珠, ju), "pearl, jewel," with 언 (彦, eon), "a person of talent and virtue." It pictures someone precious and accomplished. Soft and refined, 주 carries jewel-value while 언 signals a gifted person. Pr
+
+ 94. Landon Whitmore (남)
+     음차   : 랜던
+     이름   : 이래원 (Lee Rae-won)  李來源  [Q2]
+     한 줄  : Someone toward whom good origins come
+     의미   : [사전602] 래원 (來源, Raewon) joins 래 (來, rae), "to come, to arrive," with 원 (源, won), "source, origin." It's a boy's name meaning someone toward whom good origins come. The 원 syllable, as in 지원 (Jiwon) and 재원 (Jaewon), symbolizes sou
+
+ 95. Leland Winslow (남)
+     음차   : 리랜드
+     이름   : 임이든 (Im I-deun)  林  [Q1]
+     한 줄  : Good in native Korean
+     의미   : [사전602] 이든 (Ideun) comes from the native Korean word 이든, "good-hearted and kind." It carries the wish for a genuinely good person. It also matches the English "Eden," carrying the peaceful ring of paradise. Soft and stylish, it 
+
+ 96. Malcolm Ashford (남)
+     음차   : 맬컴
+     이름   : 안민석 (Ahn Min-seok)  安旻晳  [Q1]
+     한 줄  : Someone sky-wide and clear-minded
+     의미   : [사전602] 민석 (旻晳, Minseok) joins 민 (旻, min), "the vast sky," with 석 (晳, seok), "bright and clear." It's a boy's name meaning someone sky-wide and clear-minded. The 석 syllable, as in 재석 (Jaeseok) and 준석 (Junseok), is a classic, dep
+
+ 97. Nolan Bancroft (남)
+     음차   : 놀런
+     이름   : 박누리 (Park Nu-ri)  朴  [Q2]
+     한 줄  : World in native Korean
+     의미   : [사전602] 누리 (Nuri) is a pure native Korean name — it is the native Korean word for "the world," an old and poetic one. It carries no Chinese characters; the meaning is in the sound. Bright and rolling, it flows easily off the ton
+
+ 98. Percival Blackwood (남)
+     음차   : 퍼시벌
+     이름   : 박범식 (Park Beom-sik)  朴範植  [Q3]
+     한 줄  : Someone who plants firm, upright principles
+     의미   : [LLM] 범식 (範植, Beomsik) joins the character for law or standard with the character for planting, holding the hope that someone will root deep principles within themselves, growing steadily into a person whose integrity stands f
+
+ 99. Rupert Caldwell (남)
+     음차   : 루퍼트
+     이름   : 김루한 (Kim Ru-han)  金婁瀚  [Q2]
+     한 줄  : Someone who shines like a star, wide as the sea
+     의미   : [사전602] 루한 (婁瀚, Ruhan) joins 루 (婁, ru), "a star," with 한 (瀚, han), "vast and expansive." It's a boy's name meaning someone who shines like a star, wide as the sea. K-pop fans know it instantly as Luhan (formerly of EXO) — a tren
+
+100. Sullivan Carmichael (남)
+     음차   : 설리번
+     이름   : 김성범 (Kim Seong-beom)  金聖汎  [Q2]
+     한 줄  : Someone whose high virtue reaches far
+     의미   : [사전602] 성범 (聖汎, Seongbeom) joins 성 (聖, seong), "sacred and virtuous," with 범 (汎, beom), "broad, far-reaching." It's a boy's name meaning someone whose high virtue reaches far. 성 symbolizes merit, as in 재성 (Jaeseong); 범 lends a m
+
+==========================================================================
+완료 100건 · 변환 실패 0건 · 확인 필요 1건
+
+의미 설명 출처
+  LLM 생성      4건    4.0%   <- 이 값이 나와야 LLM 경로가 검증된 것
+  사전 602     96건   96.0%   (미리 작성된 설명, LLM 검증 아님)
+  순우리말      0건    0.0%   (한자가 없어 로컬 생성, 정상)
+  템플릿        0건    0.0%   <- 0 이어야 정상
+
+이름 품질 등급
+  Q1           53건   53.0%
+  Q2           45건   45.0%
+  Q3            2건    2.0%

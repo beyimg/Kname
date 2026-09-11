@@ -236,9 +236,11 @@ except Exception:
 try:
     from gloss_pos import (GLOSS_POS as _GLOSS_POS, VERB_FORM as _VERB_FORM,
                            FORCE_NOUNS as _FORCE_NOUNS,
-                           VERB_TRANSITIVE as _VERB_T)
+                           VERB_TRANSITIVE as _VERB_T,
+                           ADJ_NOT_PERSON as _ADJ_NOT_PERSON)
 except Exception:
     _GLOSS_POS, _VERB_FORM, _FORCE_NOUNS, _VERB_T = {}, {}, set(), set()
+    _ADJ_NOT_PERSON = set()
 
 # 사전 602개 중 설명문에서 한 줄을 뽑아내지 못하는 이름의 손으로 쓴 한 줄.
 try:
@@ -953,7 +955,12 @@ def _short_meaning(meaning_en, hanja_lines, given='', llm_short=''):
         words = [w.strip() for w in str(h.get('gloss') or '').split(',') if w.strip()]
         words = [w for w in words if not _has_hangul(w)]
         tagged = [(w, _pos_of(w)) for w in words]
-        usable = [(w, p) for w, p in tagged if p and p != 'S']
+        # 사람을 가리키는 문장을 만들므로, 사람에게 쓰면 영어에서 곤란해지는
+        # 형용사는 여기서 한 번에 거른다(white=인종 · dense=멍청한 · high=은어).
+        # 틀마다 따로 막으면 반드시 한 군데를 빠뜨린다 — 실제로 빠뜨렸다.
+        usable = [(w, p) for w, p in tagged
+                  if p and p != 'S'
+                  and not (p == 'A' and w.lower() in _ADJ_NOT_PERSON)]
         if not usable:
             # 뜻이 전부 '모르는 것' 또는 '쓸 수 없는 것' — 조립 불가
             if any(p is None for _w, p in tagged):
@@ -974,6 +981,10 @@ def _short_meaning(meaning_en, hanja_lines, given='', llm_short=''):
         return _label_form(hanja_lines) or 'A native Korean name'
 
     # 모든 글자가 형용사 → "A bright and gentle person"
+    #
+    # 단, 사람을 가리키는 형용사로 쓰면 영어에서 곤란해지는 말은 이 틀에
+    # 넣지 않는다(white=인종 · dense=멍청한 · high=약물 은어 · green=풋내기).
+    # 뜻은 고쳐 두었지만, 나중에 한자를 추가하다 같은 표현이 들어오는 것을 막는다.
     adjs = [s['adj'] for s in slots if s['adj']]
     if len(adjs) == len(slots):
         uniq = list(dict.fromkeys(a.lower() for a in adjs))
