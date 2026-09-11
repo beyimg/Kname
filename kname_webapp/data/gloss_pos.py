@@ -202,3 +202,19 @@ VERB_TRANSITIVE = {
     'to teach', 'to transform', 'to trust', 'to unfold', 'to unfurl',
     'to unite', 'to uphold', 'to verify', 'to wed', 'to wind',
 }
+
+# ---------------------------------------------------------------- 전수 검수 추가
+# 1,076자 영어뜻을 전수 검수하면서 새로 들어온 뜻들의 품사.
+# (2026-09 검수 — 동음이의 오역 96건 수정 시 생긴 표현들)
+GLOSS_POS.update({
+    # 형용사
+    'sweet': 'A', 'triumphant': 'A', 'cool': 'A', 'high': 'A',
+    'decisive': 'A', 'righteous': 'A', 'just': 'A', 'royal': 'A',
+    'settled': 'A', 'steady': 'A', 'true': 'A', 'real': 'A',
+    'supreme': 'A', 'utmost': 'A', 'widespread': 'A', 'countless': 'A',
+    'all-encompassing': 'A', 'quick-witted': 'A',
+    # 추상명사 — 비유가 아니라 '~를 지닌' 형태로 쓴다
+    'quality': 'X', 'character': 'X', 'noble rank': 'X',
+    # 불가산·집합명사
+    'all things': 'M',
+})

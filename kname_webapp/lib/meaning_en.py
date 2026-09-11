@@ -27,7 +27,7 @@ DEFAULT_MODEL = "claude-sonnet-5"
 # 예전에는 프롬프트를 고쳐도 캐시가 그대로 남아, 파일을 손으로 지우지 않으면
 # 예전 형식 결과가 계속 나왔다("Boa carries ..." 처럼 도입부가 로마자만).
 # 사람이 기억해야 하는 절차는 반드시 잊히므로 버전으로 강제한다.
-PROMPT_VERSION = 2
+PROMPT_VERSION = 3
 
 # 라틴 확장 문자 → 기본 알파벳. LLM이 한국어 로마자에 발음기호를
 # 붙이는 경우가 있어(Hořim), 표기를 정규화한다.
@@ -198,12 +198,24 @@ class MeaningEnGenerator:
         hanja_chars: Optional[List[Tuple[str, str, str]]],
         english_name: Optional[str],
         gloss_en: Optional[Dict[str, str]] = None,
+        hanja_en: Optional[Dict[str, str]] = None,
     ) -> str:
         """영어 출력만 요구하는 짧은 프롬프트."""
         lines = []
         if hanja_chars:
             for syl, hanja, kr_gloss in hanja_chars:
-                en = (gloss_en or {}).get(kr_gloss) or kr_gloss
+                # 한자별 영어뜻(hanja_en)을 먼저 쓴다.
+                #
+                # 한국어뜻→영어 표(gloss_en)는 낱말 하나에 영어 하나를 붙이므로
+                # 동음이의어를 구분하지 못한다. 그래서 예전에는
+                #   馬(말=horse) · 斗(말=곡식 단위) · 勿(말=~하지 말라) → 'words'
+                #   年(해=year) → 'sun'
+                #   蔚(딸 ← 잘못된 데이터) → 'daughter'
+                # 처럼 틀린 뜻이 프롬프트로 들어갔다. 카드에 찍히는 뜻은
+                # 한자별 표를 쓰고 있었으므로 설명과 카드가 서로 달랐다.
+                en = ((hanja_en or {}).get(hanja)
+                      or (gloss_en or {}).get(kr_gloss)
+                      or kr_gloss)
                 lines.append(f'{syl} ({hanja}) = {en}')
             chars_desc = '; '.join(lines)
         else:
@@ -274,9 +286,11 @@ class MeaningEnGenerator:
         hanja_chars: Optional[List[Tuple[str, str, str]]] = None,
         english_name: Optional[str] = None,
         gloss_en: Optional[Dict[str, str]] = None,
+        hanja_en: Optional[Dict[str, str]] = None,
     ) -> Optional[str]:
         """영어 의미 설명 생성. 실패 시 None. (기존 호출부 호환)"""
-        return self.explain_pair(given, sex, hanja_chars, english_name, gloss_en)[0]
+        return self.explain_pair(given, sex, hanja_chars, english_name,
+                                 gloss_en, hanja_en)[0]
 
     def explain_pair(
         self,
@@ -285,6 +299,7 @@ class MeaningEnGenerator:
         hanja_chars: Optional[List[Tuple[str, str, str]]] = None,
         english_name: Optional[str] = None,
         gloss_en: Optional[Dict[str, str]] = None,
+        hanja_en: Optional[Dict[str, str]] = None,
     ) -> Tuple[Optional[str], str]:
         """
         (설명, 카드 앞면 한 줄) 을 함께 돌려준다.
@@ -308,7 +323,8 @@ class MeaningEnGenerator:
                 return self._fix_opening(stale, given, label, rom), ''
             return None, ''
 
-        prompt = self._build_prompt(given, sex, hanja_chars, english_name, gloss_en)
+        prompt = self._build_prompt(given, sex, hanja_chars, english_name,
+                                    gloss_en, hanja_en)
         try:
             client = self._client_or_raise()
             resp = client.messages.create(

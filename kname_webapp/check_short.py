@@ -99,6 +99,29 @@ def main():
     print(f'품사 표에 없는 뜻 {len(unk)}종 '
           f'(총 {sum(unk.values())}회) — 이 뜻이 든 글자는 라벨형으로 내려간다')
 
+    # ---------------------------------------------------------------- 4) 한자사전
+    # 뜻이 두 곳(한국어뜻 / 영어뜻)에 있어 어긋날 수 있다.
+    # 설명 프롬프트와 카드는 둘 다 '영어뜻'(한자별)을 쓰므로 지금은 안전하지만,
+    # 영어뜻이 비어 있으면 한국어뜻→영어 표로 내려가고 그 표는 동음이의어를
+    # 구분하지 못한다('말' → words 하나뿐인데 馬·斗·勿 가 공유).
+    miss = [h for h, g in chars if not str(g or '').strip()]
+    import collections as _c
+    seen_h = _c.Counter(h for h, _g in chars)
+    dupe = {h: n for h, n in seen_h.items() if n > 1}
+    unusable = [(h, g) for h, g in chars if not app._gloss_usable(g)]
+    print(f'한자사전 {len(chars)}행 / 서로 다른 한자 {len(seen_h)}자')
+    print(f'  영어뜻 없음 {len(miss)}자 '
+          f'(있으면 동음이의어 표로 내려가 뜻이 틀릴 수 있다)')
+    print(f'  같은 한자가 여러 행 {len(dupe)}자 '
+          f'(쓸 수 있는 뜻이 우선하도록 로더에서 처리)')
+    print(f'  이름 뜻으로 쓸 수 없는 뜻만 있는 한자 {len(unusable)}자 '
+          f'(그 글자는 한 줄 의미에 기여하지 못한다)')
+    if miss:
+        print('    영어뜻 없음:', ' '.join(miss[:20]))
+    if unusable:
+        print('    사용 불가:',
+              ' '.join(f'{h}({g})' for h, g in unusable[:12]))
+
     if bad:
         print('\n--- 비문 ---')
         for kind, name, text, why in bad[:40]:

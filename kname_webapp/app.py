@@ -496,6 +496,9 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False):
                 # Either 를 고른 경우 성별을 단정하지 않도록 중립값을 넘긴다
                 given=given, sex=('기타' if neutral else sex), hanja_chars=chars,
                 english_name=english_first, gloss_en=_KR_GLOSS_TO_EN,
+                # 카드와 같은 출처(한자별 영어뜻)를 쓰게 한다.
+                # 이게 없으면 설명과 카드의 뜻이 서로 달라진다.
+                hanja_en=HANJA_EN,
             )
             en = en or ''
 
@@ -551,14 +554,34 @@ except Exception:
 
 # 한자별 영어 뜻 — hanja_dict.xlsx '영어뜻' 열에서 직접 로드한다.
 # 한국어 뜻을 거치지 않으므로 동음이의(해=year/sun, 말=horse/words) 오역이 없다.
+def _gloss_usable(gloss):
+    """
+    이름 뜻으로 쓸 수 있는 뜻인지. 'surname'·'thing' 처럼 품사표에서 'S'
+    (사용 불가)로만 이루어진 뜻은 카드에 아무 것도 기여하지 못한다.
+    """
+    toks = [t.strip().lower() for t in str(gloss or '').split(',') if t.strip()]
+    if not toks:
+        return False
+    return any(_GLOSS_POS.get(t) != 'S' for t in toks)
+
+
 HANJA_EN = {}
 try:
     import pandas as _pd_he
     _he_df = _pd_he.read_excel(os.path.join(DATA, 'hanja_dict.xlsx'))
     if '영어뜻' in _he_df.columns:
+        # 같은 한자가 여러 행에 있는 경우가 28자 있다. 예전에는 조건 없이
+        # 덮어써서 '마지막 행이 이기는' 구조였고, 그래서 다음처럼 나빠졌다.
+        #   廓  'surroundings' 를 'surname' 이 덮음  → 뜻으로 못 씀
+        # 쓸 수 있는 뜻을 쓸 수 없는 뜻이 덮지 못하게 한다.
         for _h, _e in zip(_he_df['한자'], _he_df['영어뜻']):
-            if isinstance(_h, str) and isinstance(_e, str) and _e.strip():
-                HANJA_EN[_h] = _e.strip()
+            if not (isinstance(_h, str) and isinstance(_e, str) and _e.strip()):
+                continue
+            _e = _e.strip()
+            _prev = HANJA_EN.get(_h)
+            if _prev and _gloss_usable(_prev) and not _gloss_usable(_e):
+                continue
+            HANJA_EN[_h] = _e
 except Exception:
     HANJA_EN = {}
 
