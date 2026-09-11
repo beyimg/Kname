@@ -1480,6 +1480,15 @@ def _log_conv(first_en, last_en, sex, is_new, data):
     if not (str(first_en).strip() and str(last_en).strip()):
         return
     ok = 'error' not in data
+    # 품질 점검을 먼저 돌려, 그 결과를 같은 행에 남긴다.
+    # 그러면 /admin 의 변환 로그에서 '이 변환에 무슨 문제가 있었는지'가
+    # 한 줄로 보인다(집계만 있으면 개별 건을 되짚을 수 없다).
+    findings = []
+    if ok and _audit is not None:
+        try:
+            findings = _audit(data, pos_of=_pos_of)
+        except Exception:
+            findings = []
     STATS.record(
         ok=ok,
         is_new=is_new,
@@ -1490,6 +1499,7 @@ def _log_conv(first_en, last_en, sex, is_new, data):
         last_en=last_en,
         given=data.get('given', '') if ok else '',
         hangul=data.get('full_hangul', '') if ok else '',
+        flags=' '.join(sorted({c for c, _d in findings})),
     )
     # 사용자가 실패를 겪은 경우 보고(입력 실수는 제외). 원인별로 묶는다.
     if not ok:
@@ -1503,10 +1513,10 @@ def _log_conv(first_en, last_en, sex, is_new, data):
                    detail=err[:140])
         return
 
-    _log_quality(first_en, last_en, data)
+    _log_quality(first_en, last_en, data, findings)
 
 
-def _log_quality(first_en, last_en, data):
+def _log_quality(first_en, last_en, data, findings=None):
     """
     변환은 성공했지만 결과물이 이상한 경우를 기록·보고한다.
 
@@ -1519,10 +1529,11 @@ def _log_quality(first_en, last_en, data):
     """
     if _audit is None:
         return
-    try:
-        findings = _audit(data, pos_of=_pos_of)
-    except Exception:
-        return                      # 점검 자체가 서비스를 막아서는 안 된다
+    if findings is None:
+        try:
+            findings = _audit(data, pos_of=_pos_of)
+        except Exception:
+            return                  # 점검 자체가 서비스를 막아서는 안 된다
 
     name = f'{first_en} {last_en}'.strip()
     seen = set()
@@ -1818,7 +1829,30 @@ def admin():
         iss = {'ok': False, 'by_code': [], 'recent': [], 'total': 0}
     iss['peak'] = max([r['count'] for r in iss.get('by_code') or []] or [0])
     iss['severity'] = _Q_SEVERITY
-    return render_template('admin.html', s=s, op=op, iss=iss)
+    try:
+        recent = STATS.recent(limit=60)
+    except Exception:
+        recent = []
+    return render_template('admin.html', s=s, op=op, iss=iss, recent=recent)
+
+
+@app.route('/admin/recent')
+def admin_recent():
+    """
+    최근 변환 로그(JSON). /admin 화면이 주기적으로 불러 실시간처럼 갱신한다.
+    쿠키/토큰 인증은 /admin 과 동일하다.
+    """
+    want = os.environ.get('ADMIN_TOKEN')
+    tok = request.args.get('token', '') or request.cookies.get('admin_auth', '')
+    if not (want and tok == want):
+        return ('Not found', 404)
+    try:
+        since = request.args.get('since', type=int)
+        rows = STATS.recent(limit=60, since_ts=since)
+    except Exception:
+        rows = []
+    return jsonify({'rows': rows, 'severity': _Q_SEVERITY,
+                    'ts': int(_time.time())})
 
 
 if __name__ == '__main__':
