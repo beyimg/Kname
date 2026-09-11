@@ -1063,7 +1063,9 @@
   "surname_desc": "Park (朴) is Korea's third most common surname at about 8.4%. Uniquely native to Korea, it descends from Bak Hyeokgeose, the legendary founding king of the Silla Kingdom.",
   "matches": "폴→보 partial / 아→아 strong",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Regina",
@@ -1238,8 +1240,8 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "Someone bright as silk",
-  "meaning": "소라 (昭羅, Sora) joins 昭, meaning bright, with 羅, meaning to spread, painting the wish that one's brightness might spread outward, touching everyone nearby like sunlight unfurling across a room. It sits alongside names like 소율, 소윤, 라희, and 아라, each carrying its own quiet radiance. Spoken aloud, 소라 flows softly, its open vowels rounding gently, crisp yet warm on the tongue. Abroad, it echoes comfortably in Solange, easing its way into new mouths without losing its light.",
+  "short": "Bright light unfolding gently like silk",
+  "meaning": "소라 (昭羅, Sora) joins brightness with silk unfurling — light spreading outward like fine fabric catching a breeze. Together the characters suggest a radiance meant to open gently rather than blaze, a hope that someone might carry clarity that unfolds softly into the world around them. Spoken aloud, the name is light and rounded, its open vowels giving it a gentle, airy lilt, easy and pleasant on the tongue. Abroad, it settles comfortably near Solange, the echo of sound making it feel instantly familiar without losing its own quiet shine.",
   "surname_desc": "Park (朴) is Korea's third most common surname at about 8.4%. Uniquely native to Korea, it descends from Bak Hyeokgeose, the legendary founding king of the Silla Kingdom.",
   "matches": "솔→소 strong / 랑→라 strong",
   "fallback": false,
@@ -1477,7 +1479,9 @@
   "surname_desc": "Park (朴) is Korea's third most common surname at about 8.4%. Uniquely native to Korea, it descends from Bak Hyeokgeose, the legendary founding king of the Silla Kingdom.",
   "matches": "파→한 loose / 우→울 strong",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Guilherme",

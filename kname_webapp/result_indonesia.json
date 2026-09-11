@@ -46,8 +46,8 @@
   "quality": "Q1",
   "source": "llm",
   "native": false,
-  "short": "A refined and lustrous person",
-  "meaning": "Ayun blends 雅 (clear, elegant) with 潤 (lustrous, glowing), painting the image of someone whose grace catches light like polished stone. Spoken aloud, it opens softly on \"ah,\" rounds gently through \"yoo,\" and settles on a light \"n\" — a name that flows without a single hard edge, easy and warm on the tongue. It shares its bright, glossy sound with names like Hayun and Jia, and carries neatly into English as Ayu, a name just as smooth and easy to say.",
+  "short": "Refined elegance with a lustrous glow",
+  "meaning": "아윤 (雅潤, Ayun) joins 雅, refined and elegant, with 潤, lustrous, painting someone whose grace carries a natural shine — a hope that she moves through the world with quiet polish, elegant not by effort but by inner glow. Spoken aloud, the name feels light and open, its vowels rounding softly from \"ah\" to \"yoon,\" easy on the tongue, gentle in the ear. It shares its warm rhythm with names like 수아 and 서윤, and abroad, as Ayu, it keeps that same soft familiarity, easy for others to say and remember.",
   "surname_desc": "Kwon (權) is Korea's 15th most common surname at about 1.4%. The Andong Kwon clan, one of Korea's oldest documented lineages, has a genealogy book dating back to 1476.",
   "matches": "아→아 strong / 유→윤 strong",
   "fallback": false,
@@ -82,12 +82,14 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "A name of beneficial and pond",
-  "meaning": "Idam carries a quiet kind of beauty: 利 for benefit and blessing, 潭 for a deep, still pond. Together they suggest a life that nourishes those around it, calm on the surface but full underneath. Spoken aloud, Idam is soft and open, the vowels rounding gently like water settling after a ripple. That same stillness echoes in Intan, their English name — both carry the sense of something precious quietly gathered and held.",
+  "short": "Someone beneficial as a pond",
+  "meaning": "이담 (利潭, Idam) carries a quiet kind of beauty: 利 for benefit and blessing, 潭 for a deep, still pond. Together they suggest a life that nourishes those around it, calm on the surface but full underneath. Spoken aloud, Idam is soft and open, the vowels rounding gently like water settling after a ripple. That same stillness echoes in Intan, their English name — both carry the sense of something precious quietly gathered and held.",
   "surname_desc": "Seo (徐) is Korea's 13th most common surname at about 1.5%. The Dalseong and Icheon Seo clans produced distinguished scholars, including famed Joseon-era prime ministers.",
   "matches": "인→이 strong / 탄→담 strong",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Melati",
@@ -154,8 +156,8 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "A life that nourishes itself and others, patient and clear",
-  "meaning": "Idam carries a quiet image: benefit flowing like water gathered in a still pond, calm and deep rather than loud. It's a wish for a life that nourishes itself and others, patient and clear. Spoken aloud, the name is soft and open—two gentle syllables that rise and settle, easy to say, easy to remember. Much like Indah, which carries its own note of beauty, Idam holds something quietly lovely: a person meant to reflect light without needing to shout.",
+  "short": "A calm, deep source of goodness",
+  "meaning": "이담 (利潭, Idam) joins beneficial (利) with a deep, still pond (潭), picturing a person as a quiet gathering place where good things settle and calm runs deep. The hope woven in is of someone whose presence steadies others, a source that others can draw benefit from without ever running shallow. Spoken aloud, Idam is soft and clean, its open vowels unfolding easily, the crisp *d* giving it a gentle, confident lift. Abroad, it echoes comfortably alongside Indah, familiar on the tongue.",
   "surname_desc": "Im (林) is Korea's 11th most common surname at about 1.0%. The character means \"forest.\" The Naju and Pyeongtaek Im clans are the major lines, known for Confucian scholars.",
   "matches": "인→이 strong / 다→담 strong",
   "fallback": false,
@@ -173,11 +175,13 @@
   "source": "llm",
   "native": false,
   "short": "Someone graceful who helps",
-  "meaning": "Una carries a gentle wish: 佑 (u) meaning \"to help,\" and 娜 (na) meaning \"beautiful,\" together forming someone made to bring graceful support into the world. Spoken aloud, Una flows in two open, unguarded syllables—soft as a breath, with nothing sharp to catch on, much like the ease found in Jiu, Seou, Yuna, or Yena. Fittingly, it echoes gently into Wulan, her English name, both carrying that same light, open warmth.",
+  "meaning": "우나 (佑娜, Una) carries a gentle wish: 佑 (u) meaning \"to help,\" and 娜 (na) meaning \"beautiful,\" together forming someone made to bring graceful support into the world. Spoken aloud, Una flows in two open, unguarded syllables—soft as a breath, with nothing sharp to catch on, much like the ease found in Jiu, Seou, Yuna, or Yena. Fittingly, it echoes gently into Wulan, her English name, both carrying that same light, open warmth.",
   "surname_desc": "Han (韓) is Korea's 11th most common surname at about 1.5%. Strikingly, it shares its character with the very name of Korea (韓國) — the Cheongju Han clan produced many Joseon-era ministers.",
   "matches": "우→우 strong / 란→나 soft",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Kartika",
@@ -190,7 +194,7 @@
   "quality": "Q1",
   "source": "dict",
   "native": false,
-  "short": "Someone fine, with kindness",
+  "short": "Someone lovely and full of goodwill",
   "meaning": "가은 (嘉恩, Gaeun) joins 가 (嘉, ga), \"beautiful,\" with 은 (恩, eun), \"grace and kindness.\" It describes someone lovely and full of goodwill. Soft and warm, 가은 is a long-time favorite whose 은 ending appears in some of the most loved girls' names — 서은 (Seoeun), 지은 (Jieun), 하은 (Haeun). Its gentle sound gives a cozy, timeless feel.",
   "surname_desc": "Seo (徐) is Korea's 13th most common surname at about 1.5%. The Dalseong and Icheon Seo clans produced distinguished scholars, including famed Joseon-era prime ministers.",
   "matches": "카→가 strong / 르→은 loose",
@@ -226,12 +230,14 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "A name of color and river",
-  "meaning": "Chaeha carries color into a river—彩 for brightness, 河 for flowing water—so the name suggests light caught in a current, always moving, never dull. Spoken aloud, it opens softly: \"chae\" crisp and bright, \"ha\" wide and easy, like a breath let out. That same brightness echoes in Cahaya, which means light—so someone named Chaeha carries radiance in two languages, one flowing like a river, the other shining like a lamp.",
+  "short": "A name of color and a river",
+  "meaning": "채하 (彩河, Chaeha) carries color into a river—彩 for brightness, 河 for flowing water—so the name suggests light caught in a current, always moving, never dull. Spoken aloud, it opens softly: \"chae\" crisp and bright, \"ha\" wide and easy, like a breath let out. That same brightness echoes in Cahaya, which means light—so someone named Chaeha carries radiance in two languages, one flowing like a river, the other shining like a lamp.",
   "surname_desc": "Park (朴) is Korea's third most common surname at about 8.4%. Uniquely native to Korea, it descends from Bak Hyeokgeose, the legendary founding king of the Silla Kingdom.",
   "matches": "차→채 partial / 하→하 strong",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Fitri",
@@ -425,7 +431,7 @@
   "source": "llm",
   "native": false,
   "short": "Someone lustrous as silk",
-  "meaning": "Rayun carries a quiet radiance: 라 spreads and unfolds, 윤 glows with a soft, watery luster, together painting someone whose warmth and grace ripple gently outward into the world around them. Spoken aloud, the name flows easily — open vowels, a light bounce from Ra to yun, soft and crisp like water catching sunlight. Fittingly, their English name, Rahayu, echoes that same gentle, unfolding warmth, carrying the sound and spirit of Rayun into another language entirely.",
+  "meaning": "라윤 (羅潤, Rayun) unfolds like silk catching light — 라 carrying the sense of fine fabric spreading open, 윤 giving it a lustrous sheen, so together the name holds the hope of someone whose presence unfurls",
   "surname_desc": "Shin (申) is Korea's 14th most common surname at about 1.4%. The Pyeongsan Shin clan descends from Shin Sung-gyeom, a heroic general who helped found the Goryeo Dynasty.",
   "matches": "라→라 strong / 유→윤 strong",
   "fallback": false,
@@ -447,7 +453,9 @@
   "surname_desc": "Nam (南) is Korea's 31st most common surname at about 0.5%. The character means 'south'; the Uiryeong Nam clan traces to a Tang Chinese envoy who settled in Silla in the 8th century.",
   "matches": "세→세 strong / 르→은 loose",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Utami",
@@ -460,7 +468,7 @@
   "quality": "Q2",
   "source": "dict",
   "native": false,
-  "short": "Someone sparkling as a morning sun",
+  "short": "Someone sparkling as the morning sun",
   "meaning": "우정 (旭晶, Ujeong) pairs 우 (旭, u), \"the rising sun,\" with 정 (晶, jeong), \"crystal-clear.\" But above all, it sounds like 우정 (友情), \"friendship,\" so a sense of deep, warm loyalty is right in the name. Neat and endearing, sunrise, clarity, and friendship meet in an affectionate name.",
   "surname_desc": "Shin (申) is Korea's 14th most common surname at about 1.4%. The Pyeongsan Shin clan descends from Shin Sung-gyeom, a heroic general who helped found the Goryeo Dynasty.",
   "matches": "우→우 strong / 타→정 loose",
@@ -496,12 +504,14 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "A name of beneficial and pond",
-  "meaning": "Idam carries a quiet, glimmering image: benefit and blessing (利) settling like clear water into a still pond (潭), a place where good things gather and deepen rather than rush away. Spoken aloud, it's soft and open — the bright \"ee,\" the gentle \"dam\" — like a breath held calmly. Much like Widya, the name Idam suggests depth beneath simplicity, someone whose presence feels steady, generous, and quietly luminous.",
+  "short": "Someone beneficial as a pond",
+  "meaning": "이담 (利潭, Idam) carries a quiet, glimmering image: benefit and blessing (利) settling like clear water into a still pond (潭), a place where good things gather and deepen rather than rush away. Spoken aloud, it's soft and open — the bright \"ee,\" the gentle \"dam\" — like a breath held calmly. Much like Widya, the name Idam suggests depth beneath simplicity, someone whose presence feels steady, generous, and quietly luminous.",
   "surname_desc": "Park (朴) is Korea's third most common surname at about 8.4%. Uniquely native to Korea, it descends from Bak Hyeokgeose, the legendary founding king of the Silla Kingdom.",
   "matches": "위→이 strong / 댜→담 partial",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Yuliana",
@@ -568,8 +578,8 @@
   "quality": "Q1",
   "source": "llm",
   "native": false,
-  "short": "A name of wisdom and kindness",
-  "meaning": "Jieun carries a quiet strength: 지 for wisdom, 은 for kindness, together naming someone meant to think clearly and give gently. Spoken aloud, it moves softly — a crisp \"ji\" opening into the warm, round \"eun\" — like a breath settling. It shares its music with names like Jiwoo and Haeun, part of a family of sounds built on grace. And in Citra, that same blend lingers: brightness paired with softness, wisdom wrapped in warmth.",
+  "short": "Wisdom paired with a kind heart",
+  "meaning": "지은 (智恩, Jieun) joins wisdom and kindness into a single quiet wish: that someone would carry a clear, thoughtful mind alongside a gentle, giving heart, never one without the other. Spoken aloud, the name feels soft and close, its syllables tapping lightly with open vowels and a smooth, unhurried rhythm that seems to settle rather than rush past. Abroad, its rounded ending echoes gently in \"Citra,\" making it easy for new ears to catch and remember.",
   "surname_desc": "Lee (李) is Korea's second most common surname at about 14.7% of the population. Its most famous lineage, the Jeonju Lee clan, founded the Joseon Dynasty and ruled Korea for over 500 years.",
   "matches": "치→지 strong / 트→은 loose",
   "fallback": false,
@@ -642,7 +652,7 @@
   "quality": "Q1",
   "source": "dict",
   "native": true,
-  "short": "River in native Korean",
+  "short": "Someone generous and flowing like a great river",
   "meaning": "가람 (嘉覽, Garam) joins 가 (嘉, ga), \"beautiful and praiseworthy,\" with 람 (覽, ram), \"to look over and care for.\" But 가람 is also an old native Korean word for \"river,\" so the name carries the image of someone generous and flowing like a great river. Gender-neutral and gently unspoken, it sits alongside trendy modern names like 가온 (Gaon) and 하람 (Haram). Its soft, open sound makes it easy and pleasant to say.",
   "surname_desc": "Seo (徐) is Korea's 13th most common surname at about 1.5%. The Dalseong and Icheon Seo clans produced distinguished scholars, including famed Joseon-era prime ministers.",
   "matches": "갈→가 strong / 루→람 loose",
@@ -660,8 +670,8 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "A name of beneficial and kindness",
-  "meaning": "Ieun carries a quiet blessing: 利 for benefit, gain, the good that flows outward, and 恩 for kindness, grace freely given. Together they name someone meant to bring helpful warmth into others' lives. The sound itself is gentle — Ieun opens softly, its vowels wide and unhurried, like a breath released slowly. Fittingly, it shares its rhythm with Irma, another name that leans into that same open, flowing softness, both landing warmly on the ear.",
+  "short": "A person whose kindness brings benefit to others",
+  "meaning": "이은 (利恩, Ieun) joins two quiet strengths: 이, meaning beneficial, and 은, meaning kindness or grace, together shaping a hope that someone will move through life bringing good to others, a presence whose very nearness leaves things better than before. Spoken aloud, the name is gentle and clear, its two open vowels rolling softly without hard edges, easy on the tongue and warm in the ear. Abroad, it settles comfortably beside Irma, close enough in sound to feel instantly familiar.",
   "surname_desc": "Kwon (權) is Korea's 15th most common surname at about 1.4%. The Andong Kwon clan, one of Korea's oldest documented lineages, has a genealogy book dating back to 1476.",
   "matches": "이→이 strong / 르→은 loose",
   "fallback": false,
@@ -696,7 +706,7 @@
   "quality": "Q1",
   "source": "dict",
   "native": false,
-  "short": "A fine and shining person",
+  "short": "Someone lovely both inside and out",
   "meaning": "가빈 (嘉彬, Gabin) joins 가 (嘉, ga), \"beautiful,\" with 빈 (彬, bin), \"refined and shining.\" It describes someone lovely both inside and out. Polished and modern, 가빈 shares its 빈 ending with some of today's most popular names — 수빈 (Subin), 예빈 (Yebin), 서빈 (Seobin). Trendy yet dignified, it has an effortlessly stylish sound.",
   "surname_desc": "Seo (徐) is Korea's 13th most common surname at about 1.5%. The Dalseong and Icheon Seo clans produced distinguished scholars, including famed Joseon-era prime ministers.",
   "matches": "카→가 strong / 시→빈 soft",
@@ -840,7 +850,7 @@
   "quality": "Q2",
   "source": "dict",
   "native": false,
-  "short": "Someone sparkling as a morning sun",
+  "short": "Someone sparkling as the morning sun",
   "meaning": "우정 (旭晶, Ujeong) pairs 우 (旭, u), \"the rising sun,\" with 정 (晶, jeong), \"crystal-clear.\" But above all, it sounds like 우정 (友情), \"friendship,\" so a sense of deep, warm loyalty is right in the name. Neat and endearing, sunrise, clarity, and friendship meet in an affectionate name.",
   "surname_desc": "Park (朴) is Korea's third most common surname at about 8.4%. Uniquely native to Korea, it descends from Bak Hyeokgeose, the legendary founding king of the Silla Kingdom.",
   "matches": "울→우 strong",
@@ -966,8 +976,8 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "A name of wisdom and at peace",
-  "meaning": "Ye-gang carries a quiet strength: 예 for wisdom, 강 for peace, together wishing for someone whose calm mind steadies both themselves and those around them. Spoken aloud, it opens softly on \"ye\" and settles into the crisp, grounded \"gang,\" like a breath followed by sure footing. That same steadiness echoes in their English name, Eka—short, clear, and calm—so that in either language, the sound of their name feels like solid ground.",
+  "short": "Wise mind held in lasting peace",
+  "meaning": "예강 (睿康, Yegang) joins wisdom with peace, painting the hope of someone whose mind stays clear and thoughtful while their spirit remains calm and untroubled — a person who might meet life's noise with quiet steadiness rather than worry. Spoken aloud, the name flows gently: the soft \"ye\" opens bright and clean, sliding into \"gang,\" which lands crisp but rounded, never harsh. Abroad, it echoes comfortably alongside Eka, its sound easy for new ears to hold, familiar yet distinctly its own.",
   "surname_desc": "Seo (徐) is Korea's 13th most common surname at about 1.5%. The Dalseong and Icheon Seo clans produced distinguished scholars, including famed Joseon-era prime ministers.",
   "matches": "에→예 strong / 카→강 partial",
   "fallback": false,
@@ -1020,7 +1030,7 @@
   "quality": "Q1",
   "source": "dict",
   "native": true,
-  "short": "River in native Korean",
+  "short": "Someone generous and flowing like a great river",
   "meaning": "가람 (嘉覽, Garam) joins 가 (嘉, ga), \"beautiful and praiseworthy,\" with 람 (覽, ram), \"to look over and care for.\" But 가람 is also an old native Korean word for \"river,\" so the name carries the image of someone generous and flowing like a great river. Gender-neutral and gently unspoken, it sits alongside trendy modern names like 가온 (Gaon) and 하람 (Haram). Its soft, open sound makes it easy and pleasant to say.",
   "surname_desc": "Kwon (權) is Korea's 15th most common surname at about 1.4%. The Andong Kwon clan, one of Korea's oldest documented lineages, has a genealogy book dating back to 1476.",
   "matches": "케→가 soft / 라→람 strong",
@@ -1151,7 +1161,9 @@
   "surname_desc": "Park (朴) is Korea's third most common surname at about 8.4%. Uniquely native to Korea, it descends from Bak Hyeokgeose, the legendary founding king of the Silla Kingdom.",
   "matches": "비→빛 strong / 라→나 partial",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Winda",
@@ -1164,12 +1176,14 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "A name of beneficial and pond",
+  "short": "Someone beneficial as a pond",
   "meaning": "I-Dam carries a quiet richness: 利 for benefit and grace, 潭 for a deep, still pond—together suggesting a calm depth from which good things naturally flow. Spoken aloud, it opens softly and closes clear, the vowels wide and unhurried, like water settling after a ripple. It sits gently alongside names like Jaei and Sodam, sharing that same clean, breath-like ease. In Winda, that same sense lingers—a name that moves quietly, yet carries far.",
   "surname_desc": "Seo (徐) is Korea's 13th most common surname at about 1.5%. The Dalseong and Icheon Seo clans produced distinguished scholars, including famed Joseon-era prime ministers.",
   "matches": "윈→이 partial / 다→담 strong",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Yulia",
@@ -1237,11 +1251,13 @@
   "source": "llm",
   "native": false,
   "short": "A clear and refined person",
-  "meaning": "Cheonga carries a name built from doubled clarity—cheong's clear brightness and a's refined grace—as if someone wished for a person untouched by murkiness, elegant in the plainest sense of the word. Spoken aloud, it opens softly and closes clean, each syllable rinsed and unhurried, like water over smooth stone. That same clear-eyed brightness echoes in Cempaka, a flower prized for its pure, carrying fragrance—fitting, since Cheonga was always meant to feel effortlessly transparent and lovely.",
+  "meaning": "청아 (淸雅, Cheonga) carries a name built from doubled clarity—cheong's clear brightness and a's refined grace—as if someone wished for a person untouched by murkiness, elegant in the plainest sense of the word. Spoken aloud, it opens softly and closes clean, each syllable rinsed and unhurried, like water over smooth stone. That same clear-eyed brightness echoes in Cempaka, a flower prized for its pure, carrying fragrance—fitting, since Cheonga was always meant to feel effortlessly transparent and lovely.",
   "surname_desc": "Lee (李) is Korea's second most common surname at about 14.7% of the population. Its most famous lineage, the Jeonju Lee clan, founded the Joseon Dynasty and ruled Korea for over 500 years.",
   "matches": "첨→청 strong / 파→아 soft",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Damai",
@@ -1326,8 +1342,8 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "A name of talent and true",
-  "meaning": "Jaejin carries a quiet kind of promise: 才 for talent, 眞 for truth, together suggesting a gift that is genuine rather than showy. Someone given this name is wished a talent rooted in honesty, real ability that needs no disguise. Spoken aloud, Jaejin is soft yet crisp, its open vowels unfolding easily, warm without heaviness. Fittingly, it echoes gently into their English name, Dedi, another sound that feels light, sincere, and easy to carry.",
+  "short": "Genuine, true talent that is authentically one's own",
+  "meaning": "재진 (才眞, Jaejin) joins talent (才) with truth (眞), naming someone whose gifts are genuine rather than borrowed or performed — a hope that whatever ability they carry will be real, honest, and wholly their own. Spoken aloud, it moves lightly: the open \"ae\" softens into a crisp, clean \"jin,\" giving the name a bright, tidy sound, quick on the tongue yet grounded. Abroad, its rhythm sits comfortably beside \"Dedi,\" making it easy for new ears to catch and remember.",
   "surname_desc": "Seo (徐) is Korea's 13th most common surname at about 1.5%. The Dalseong and Icheon Seo clans produced distinguished scholars, including famed Joseon-era prime ministers.",
   "matches": "데→재 partial / 디→진 soft",
   "fallback": false,
@@ -1434,8 +1450,8 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "A name that establishes, holding ridge",
-  "meaning": "Jonggeon carries a quiet strength: 宗 (jong) evokes a ridge or ancestral line, something that stands tall and endures, while 建 (geon) means to establish, to build. Together they express the hope that someone will become a foundation—steady, respected, someone others can rely on. Spoken aloud, the name moves crisply from a soft \"jong\" into the open, grounded \"geon,\" much like the sturdy footing it describes. Fittingly, it pairs well with Joko, another name suggesting solid, cheerful presence.",
+  "short": "One who founds a lasting legacy",
+  "meaning": "종건 (宗建, Jonggeon) joins the root of origin, 宗, with the act of establishing, 建, carrying the quiet hope that someone will become a founding pillar—one who honors where they come from while building something lasting and true for those who follow. Spoken aloud, the name feels grounded yet open: the crisp \"jong\" gives way to the soft, breathy \"geon,\" a rhythm of firmness and ease. Abroad, it settles comfortably alongside Joko, sharing that same easy, open-voweled warmth.",
   "surname_desc": "Han (韓) is Korea's 11th most common surname at about 1.5%. Strikingly, it shares its character with the very name of Korea (韓國) — the Cheongju Han clan produced many Joseon-era ministers.",
   "matches": "조→종 strong / 코→건 soft",
   "fallback": false,
@@ -1488,12 +1504,14 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "A name of robust and glory",
+  "short": "Someone robust as glory",
   "meaning": "Muyoung carries a quiet strength: 무, meaning robust, grounds someone in sturdy resolve, while 영, meaning glory, lifts that strength toward shining achievement. Together they express the hope that a person will meet life with steady, unshakable power that naturally earns honor and light. Spoken aloud, Muyoung flows smoothly—an open, breathy \"moo\" easing into the crisp, bright \"young,\" soft yet confident. Fittingly, it echoes the rising, hopeful sound of their English name, Mulyono.",
   "surname_desc": "Seo (徐) is Korea's 13th most common surname at about 1.5%. The Dalseong and Icheon Seo clans produced distinguished scholars, including famed Joseon-era prime ministers.",
   "matches": "물→무 strong / 요→영 partial",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Nugroho",
@@ -1524,8 +1542,8 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "A name that establishes, holding second",
-  "meaning": "Bugeon carries a quiet strength: 부 (second, supporting) paired with 건 (to establish, to build) — the hope that someone might build steadily, becoming the reliable hand that helps great things rise, even without needing to stand first in line. Spoken aloud, it's compact and clear, the \"bu\" soft and quick, the \"geon\" landing crisp and grounded. Like Purnama, meaning fullness or a complete moon, Bugeon quietly suggests wholeness — someone whose steady building brings a kind of quiet completeness to the world around them.",
+  "short": "A steady helper who builds lasting foundations",
+  "meaning": "부건 (副建, Bugeon) joins 부 (副), meaning to assist, with 건 (建), meaning to establish, painting the hope of someone who helps raise up what is lasting — a steady hand behind every foundation, content to build rather than boast. Spoken aloud, the name is quick and clean, its consonants crisp against open, rounded vowels, giving it a grounded, confident rhythm. Abroad, it settles comfortably beside Purnama, close enough in sound to feel like an easy echo, familiar from the very first hearing.",
   "surname_desc": "Seo (徐) is Korea's 13th most common surname at about 1.5%. The Dalseong and Icheon Seo clans produced distinguished scholars, including famed Joseon-era prime ministers.",
   "matches": "푸→부 strong",
   "fallback": false,
@@ -1561,7 +1579,7 @@
   "source": "llm",
   "native": false,
   "short": "Someone bright as the world",
-  "meaning": "Sehwan carries a bright promise: se (世) meaning \"the world,\" hwan (煥) meaning \"bright, radiant,\" together evoking someone whose brilliance lights up all around them. Spoken aloud, it flows smoothly—soft consonants, open vowels—leaving a warm, gentle impression, like sunlight spreading across a room. Interestingly, it shares a graceful echo with the name Setiawan, both carrying a similar rhythm, as if the light of Sehwan's meaning quietly resonates across languages.",
+  "meaning": "세환 (世煥, Sehwan) joins 世 \"the world\" with 煥 \"bright,\" carrying the hope that someone will shine brilliantly enough to light up the whole world around them, bringing warmth and radiance wherever they go. Spoken aloud, the name flows smoothly—soft consonants easing into open vowels, ending on a gentle nasal hum that lingers pleasantly. It shares a bright, clean rhythm with names like 세현 and 지환, and abroad it",
   "surname_desc": "Shin (申) is Korea's 14th most common surname at about 1.4%. The Pyeongsan Shin clan descends from Shin Sung-gyeom, a heroic general who helped found the Goryeo Dynasty.",
   "matches": "세→세 strong / 완→환 soft",
   "fallback": false,
@@ -1596,8 +1614,8 @@
   "quality": "Q1",
   "source": "llm",
   "native": false,
-  "short": "Someone shining who helps",
-  "meaning": "Woo-chan carries a quiet radiance: 佑 (woo) means to help or protect, 燦 (chan) means shining bright — together, someone destined to be a helping light in others' lives. Spoken aloud, the name flows warmly, its open \"oo\" sound settling into the crisp, clear \"chan,\" like sunlight breaking gently through. It shares its glow with names like Yoochan and Eunchan. Fittingly, their English name, Umar, echoes that same soft, radiant warmth.",
+  "short": "One who helps others while shining bright",
+  "meaning": "우찬 (佑燦, Uchan) joins help and shine into a single wish: that someone would move through life as a source of light for others, aiding those around them while radiating warmth of their own. It carries the same gentle spirit found in names like 시우 and 유찬. Spoken aloud, it feels crisp yet soft, opening on a rounded \"oo\" and settling into a bright, clean \"chan\" — a sound not far from the familiar Umar, which may ease its way into new tongues abroad.",
   "surname_desc": "Shin (申) is Korea's 14th most common surname at about 1.4%. The Pyeongsan Shin clan descends from Shin Sung-gyeom, a heroic general who helped found the Goryeo Dynasty.",
   "matches": "우→우 strong / 마→찬 loose",
   "fallback": false,
@@ -1632,8 +1650,8 @@
   "quality": "Q1",
   "source": "llm",
   "native": false,
-  "short": "A lustrous and outstanding person",
-  "meaning": "Yunsu carries a quiet shine: 윤 (潤) for lustrous, glowing warmth, and 수 (秀) for outstanding, standing above the rest. Together they paint someone meant to gleam without needing to shout about it — a gentle brilliance, steady and sure. Spoken aloud, Yunsu flows smoothly, its open vowels soft and rounded, ending on a crisp, clean note. Fittingly, its English counterpart, Yusuf, shares that same graceful, open sound — two names, two languages, one bright resonance.",
+  "short": "Outstanding brilliance with a lasting shine",
+  "meaning": "윤수 (潤秀, Yunsu) joins 潤, lustrous, with 秀, outstanding — a name that wishes for someone whose brilliance never dulls, whose gifts shine with a natural, unforced polish rather than a hard glare. It sits alongside names like 도윤, 시윤, 수현, and 수호, sharing that gentle luster. To say it is easy: two clean syllables, \"yoon\" soft and rounded, \"soo\" crisp and open, flowing together smoothly. Abroad, it echoes comfortably near the familiar name Yusuf, an easy bridge between worlds.",
   "surname_desc": "Park (朴) is Korea's third most common surname at about 8.4%. Uniquely native to Korea, it descends from Bak Hyeokgeose, the legendary founding king of the Silla Kingdom.",
   "matches": "유→윤 strong / 수→수 strong",
   "fallback": false,
@@ -1763,7 +1781,9 @@
   "surname_desc": "Im (林) is Korea's 11th most common surname at about 1.0%. The character means \"forest.\" The Naju and Pyeongtaek Im clans are the major lines, known for Confucian scholars.",
   "matches": "인→이 strong / 드→든 strong",
   "fallback": false,
-  "flags": []
+  "flags": [
+   "예전캐시(재생성실패)"
+  ]
  },
  {
   "first": "Rangga",
@@ -1794,8 +1814,8 @@
   "quality": "Q2",
   "source": "llm",
   "native": false,
-  "short": "Someone outstanding as the han river",
-  "meaning": "Suhan carries a quiet grandeur: 秀 for standing out, distinguished among many, and 漢 for the great Han River, broad and enduring as it moves through Seoul. Together they suggest someone meant to flow with quiet excellence, steady rather than showy. Spoken aloud, the name is smooth and open, the \"su\" crisp and bright, the \"han\" wide and warm. Much like Surya carries its own sense of radiance, Suhan holds a bright, flowing strength all its own.",
+  "short": "Outstanding spirit as vast as a river",
+  "meaning": "수한 (秀漢, Suhan) joins outstanding excellence with the grandeur of the Han River, holding the hope that someone would grow both remarkable and expansive — a person whose gifts run as deep and steady as a great river carving through a city, quietly shaping everything it touches. Spoken aloud, the name feels smooth and open, its soft \"s\" easing into wide, breathing vowels, landing gently like water finding its course. Abroad, it settles comfortably alongside Surya, familiar on the tongue yet wholly its own.",
   "surname_desc": "Kwon (權) is Korea's 15th most common surname at about 1.4%. The Andong Kwon clan, one of Korea's oldest documented lineages, has a genealogy book dating back to 1476.",
   "matches": "수→수 strong / 아→한 loose",
   "fallback": false,

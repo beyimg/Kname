@@ -106,6 +106,11 @@ class MeaningEnGenerator:
         # 호출부가 이를 기록·보고할 수 있어야 한다(새로 만든 것과 구분 불가하면
         # 틀린 뜻이 조용히 계속 나간다).
         self.last_stale: bool = False
+        # 예전 캐시를 내보낼 때의 사유(transient / credit / auth / other / no-key).
+        # 같은 이름이 반복해서 실패하면 원인을 알아야 고칠 수 있다.
+        self.last_stale_why: Optional[str] = None
+        # 캐시 파일 기록 실패 — 있으면 매 실행이 전부 재생성된다
+        self.cache_write_error: Optional[str] = None
         if cache_path and os.path.exists(cache_path):
             try:
                 with open(cache_path, encoding='utf-8') as f:
@@ -128,13 +133,27 @@ class MeaningEnGenerator:
         return self._client
 
     def _save_cache(self):
+        """
+        캐시 파일 기록. 실패를 조용히 넘기지 않는다.
+
+        예전에는 예외를 삼켰다. 그러면 파일이 잠겨 있거나 쓰기 권한이 없을 때
+        메모리에만 남고 파일에는 안 써져서, **매 실행마다 전부 다시 만든다**.
+        비용이 계속 들고 원인은 아무도 모른다.
+        """
         if not self.cache_path:
             return
         try:
             with open(self.cache_path, 'w', encoding='utf-8') as f:
                 json.dump(self._cache, f, ensure_ascii=False, indent=1)
-        except Exception:
-            pass
+            self.cache_write_error = None
+        except Exception as e:
+            self.cache_write_error = f'{type(e).__name__}: {e}'
+            try:
+                import sys as _s
+                print(f'[meaning_en] 캐시 저장 실패 — {self.cache_write_error}',
+                      file=_s.stderr, flush=True)
+            except Exception:
+                pass
 
     def _popular(self, syllable: str, sex: str, exclude: str = '',
                  limit: int = 2) -> List[str]:
@@ -316,6 +335,7 @@ class MeaningEnGenerator:
         label, rom = self._label(given, hanja_chars)
 
         self.last_stale = False
+        self.last_stale_why = None
         cached = self._cache.get(key)
         if isinstance(cached, dict) and cached.get('v') == PROMPT_VERSION:
             return cached.get('text') or None, cached.get('short') or ''
@@ -326,7 +346,7 @@ class MeaningEnGenerator:
             cached.get('text') if isinstance(cached, dict) else None)
         if not self.api_key:
             if stale:
-                self.last_stale = True
+                self.last_stale, self.last_stale_why = True, 'no-key'
                 return self._fix_opening(stale, given, label, rom), ''
             return None, ''
 
@@ -348,6 +368,7 @@ class MeaningEnGenerator:
             # 다만 낡은 내용이므로 반드시 표시한다.
             if stale:
                 self.last_stale = True
+                self.last_stale_why = self.last_error or 'error'
                 return self._fix_opening(stale, given, label, rom), ''
             return None, ''
 
@@ -356,6 +377,7 @@ class MeaningEnGenerator:
         if not text:
             if stale:
                 self.last_stale = True
+                self.last_stale_why = 'empty-response'
                 return self._fix_opening(stale, given, label, rom), ''
             return None, ''
         # 도입부는 지시가 아니라 코드로 보장한다
