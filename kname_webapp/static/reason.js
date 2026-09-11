@@ -80,7 +80,7 @@ function renderConversionReason(container, r) {
 
   h += '</div>';
 
-  // 4단계 — Q3/Q4 안내
+  // 4단계 — 가깝게 못 맞췄을 때의 안내 (build_reason 의 note)
   if (r.note) {
     h += '<div class="cr-note">' +
       '<div class="cr-note-head">A note on this name</div>' +

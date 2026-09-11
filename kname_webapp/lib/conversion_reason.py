@@ -7,8 +7,9 @@
   2) 변환된 한국 이름 + 발음
   3) 음절 매칭 설명 (어떤 음차 음절이 어떤 이름 글자에 반영됐는지)
        - 유사도 수준별로 자연스러운 표현 + 색(strong/partial/loose) 제공
-  4) Q3/Q4의 경우: 완벽한 매칭이 어려웠지만 최대한 비슷하고
+  4) 가깝게 못 맞춘 경우: 완벽한 매칭이 어려웠지만 최대한 비슷하고
        자연스러운 이름을 골랐다는 안내
+       (이름 등급이 Q3/Q4 이거나, 소리가 가깝게 맞은 음절이 하나도 없을 때)
 
 의존: pronounce_guide, syllable_match, match_phrasing
 
@@ -18,12 +19,32 @@
     # data['blocks']   → 문단 텍스트 (간단히 쓸 때)
     # data['translit'] / data['korean'] → 음절별 발음 (프론트에서 칩 렌더링)
     # data['matches']  → 매칭 rows (src/tgt/rom/level/phrase/style) → 색 구분 렌더링
-    # data['note']     → Q3/Q4 안내문 (없으면 None)
+    # data['note']     → 가깝게 못 맞췄을 때의 안내문 (없으면 None)
 """
 from pronounce_guide import (romanize, romanize_hyphen, romanize_syllable,
                              syllable_pronunciation, name_pronunciation)
 from syllable_match import match_syllables
 from match_phrasing import match_phrase, LEVEL_STYLE
+
+
+# ------------------------------------------------------------ 안내문 발동 조건
+# 원래는 quality(Q3/Q4)만 봤다. 그런데 quality 는 **이름**의 등급이다 —
+# 그 한국 이름이 실제로 쓰이는 자연스러운 이름인지, 성별이 맞는지, 얼마나
+# 흔한지를 본다. 반면 이 안내문이 하는 말은 **소리**에 대한 것이다
+# ("소리를 그대로 옮기면 한국어에서 어색해진다"). 축이 다르다.
+#
+# 그래서 소리는 거의 안 맞았는데 이름 자체는 멀쩡해서 Q1/Q2 가 나오면
+# 안내문이 통째로 빠졌다. 실제 100건에서 58건이 soft/loose 음절을 포함했는데
+# 안내문이 나간 것은 1건뿐이었고, 그 1건은 오히려 음절이 다 잘 맞은 건이었다.
+#     패티 → 혜린  (패→혜 0.44, 티→린 0.55)   ← 안내문 없음
+#
+# 그래서 소리 쪽 조건을 따로 둔다. 다만 '약한 음절이 하나라도 있으면'으로
+# 잡으면 100건 중 58건에 붙어서 안내문이 아니라 상투구가 된다. 한 음절이
+# 정확히 맞았다면(하린: 1.0 / 0.55) 그건 좋은 변환이고 사과할 일이 아니다.
+# 조건은 **가깝게 맞은 음절이 하나도 없고, 전체 평균도 낮을 때**로 잡는다.
+# 이 조합이 100건 중 22건 — 패티→혜린 을 포함한다.
+NOTE_STRONG_SIM = 0.87   # match_phrasing 의 strong 경계와 같은 값
+NOTE_MEAN_SIM = 0.68     # 실측 100건으로 보정
 
 
 def _syllable_dicts(name):
@@ -89,9 +110,14 @@ def build_reason(english_name, translit, korean_given, quality,
         block3 = (f'We kept the overall feel of "{english_name}" while choosing '
                   f'syllables that flow naturally as a Korean name.')
 
-    # --- Block 4: Q3/Q4 안내 ---
+    # --- Block 4: 가깝게 못 맞춘 경우의 안내 ---
+    sims = [m['sim'] for m in matches]
+    weak_sound = (not sims) or (max(sims) < NOTE_STRONG_SIM
+                                and sum(sims) / len(sims) < NOTE_MEAN_SIM)
+    note_reason = ('quality' if quality in ('Q3', 'Q4')
+                   else 'sound' if weak_sound else None)
     note = None
-    if quality in ('Q3', 'Q4'):
+    if note_reason:
         note = (f'Some English names don\'t have a close Korean equivalent, and "{english_name}" '
                 f'is one of them — a direct sound-for-sound match would feel awkward or unnatural in Korean. '
                 f'So after matching what we could, we chose {korean_given} ({kr_rom}): a real, '
@@ -105,6 +131,7 @@ def build_reason(english_name, translit, korean_given, quality,
         'english_name': english_name,
         'quality': quality,
         'note': note,
+        'note_reason': note_reason,   # 'quality' | 'sound' | None (점검용)
         'translit': {'hangul': translit, 'romanized': tr_rom, 'syllables': tr_syls},
         'korean':   {'hangul': korean_given, 'romanized': kr_rom, 'syllables': kr_syls},
         'matches': matches,
