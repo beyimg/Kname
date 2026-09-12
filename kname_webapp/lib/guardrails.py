@@ -18,6 +18,17 @@ import threading
 import datetime
 from collections import deque, defaultdict
 
+# '하루'의 기준 시각대. stats.py 의 표시 시각대와 **같은 환경변수**를 쓴다.
+#
+# 서버는 UTC 로 돌기 때문에 예전에는 예산이 UTC 자정에 리셋됐다. 그런데
+# /admin 의 '오늘'은 한국 시간 기준이다. 둘이 어긋나면 오전 9시에 예산만
+# 리셋되고 화면의 '오늘'은 그대로여서, 같은 화면의 두 숫자가 다른 하루를
+# 가리킨다. 기준을 하나로 맞춘다.
+try:
+    _TZ_OFFSET = int(float(os.environ.get('TZ_OFFSET_H', 9)) * 3600)
+except Exception:
+    _TZ_OFFSET = 9 * 3600
+
 
 class RateLimiter:
     def __init__(self, per_min: int = 20, per_hour: int = 200):
@@ -59,7 +70,9 @@ class DailyBudget:
 
     @staticmethod
     def _today() -> str:
-        return datetime.date.today().isoformat()
+        """현지(기본 KST) 기준 날짜. 이 값이 바뀌면 예산이 리셋된다."""
+        return datetime.datetime.utcfromtimestamp(
+            time.time() + _TZ_OFFSET).date().isoformat()
 
     def _load(self) -> dict:
         try:
@@ -99,3 +112,8 @@ class DailyBudget:
         d = self._load()
         cnt = int(d.get('count', 0)) if d.get('date') == self._today() else 0
         return cnt, self.daily_max
+
+    def today(self) -> str:
+        """지금 세고 있는 '하루'의 날짜(현지 기준). 알림을 하루 단위로
+        묶을 때 쓴다 — app.py 의 budget-exhausted 보고 참고."""
+        return self._today()

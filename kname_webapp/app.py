@@ -1659,8 +1659,7 @@ def result():
     # ② 하루 예산: 새 이름인데 한도를 넘었으면 생성하지 않고 안내
     is_new = _needs_llm(first_en.strip().lower(), last_en.strip().lower(), sex)
     if is_new and not BUDGET.allow():
-        report('daily new-name budget exhausted (users turned away)',
-               level='warning', fingerprint=['budget-exhausted'])
+        _report_budget_exhausted()
         return render_template('index.html', error=_BUSY_BUDGET,
                                first_name=first_en, last_name=last_en, sex=sex), 503
 
@@ -1694,6 +1693,9 @@ def api_convert():
     sex = payload.get('sex', '여')
     is_new = _needs_llm(first_en.strip().lower(), last_en.strip().lower(), sex)
     if is_new and not BUDGET.allow():
+        # /result 와 같은 사건이므로 같은 함수로 보고한다. 한쪽만 보고하면
+        # 어느 경로로 들어왔는지에 따라 보일 때와 안 보일 때가 갈린다.
+        _report_budget_exhausted()
         return jsonify({'error': 'busy',
                         'message': 'High traffic right now — try again later '
                                    'or use a more common name.'}), 503
@@ -1889,6 +1891,48 @@ def _cache_status():
     }
 
 
+def _report_budget_exhausted():
+    """
+    하루 한도 소진을 보고한다. **fingerprint 에 날짜를 넣는다.**
+
+    Sentry 는 fingerprint 로 사건을 묶는다. 날짜가 없으면 모든 날의 소진이
+    하나의 이슈로 합쳐져서, 처음 소진된 날에만 알림이 오고 그 뒤로는
+    조용해진다. 날짜를 넣으면 소진되는 날마다 새 이슈가 되어 그날 한 번
+    알림이 온다(같은 날 두 번째부터는 같은 이슈로 묶여 조용하다).
+
+    즉 '소진되는 날마다 한 번' — 매일 울리지도, 첫날만 울리지도 않는다.
+    """
+    used, cap = BUDGET.status()
+    report(f'daily new-name budget exhausted — {used}/{cap} '
+           f'(new names are being turned away until midnight)',
+           level='warning',
+           fingerprint=['budget-exhausted', BUDGET.today()])
+
+
+def _budget_status():
+    """
+    하루 상한 소진 상태.
+
+    상한에 닿으면 **새 이름 변환이 멈추고** 사용자에게 "잠시 후 다시" 안내가
+    나간다. 사이트는 정상으로 보이고 /status 의 ok 도 true 다. 그래서
+    소진된 것을 모른 채 하루가 지나갈 수 있다 — 상한을 낮게 잡을수록 그렇다.
+    심층 점검(deep)은 고정된 이름을 쓰고 예산을 거치지 않으므로 이것도
+    잡지 못한다. 그래서 값을 따로 내보내 모니터가 보게 한다.
+    """
+    def one(b):
+        try:
+            used, cap = b.status()
+        except Exception:
+            return None
+        return {
+            'used': used,
+            'max': cap,
+            'remaining': (max(cap - used, 0) if cap > 0 else None),
+            'exhausted': bool(cap > 0 and used >= cap),
+        }
+    return {'new_names': one(BUDGET), 'tts': one(TTS_BUDGET)}
+
+
 def _status_token_ok(tok):
     """심층 점검은 STATUS_TOKEN 이 일치할 때만 허용(크레딧 남용 방지)."""
     want = os.environ.get('STATUS_TOKEN')
@@ -1940,6 +1984,7 @@ def status():
             'prompt_version': _PROMPT_VERSION,
         },
         'cache': _cache_status(),
+        'budget': _budget_status(),
         'uptime_s': int(_time.time() - _BOOT_TS),
         'ts': int(_time.time()),
     }
