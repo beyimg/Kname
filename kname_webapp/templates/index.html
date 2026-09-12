@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Find your Korean name — mykoreanname.cc</title>
 <meta name="description" content="Turn your name into a real Korean name — with hanja, meaning, and the reason behind every syllable.">
+{# 공유·검색용 태그. site_url 은 SITE_URL 환경변수, 없으면 접속한 주소.
+   K-팝·K-드라마 팬층은 결과를 링크로 주고받는다. 이 태그가 없으면
+   공유된 링크가 제목도 설명도 없는 맨 주소로 보인다. #}
+<link rel="canonical" href="{{ site_url }}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="mykoreanname.cc">
+<meta property="og:url" content="{{ site_url }}/">
+<meta property="og:title" content="Find your Korean name">
+<meta property="og:description" content="A real Korean name that sounds like yours — with the hanja, the meaning, and the reason behind every syllable.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Find your Korean name">
+<meta name="twitter:description" content="A real Korean name that sounds like yours — with the hanja, the meaning, and the reason behind every syllable.">
 <link rel="stylesheet" href="{{ url_for('static', filename='notoserifkr.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">

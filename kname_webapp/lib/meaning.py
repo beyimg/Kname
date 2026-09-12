@@ -39,6 +39,21 @@ EN_LENGTH_HINT = "80~120 words"
 # 같은 글자가 들어간 인기 이름 추천 최대 개수
 MAX_SIMILAR_NAMES = 5
 
+# 프롬프트 판번호 — 설명을 만드는 방식을 바꿀 때마다 1 올린다.
+#
+# 왜 필요한가. 캐시 키는 이름·성별·한자·한자뜻으로 만든다. 그래서 한자
+# 뜻을 고치면 키가 저절로 달라져 옛 설명이 나가지 않는다(그쪽은 안전하다).
+# 막지 못하는 것은 **프롬프트나 후처리를 바꿨을 때**다. 입력이 그대로라
+# 키가 같고, 예전 방식으로 만든 설명이 새 방식인 척 계속 나간다.
+# 사람이 캐시를 지우는 것을 기억해야 하는 구조는 반드시 한 번 잊는다.
+#
+# 이 값을 올리면 다음 부팅에서 예전 캐시를 통째로 버리고 다시 만든다.
+# 비용이 한 번 들지만, 틀린 설명이 조용히 나가는 것보다 낫다.
+#
+# v1 = 판번호를 도입한 시점의 프롬프트. 그래서 판번호가 없는 예전 캐시는
+#      버리지 않고 v1 으로 받아들인다(_load_cache 주석 참고).
+PROMPT_VERSION = 1
+
 
 # ============================================================
 # NameMeaning 클래스
@@ -638,13 +653,46 @@ class NameMeaning:
         return hashlib.md5(key_str.encode('utf-8')).hexdigest()
 
     def _load_cache(self):
-        """디스크에서 캐시 로드."""
+        """
+        디스크에서 캐시 로드.
+
+        파일에 프롬프트 판번호를 함께 저장하고, 지금 코드의 판번호와
+        다르면 통째로 버린다(PROMPT_VERSION 주석 참고).
+
+        판번호가 없는 예전 형식은 **버리지 않고 현재 판번호로 받아들인다.**
+        판번호를 도입하는 시점의 프롬프트가 곧 v1 이므로, 그 파일의 항목은
+        실제로 v1 이다. 여기서 버리면 아무 correctness 이득 없이 재생성
+        비용만 든다. 대신 몇 건을 그렇게 받아들였는지 남겨서 /status 로
+        보이게 한다. 다음부터는 판번호가 어긋나면 정상적으로 버린다.
+        """
+        self.cache_version_discarded = 0
+        self.cache_legacy_adopted = 0
         if not self.cache_path or not self.cache_path.exists():
             return
         try:
             with open(self.cache_path, 'r', encoding='utf-8') as f:
-                self._cache = json.load(f)
-            logger.info(f"캐시 로드: {len(self._cache)}건")
+                raw = json.load(f)
+            if isinstance(raw, dict) and '__v__' in raw:
+                if raw.get('__v__') == PROMPT_VERSION:
+                    self._cache = raw.get('entries') or {}
+                    logger.info(f"캐시 로드: {len(self._cache)}건 "
+                                f"(v{PROMPT_VERSION})")
+                else:
+                    self.cache_version_discarded = len(raw.get('entries') or {})
+                    self._cache = {}
+                    logger.warning(
+                        f"캐시 판번호 불일치 v{raw.get('__v__')} → "
+                        f"v{PROMPT_VERSION}: {self.cache_version_discarded}건 "
+                        f"버리고 다시 만든다")
+            else:
+                # 판번호가 없던 시절의 파일 → 현재 판번호로 받아들인다
+                self._cache = raw if isinstance(raw, dict) else {}
+                self.cache_legacy_adopted = len(self._cache)
+                if self._cache:
+                    logger.info(
+                        f"판번호 없는 예전 캐시 {self.cache_legacy_adopted}건을 "
+                        f"v{PROMPT_VERSION} 으로 받아들임 "
+                        f"(다음 저장부터 판번호가 붙는다)")
         except (json.JSONDecodeError, OSError) as e:
             logger.warning(f"캐시 로드 실패: {e}, 빈 캐시로 시작")
             self._cache = {}
@@ -658,7 +706,8 @@ class NameMeaning:
             # atomic write: tmp 파일에 쓰고 rename
             tmp_path = self.cache_path.with_suffix('.tmp')
             with open(tmp_path, 'w', encoding='utf-8') as f:
-                json.dump(self._cache, f, ensure_ascii=False, indent=2)
+                json.dump({'__v__': PROMPT_VERSION, 'entries': self._cache},
+                          f, ensure_ascii=False, indent=2)
             tmp_path.replace(self.cache_path)
         except OSError as e:
             logger.warning(f"캐시 저장 실패: {e}")

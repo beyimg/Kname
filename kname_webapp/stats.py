@@ -18,6 +18,34 @@ import sqlite3
 import threading
 from collections import Counter
 
+# 표시 시각대.
+# 저장은 항상 UTC epoch 이고, **보여줄 때만** 옮긴다. DB 값을 손대면
+# 나중에 시각대를 바꿀 수 없게 되고 이미 쌓인 기록과 어긋난다.
+#
+# 서버(Render)는 UTC 로 돌지만 이 화면을 보는 사람은 한국에 있다.
+# 그래서 기본을 KST(+9)로 둔다. TZ_OFFSET_H 로 바꿀 수 있다.
+#
+# '오늘'과 일별 묶음도 같이 옮겨야 한다. 라벨만 옮기면 09:00 이전 기록이
+# 어제 칸에 들어가 있는데 날짜만 오늘로 찍히는 식으로 어긋난다.
+try:
+    TZ_OFFSET = int(float(os.environ.get('TZ_OFFSET_H', 9)) * 3600)
+except Exception:
+    TZ_OFFSET = 9 * 3600
+
+
+def _fmt(ts, fmt='%m/%d %H:%M:%S'):
+    """UTC epoch → 표시용 문자열(현지 시각)."""
+    try:
+        return time.strftime(fmt, time.gmtime(int(ts) + TZ_OFFSET))
+    except Exception:
+        return ''
+
+
+def _local_day_start(now):
+    """현지 자정에 해당하는 UTC epoch."""
+    shifted = now + TZ_OFFSET
+    return shifted - (shifted % 86400) - TZ_OFFSET
+
 
 class Stats:
     def __init__(self, path: str):
@@ -125,7 +153,7 @@ class Stats:
                  ctry, geo) in rows:
                 out.append({
                     'ts': ts,
-                    'when': time.strftime('%m/%d %H:%M:%S', time.gmtime(ts)),
+                    'when': _fmt(ts),
                     'ok': bool(ok), 'is_new': bool(is_new),
                     'native': bool(native), 'quality': q or '',
                     'sex': sex or '',
@@ -177,13 +205,13 @@ class Stats:
                     (since,)).fetchall()
                 out['by_code'] = [
                     {'code': code, 'count': n,
-                     'last': time.strftime('%m/%d %H:%M', time.gmtime(ts))}
+                     'last': _fmt(ts, '%m/%d %H:%M')}
                     for code, n, ts in rows]
                 rec = cur.execute(
                     'SELECT ts, code, given, detail FROM issue '
                     'ORDER BY ts DESC LIMIT ?', (limit,)).fetchall()
                 out['recent'] = [
-                    {'when': time.strftime('%m/%d %H:%M', time.gmtime(ts)),
+                    {'when': _fmt(ts, '%m/%d %H:%M'),
                      'code': code, 'given': g, 'detail': d}
                     for ts, code, g, d in rec]
             return out
@@ -242,7 +270,7 @@ class Stats:
         try:
             now = int(time.time())
             # 오늘(로컬이 아니라 UTC 자정 기준 — 서버 표준시)
-            day_start = now - (now % 86400)
+            day_start = _local_day_start(now)
             with self._conn() as c:
                 cur = c.cursor()
                 total = cur.execute('SELECT COUNT(*) FROM conv').fetchone()[0]
@@ -290,7 +318,7 @@ class Stats:
                     n = cur.execute(
                         'SELECT COUNT(*) FROM conv WHERE ts>=? AND ts<?',
                         (d0, d1)).fetchone()[0]
-                    daily.append({'day': time.strftime('%m/%d', time.gmtime(d0)),
+                    daily.append({'day': _fmt(d0, '%m/%d'),
                                   'count': n})
             succ_ok = success + fail
             return {

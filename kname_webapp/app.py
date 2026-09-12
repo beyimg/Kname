@@ -1786,6 +1786,79 @@ def health():
     return jsonify({'status': 'ok'})
 
 
+# ---------------------------------------------------------------- 공개 사이트
+# 정식 주소. 커스텀 도메인을 붙이면 SITE_URL 로 알려 준다.
+# 없으면 요청이 들어온 주소를 그대로 쓴다 — 잘못된 주소를 검색엔진에
+# 알려주는 것보다 안전하다.
+def _site_url():
+    return (os.environ.get('SITE_URL') or request.url_root).rstrip('/')
+
+
+@app.context_processor
+def _inject_site():
+    """템플릿에서 {{ site_url }} 로 쓴다(canonical·OG 태그용)."""
+    try:
+        return {'site_url': _site_url()}
+    except Exception:
+        return {'site_url': ''}
+
+
+@app.route('/robots.txt')
+def robots():
+    # /admin·/status·/diag 는 검색에 걸릴 이유가 없다(토큰으로 막혀 있지만
+    # 주소가 색인되는 것 자체가 불필요한 노출이다).
+    body = ('User-agent: *\n'
+            'Allow: /\n'
+            'Disallow: /admin\n'
+            'Disallow: /status\n'
+            'Disallow: /diag\n'
+            'Disallow: /api/\n'
+            f'Sitemap: {_site_url()}/sitemap.xml\n')
+    return make_response(body, 200, {'Content-Type': 'text/plain'})
+
+
+@app.route('/sitemap.xml')
+def sitemap():
+    # 결과 페이지는 POST 로만 열리고 이름마다 달라지므로 넣지 않는다.
+    body = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            f'  <url><loc>{_site_url()}/</loc>'
+            '<changefreq>weekly</changefreq>'
+            '<priority>1.0</priority></url>\n'
+            '</urlset>\n')
+    return make_response(body, 200, {'Content-Type': 'application/xml'})
+
+
+# 기본 오류 화면은 흰 배경에 영어 한 줄이라 고장난 사이트처럼 보인다.
+# 공개 사이트에서는 최소한 돌아갈 길을 준다.
+_ERR_PAGE = ('<!doctype html><meta charset="utf-8">'
+             '<meta name="viewport" content="width=device-width,initial-scale=1">'
+             '<title>{title}</title>'
+             '<style>body{{margin:0;min-height:100vh;display:flex;'
+             'align-items:center;justify-content:center;background:#F7F5F0;'
+             'color:#2B2A26;font:16px/1.6 -apple-system,BlinkMacSystemFont,'
+             '"Segoe UI",sans-serif;text-align:center;padding:24px}}'
+             'a{{color:#3F6F5F}}h1{{font-size:20px;margin:0 0 8px}}'
+             'p{{margin:0 0 16px;color:#6B6A63}}</style>'
+             '<div><h1>{title}</h1><p>{msg}</p>'
+             '<a href="/">Find your Korean name &rarr;</a></div>')
+
+
+@app.errorhandler(404)
+def _e404(_e):
+    return _ERR_PAGE.format(
+        title='Page not found',
+        msg='That page doesn&rsquo;t exist.'), 404
+
+
+@app.errorhandler(500)
+def _e500(_e):
+    # 여기서 또 예외가 나면 사용자가 아무것도 못 본다 — 문자열만 쓴다.
+    return _ERR_PAGE.format(
+        title='Something went wrong',
+        msg='We couldn&rsquo;t finish that. Please try again.'), 500
+
+
 _CACHE_FILES = ('stats.db', 'translit_cache.json', 'meaning_cache.json',
                 'meaning_en_cache.json', 'daily_budget.json', 'tts_budget.json')
 
@@ -1849,6 +1922,11 @@ def status():
             'last_error': getattr(MEANING_EN, 'last_error', None),
             # 있으면 캐시가 파일에 안 써지고 있다 — 매 요청이 재생성된다
             'cache_write_error': getattr(MEANING_EN, 'cache_write_error', None),
+            # 프롬프트 판번호가 올라가 한국어 설명 캐시를 버린 건수.
+            # 0 이 아니면 그만큼 다시 생성된다(한 번만 일어난다).
+            'cache_discarded': getattr(MEANING, 'cache_version_discarded', None),
+            # 판번호가 없던 예전 캐시를 v1 으로 받아들인 건수(이전 한 번만).
+            'cache_legacy': getattr(MEANING, 'cache_legacy_adopted', None),
         },
         # 지금 돌고 있는 코드가 어느 커밋인지. 배포가 반영됐는지 확인할 때
         # 업타임만으로는 부족하다(재시작만 해도 0으로 돌아간다).
