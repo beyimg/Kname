@@ -118,6 +118,58 @@ try:
 except Exception:
     CACHE_DIR = BASE
 
+# ------------------------------------------------ 캐시 이전 (디스크를 새로 붙일 때)
+# 영속 디스크를 새로 붙이면 CACHE_DIR 은 빈 폴더다. 그런데 레포에는 그동안
+# 쌓인 캐시가 들어 있다. 그대로 두면 앱은 빈 캐시를 읽고, 이미 돈을 내고
+# 받아둔 답을 다시 사게 된다.
+#
+# 손으로 cp 하는 것으로는 해결되지 않는다. 캐시는 부팅 때 읽어 메모리에
+# 들고 있다가 저장할 때 통째로 다시 쓰므로, 복사해 넣은 파일을 다음 저장이
+# 덮어쓴다. 그래서 **읽기 전에** 옮겨야 하고, 그 순서를 여기서 코드로 고정한다.
+# (아래 Transliterator / MeaningGenerator 생성보다 반드시 앞에 있어야 한다)
+#
+# 규칙은 둘뿐이다.
+#   1) 대상이 없을 때만 옮긴다 — 운영 중인 캐시는 절대 덮지 않는다
+#   2) 읽을 수 있는 JSON 객체일 때만 옮긴다 — 깨진 파일을 심지 않는다
+# stats.db 와 예산 파일은 옮기지 않는다. 로컬 테스트 기록이 운영 통계에
+# 섞이면 안 되고, 예산은 날짜별 카운터라 옮길 의미가 없다.
+#
+# 어디서 가져오는지 —
+#   .gitignore 가 translit_cache.json / meaning_cache.json /
+#   meaning_en_cache.json 을 제외하고 있다. 그래서 **레포에는 캐시가 없고,
+#   서버의 앱 폴더에도 없다.** 평소 배포에서는 옮길 것이 하나도 없고
+#   이 블록은 조용히 지나간다(그게 정상이다).
+#   옮길 것이 생기는 경우는 둘이다.
+#     - data/cache_seed/ 에 씨앗 파일을 일부러 넣어 커밋했을 때
+#     - 로컬에서 CACHE_DIR 을 새 폴더로 바꿔 돌릴 때(앱 폴더에 캐시가 있다)
+#   그래서 두 곳을 순서대로 본다.
+CACHE_SEEDED = []
+if CACHE_DIR != BASE:
+    import shutil as _shutil
+    for _cname in ('translit_cache.json', 'meaning_cache.json',
+                   'meaning_en_cache.json'):
+        _dst = os.path.join(CACHE_DIR, _cname)
+        if os.path.exists(_dst):
+            continue
+        _src = next((p for p in (os.path.join(DATA, 'cache_seed', _cname),
+                                 os.path.join(BASE, _cname))
+                     if os.path.exists(p)), None)
+        if not _src:
+            continue
+        try:
+            with open(_src, encoding='utf-8') as _cf:
+                _cdata = json.load(_cf)
+            if not isinstance(_cdata, dict):
+                continue
+            _shutil.copyfile(_src, _dst)
+            CACHE_SEEDED.append(f'{_cname}:{len(_cdata)}')
+        except Exception as _ce:
+            print(f'[cache] seed failed {_cname}: {_ce}',
+                  file=sys.stderr, flush=True)
+    if CACHE_SEEDED:
+        print(f'[cache] seeded into {CACHE_DIR}: {", ".join(CACHE_SEEDED)}',
+              file=sys.stderr, flush=True)
+
 # 변환 통계 저장소(SQLite) — /admin 대시보드가 읽는다. 캐시와 같은 수명.
 from stats import Stats
 STATS = Stats(os.path.join(CACHE_DIR, 'stats.db'))
@@ -1734,6 +1786,36 @@ def health():
     return jsonify({'status': 'ok'})
 
 
+_CACHE_FILES = ('stats.db', 'translit_cache.json', 'meaning_cache.json',
+                'meaning_en_cache.json', 'daily_budget.json', 'tts_budget.json')
+
+
+def _cache_status():
+    """
+    캐시가 실제로 어디에 쓰이고 있는지.
+
+    CACHE_DIR 을 줬는데도 그 경로를 쓸 수 없으면 app.py 는 조용히 앱 폴더로
+    되돌아간다. 앱은 평소처럼 잘 돌아가고 에러도 없다. 그래서 몇 주 뒤
+    재배포하는 날 통계가 통째로 사라진 것으로 알게 된다.
+    fallback=true 가 그 상태다 — 디스크를 붙였는데 안 쓰이고 있다는 뜻.
+    """
+    files = {}
+    for n in _CACHE_FILES:
+        p = os.path.join(CACHE_DIR, n)
+        try:
+            if os.path.exists(p):
+                files[n] = os.path.getsize(p)
+        except Exception:
+            pass
+    return {
+        'dir': CACHE_DIR,
+        'fallback': bool(os.environ.get('CACHE_DIR')) and CACHE_DIR == BASE,
+        'seeded': CACHE_SEEDED or None,   # 이번 부팅에 옮긴 캐시
+        'stats_ok': STATS.ok,
+        'files': files,
+    }
+
+
 def _status_token_ok(tok):
     """심층 점검은 STATUS_TOKEN 이 일치할 때만 허용(크레딧 남용 방지)."""
     want = os.environ.get('STATUS_TOKEN')
@@ -1776,6 +1858,7 @@ def status():
             'branch': os.environ.get('RENDER_GIT_BRANCH') or None,
             'prompt_version': _PROMPT_VERSION,
         },
+        'cache': _cache_status(),
         'uptime_s': int(_time.time() - _BOOT_TS),
         'ts': int(_time.time()),
     }
