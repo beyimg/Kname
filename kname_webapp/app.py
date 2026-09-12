@@ -1911,6 +1911,9 @@ def status():
         'tts': {
             'configured': bool(TTS_FULL.available),   # GOOGLE_APPLICATION_CREDENTIALS 여부
             'voice': TTS_FULL.voice,
+            # Gemini 가 실패했을 때 쓰는 예비 목소리. 이름 형식이 달라
+            # 같은 값을 쓸 수 없다(tts_full.CHIRP_VOICE 주석 참고).
+            'voice_chirp': getattr(TTS_FULL, 'chirp_voice', None),
             'model': TTS_FULL.model,
             'last_mode': TTS_FULL.last_mode,          # 최근 실제 사용 엔진(호출 후 채워짐)
             'last_error': getattr(TTS_FULL, 'last_error', None),

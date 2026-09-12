@@ -33,6 +33,24 @@ REQUEST_TIMEOUT = float(os.environ.get('TTS_TIMEOUT', 10.0))
 # 목소리·모델·어조는 코드 수정 없이 환경변수로 바꿀 수 있다.
 DEFAULT_VOICE = os.environ.get('TTS_VOICE', 'ko-KR-Chirp3-HD-Laomedeia')
 
+# 예비 경로(Chirp 3: HD)에서 쓸 목소리.
+#
+# 두 합성 경로는 목소리 이름 형식이 다르다.
+#   Gemini-TTS  : 'Kore' 처럼 접두사 없는 짧은 이름
+#   Chirp 3: HD : 'ko-KR-Chirp3-HD-...' 전체 이름
+# 값 하나를 두 경로가 같이 쓰면 한쪽은 반드시 깨진다. 실제로 TTS_VOICE 를
+# 'Kore' 로 두면 Gemini 는 되는데 예비 경로가 죽어 있고, 그 사실이 Gemini 가
+# 실패하는 날까지 드러나지 않는다(그날 발음이 브라우저 음성으로 떨어진다).
+#
+# 그래서 예비 경로용 이름을 따로 둔다.
+#   - TTS_VOICE 가 이미 Chirp3 전체 이름이면 그대로 쓴다
+#     (Gemini 쪽은 접두사를 떼어내므로 양쪽이 같은 목소리가 된다)
+#   - Gemini 전용 짧은 이름이면(Kore 등) 아래 기본값을 쓴다
+#   - TTS_VOICE_CHIRP 로 직접 지정할 수도 있다
+CHIRP_VOICE = os.environ.get('TTS_VOICE_CHIRP') or (
+    DEFAULT_VOICE if DEFAULT_VOICE.lower().startswith('ko-kr-chirp')
+    else 'ko-KR-Chirp3-HD-Laomedeia')
+
 # 어조 지시(Style instructions). Gemini-TTS 모델에서만 동작하는 prompt 필드다.
 # Chirp 3: HD 에는 해당 필드가 없어 자동으로 무시된다.
 # 이름은 짧아서 어조 프롬프트가 자연스러움을 좌우한다 — 풍부하게 지시한다.
@@ -68,6 +86,10 @@ class FullNameTTS:
                  model: str = GEMINI_MODEL):
         self.out_dir = out_dir
         self.voice = voice
+        # 예비 경로용 목소리(형식이 달라 같은 값을 쓸 수 없다 — 위 주석 참고)
+        self.chirp_voice = (CHIRP_VOICE if voice == DEFAULT_VOICE
+                            else (voice if voice.lower().startswith('ko-kr-chirp')
+                                  else 'ko-KR-Chirp3-HD-Laomedeia'))
         self.rate = rate
         self.pitch = pitch
         self.flatten = flatten
@@ -121,8 +143,11 @@ class FullNameTTS:
                     elif 'not found' in msg.lower() or 'model' in msg.lower():
                         print(f'      → 모델({self.model})을 쓸 수 없는 리전일 수 있습니다.')
 
-        # ② Chirp 3: HD — 어조 지시는 없지만 안정적이다
-        voice = tts.VoiceSelectionParams(language_code='ko-KR', name=self.voice)
+        # ② Chirp 3: HD — 어조 지시는 없지만 안정적이다.
+        # self.voice 가 아니라 self.chirp_voice 를 쓴다. Gemini 전용 짧은 이름
+        # ('Kore')을 여기 넣으면 "voice not found" 로 이 경로까지 실패한다.
+        voice = tts.VoiceSelectionParams(language_code='ko-KR',
+                                         name=self.chirp_voice)
         inp = tts.SynthesisInput(text=spoken)
 
         cfg = {'audio_encoding': tts.AudioEncoding.MP3}
