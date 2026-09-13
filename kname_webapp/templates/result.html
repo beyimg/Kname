@@ -154,7 +154,7 @@ window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
   // 공유 이미지에는 '탭하면 뒷면' 안내(.no-share)를 포함하지 않는다
   function render(){
     return window.htmlToImage.toBlob(card,{
-      pixelRatio:2, backgroundColor:'#fdfaf2',
+      pixelRatio:2, backgroundColor:'#fbf9f2',
       filter:function(node){
         return !(node.classList && node.classList.contains('no-share'));
       }
@@ -177,7 +177,7 @@ window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
       if(/flip/i.test(b.textContent)) b.parentNode.removeChild(b);
     });
     holder.appendChild(clone); document.body.appendChild(holder);
-    return window.htmlToImage.toBlob(clone,{pixelRatio:2,backgroundColor:'#fdfaf2'})
+    return window.htmlToImage.toBlob(clone,{pixelRatio:2,backgroundColor:'#fbf9f2'})
       .then(function(b){ document.body.removeChild(holder); return b; })
       .catch(function(e){ if(holder.parentNode) document.body.removeChild(holder); throw e; });
   }

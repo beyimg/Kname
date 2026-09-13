@@ -10,8 +10,12 @@
   --line:#dcdcdc;
   --paper:#fefefe;
   --bg:#f9f4e7;          /* 상아색(미색) — 더 밝은 아이보리 */
-  /* 종이 질감 텍스처: 외부 파일 없이 SVG 노이즈(데이터 URI)로 은은한 결을 준다 */
-  --paper-tex:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.075'/%3E%3C/svg%3E");
+  /* 종이 질감: 코튼지의 요철(좌상단 빛 음영)을 담은 이음새 없는 타일(200px, 어둡게만).
+     흰 바탕은 더 밝게 할 수 없으므로 그늘만 얹고 바탕색을 그만큼 올려 평균 밝기를 맞췄다.
+     OG 공유 카드(lib/og_card.py)와 같은 종이다. 만드는 법: tools/make_paper_grain.py */
+  --paper-tex:url(paper-grain.png);
+  /* 종이 색: 가운데가 가장 밝고 가장자리로 갈수록 따뜻한 크림색으로 조금 어두워진다 */
+  --paper-grad:radial-gradient(ellipse at 50% 50%, #fefcf6 0%, #fcfaf3 50%, #f6f2e8 100%);
   --serif:'EngSerif','Noto Serif KR',-apple-system,Georgia,serif;
   --kr:'Noto Serif KR','AppleMyungjo','Nanum Myeongjo','Apple SD Gothic Neo','Malgun Gothic',serif;
   --hanja:'Noto Serif KR','AppleMyungjo','Nanum Myeongjo','Apple SD Gothic Neo',serif;
@@ -40,7 +44,7 @@ html,body{
 
 .form{
   width:100%;background:var(--paper);
-  background-image:var(--paper-tex),radial-gradient(circle at 30% 12%, #fffefb 0%, #fdfaf2 62%, #f9f4e9 100%);
+  background-image:var(--paper-tex),var(--paper-grad);
   background-size:200px 200px,cover;background-repeat:repeat,no-repeat;
   border-radius:4px;padding:30px 26px;
   box-shadow:0 12px 40px rgba(60,50,30,0.12);
@@ -151,7 +155,7 @@ html,body{
 .flipper.flipped .face-front{opacity:0;}
 #shareCard{
   width:100%;height:100%;background:var(--paper);
-  background-image:var(--paper-tex),radial-gradient(circle at 30% 12%, #fffefb 0%, #fdfaf2 58%, #f9f4e9 100%);
+  background-image:var(--paper-tex),var(--paper-grad);
   background-size:200px 200px,cover;background-repeat:repeat,no-repeat;
   padding:46px 38px 32px;display:flex;flex-direction:column;
   align-items:center;text-align:center;position:relative;
@@ -159,7 +163,7 @@ html,body{
 }
 .card-back-inner{
   width:100%;height:100%;background:var(--paper);
-  background-image:var(--paper-tex),radial-gradient(circle at 70% 10%, #fffefb 0%, #fdfaf2 60%, #f9f4e9 100%);
+  background-image:var(--paper-tex),var(--paper-grad);
   background-size:200px 200px,cover;background-repeat:repeat,no-repeat;
   position:relative;overflow:hidden;border-radius:5px;
 }
@@ -201,7 +205,7 @@ html,body{
 
 .back-scroll{width:100%;height:100%;padding:34px 30px 30px;display:flex;flex-direction:column;align-items:center;text-align:center;overflow-y:auto;}
 .back-scroll::-webkit-scrollbar{width:0;background:transparent;}
-.scroll-fade{position:absolute;left:14px;right:14px;bottom:14px;height:40px;background:linear-gradient(to top,#f9f4e9 30%,transparent);pointer-events:none;border-radius:0 0 2px 2px;z-index:3;transition:opacity .3s;}
+.scroll-fade{position:absolute;left:14px;right:14px;bottom:14px;height:40px;background:linear-gradient(to top,#f8f5ec 30%,transparent);pointer-events:none;border-radius:0 0 2px 2px;z-index:3;transition:opacity .3s;}
 .back-title{font-family:var(--kr);font-size:26px;font-weight:500;letter-spacing:1px;color:var(--ink);margin-bottom:2px;}
 .back-title .bt-name{position:relative;display:inline-block;}
 .back-title .bt-rom{display:block;font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--ink-faint);letter-spacing:0.4px;margin-top:7px;font-weight:400;}
@@ -225,9 +229,9 @@ html,body{
 .bg-mean{font-size:12.5px;color:#413c34;line-height:1.4;}
 .back-section{width:100%;}
 .back-section ~ .back-section{margin-top:26px;}
-.back-section-label{font-size:9.5px;letter-spacing:2.5px;color:var(--ink-faint);text-transform:uppercase;font-family:var(--sans);margin-bottom:13px;position:relative;text-align:center;}
-.back-section-label span{background:#fdfaf2;padding:0 12px;position:relative;z-index:2;}
-.back-section-label::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:#e0d8c7;z-index:1;}
+.back-section-label{font-size:9.5px;letter-spacing:2.5px;color:var(--ink-faint);text-transform:uppercase;font-family:var(--sans);margin-bottom:13px;display:flex;align-items:center;gap:12px;text-align:center;}
+.back-section-label span{white-space:nowrap;}
+.back-section-label::before,.back-section-label::after{content:"";flex:1;height:1px;background:#e0d8c7;}
 .back-surname,.back-meaning{font-size:12.7px;line-height:1.72;color:#413c34;max-width:262px;margin:0 auto;text-align:left;}
 .back-surname b,.back-meaning b{color:var(--ink);font-weight:500;}
 .meaning-pending{color:var(--ink-faint);font-style:italic;}
@@ -252,7 +256,7 @@ html,body{
 /* ---------- 변환 이유 ---------- */
 .reason-section{
   width:100%;max-width:400px;background:var(--paper);
-  background-image:var(--paper-tex),radial-gradient(circle at 30% 8%, #fffefb 0%, #fdfaf2 62%, #f9f4e9 100%);
+  background-image:var(--paper-tex),var(--paper-grad);
   background-size:200px 200px,cover;background-repeat:repeat,no-repeat;
   border-radius:4px;padding:36px 30px;position:relative;
   box-shadow:0 12px 40px rgba(60,50,30,0.12);
@@ -309,7 +313,7 @@ html,body{
 
 .intro-card{
   background:var(--paper);
-  background-image:var(--paper-tex),radial-gradient(circle at 30% 12%, #fffefb 0%, #fdfaf2 70%, #f9f4e9 100%);
+  background-image:var(--paper-tex),var(--paper-grad);
   background-size:200px 200px,cover;background-repeat:repeat,no-repeat;
   border-radius:4px;padding:15px 17px;
   box-shadow:0 5px 20px rgba(60,50,30,0.07);
