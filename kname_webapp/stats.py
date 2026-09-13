@@ -85,12 +85,20 @@ class Stats:
                 geo      TEXT
             )''')
             # 이미 만들어진 DB 에는 칼럼이 없다 — 한 번만 붙인다
-            for _col in ('flags TEXT', 'country TEXT', 'geo TEXT'):
+            for _col in ('flags TEXT', 'country TEXT', 'geo TEXT', 'ms INTEGER'):
                 try:
                     c.execute(f'ALTER TABLE conv ADD COLUMN {_col}')
                 except Exception:
                     pass
             c.execute('CREATE INDEX IF NOT EXISTS idx_conv_ts ON conv(ts)')
+            # 부하 기록: 한 워커가 동시에 처리 중인 요청이 창구 수에 닿은 순간.
+            # 워커(프로세스)마다 따로 세므로 pid 를 같이 남긴다. load_summary() 가 센다.
+            c.execute('''CREATE TABLE IF NOT EXISTS load(
+                ts       INTEGER,
+                pid      INTEGER,
+                inflight INTEGER
+            )''')
+            c.execute('CREATE INDEX IF NOT EXISTS idx_load_ts ON load(ts)')
             # 결과물 품질 문제(비문·의미설명 없음 등). 변환은 성공했지만
             # 카드에 실린 결과가 이상한 경우를 여기 쌓는다.
             c.execute('''CREATE TABLE IF NOT EXISTS issue(
@@ -105,15 +113,15 @@ class Stats:
     # ------------------------------------------------------------ 기록
     def record(self, *, ok, is_new, native, quality, sex,
                first_en, last_en, given, hangul, flags='',
-               country='', geo=''):
+               country='', geo='', ms=None):
         if not self.ok:
             return
         try:
             with self._lock, self._conn() as c:
                 c.execute(
                     'INSERT INTO conv(ts,ok,is_new,native,quality,sex,'
-                    'first_en,last_en,given,hangul,flags,country,geo) '
-                    'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                    'first_en,last_en,given,hangul,flags,country,geo,ms) '
+                    'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                     (int(time.time()), int(bool(ok)), int(bool(is_new)),
                      int(bool(native)), (quality or '')[:8], (sex or '')[:8],
                      (first_en or '')[:40].strip().lower(),
@@ -121,9 +129,55 @@ class Stats:
                      (given or '')[:20], (hangul or '')[:20],
                      (flags or '')[:120],
                      (country or '')[:2].upper(),
-                     (geo or '')[:2].upper()))
+                     (geo or '')[:2].upper(),
+                     int(ms) if ms is not None else None))
         except Exception:
             pass
+
+    def record_load(self, pid: int, inflight: int) -> None:
+        """동시 처리 중 요청이 창구 수에 닿은 순간을 남긴다(app.py 가 호출)."""
+        if not self.ok:
+            return
+        try:
+            with self._lock, self._conn() as c:
+                c.execute('INSERT INTO load(ts,pid,inflight) VALUES(?,?,?)',
+                          (int(time.time()), int(pid), int(inflight)))
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------ 부하
+    def load_summary(self, hours: float = 1.0) -> dict:
+        """최근 hours 시간의 부하 — /status 의 load 항목.
+
+        핵심 지표는 **캐시 이름의 응답 시간**이다. 처음 보는 이름은 LLM 을 기다리느라
+        원래 몇 초 걸리므로 서버 상태를 말해주지 않지만, 사전·캐시 이름은 0.2초면 끝나야
+        한다. 이게 늘어나면 서버가 밀리는 것이다(등급/워커를 올릴 신호)."""
+        out = {'window_h': hours, 'conv': 0, 'conv_new': 0,
+               'cached_ms': None, 'new_ms': None, 'saturation_events': 0}
+        if not self.ok:
+            return out
+        since = int(time.time() - hours * 3600)
+
+        def pct(vals):
+            if not vals:
+                return None
+            vals = sorted(vals)
+            def p(q):
+                return int(vals[min(len(vals) - 1, int(round((len(vals) - 1) * q)))])
+            return {'n': len(vals), 'p50': p(0.5), 'p95': p(0.95), 'max': int(vals[-1])}
+
+        try:
+            with self._lock, self._conn() as c:
+                rows = c.execute('SELECT is_new, ms FROM conv WHERE ts >= ?', (since,)).fetchall()
+                out['conv'] = len(rows)
+                out['conv_new'] = sum(1 for r in rows if r[0])
+                out['cached_ms'] = pct([r[1] for r in rows if not r[0] and r[1] is not None])
+                out['new_ms'] = pct([r[1] for r in rows if r[0] and r[1] is not None])
+                out['saturation_events'] = c.execute(
+                    'SELECT COUNT(*) FROM load WHERE ts >= ?', (since,)).fetchone()[0]
+        except Exception:
+            pass
+        return out
 
     def recent(self, limit=60, since_ts=None):
         """

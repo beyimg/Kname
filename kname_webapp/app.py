@@ -18,6 +18,7 @@ import re
 import sys
 import json
 import contextlib
+import threading
 
 from flask import (Flask, render_template, request, jsonify, redirect,
                    url_for, make_response)
@@ -302,9 +303,12 @@ for _sex in ('male', 'female'):
 
 
 def _convert_quiet(first_kr, last_kr, sex):
-    """엔진이 stdout에 로그를 뿌리므로 조용히 호출"""
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-        return ENGINE.convert(first_kr, last_kr, sex)
+    """예전에는 엔진이 stdout 에 로그를 뿌려 redirect_stdout/redirect_stderr 로 감쌌다.
+    지금 engine.py 에는 print 가 없다. 그리고 그 감싸기는 **스레드에서 위험하다** —
+    sys.stdout/stderr 를 프로세스 전체에서 바꿔치기하므로, 두 요청이 겹치면 복원 순서가
+    꼬여 stderr 가 죽은 StringIO 에 영구히 묶인다(그 뒤 Render 로그·monitor 출력이 모두
+    사라짐. 워커 스레드 4개 설정에서 실제로 재현됨). 그래서 감싸지 않는다."""
+    return ENGINE.convert(first_kr, last_kr, sex)
 
 
 # 남녀 모두에게 쓰이는 이름 (대부분 순우리말) — '그 외' 선택 시 우선 사용
@@ -1606,7 +1610,7 @@ def _needs_llm(first_key, last_key, sex):
     return TRANSLIT.transliterate(first_key, sexk, allow_llm=False) is None
 
 
-def _log_conv(first_en, last_en, sex, is_new, data, country='', geo=''):
+def _log_conv(first_en, last_en, sex, is_new, data, country='', geo='', ms=None):
     """변환 1건을 통계에 기록(성공/실패 모두). 빈 입력은 제외."""
     if not (str(first_en).strip() and str(last_en).strip()):
         return
@@ -1633,6 +1637,7 @@ def _log_conv(first_en, last_en, sex, is_new, data, country='', geo=''):
         flags=' '.join(sorted({c for c, _d in findings})),
         country=country,
         geo=geo,
+        ms=ms,
     )
     # 사용자가 실패를 겪은 경우 보고(입력 실수는 제외). 원인별로 묶는다.
     if not ok:
@@ -1713,9 +1718,11 @@ def result():
         return render_template('index.html', error=_BUSY_BUDGET,
                                first_name=first_en, last_name=last_en, sex=sex), 503
 
+    _t0 = _time.time()
     data = convert_name(first_en, last_en, sex)
     _picked, _geo = _country_of_request()
-    _log_conv(first_en, last_en, sex, is_new, data, _picked, _geo)
+    _log_conv(first_en, last_en, sex, is_new, data, _picked, _geo,
+              ms=(_time.time() - _t0) * 1000)
     if 'error' in data:
         return render_template('index.html', error=data['error'],
                                first_name=first_en, last_name=last_en, sex=sex,
@@ -1749,9 +1756,11 @@ def api_convert():
         return jsonify({'error': 'busy',
                         'message': 'High traffic right now — try again later '
                                    'or use a more common name.'}), 503
+    _t0 = _time.time()
     data = convert_name(first_en, last_en, sex)
     _api_picked, _api_geo = _country_of_request()
-    _log_conv(first_en, last_en, sex, is_new, data, _api_picked, _api_geo)
+    _log_conv(first_en, last_en, sex, is_new, data, _api_picked, _api_geo,
+              ms=(_time.time() - _t0) * 1000)
     if 'error' not in data and is_new:
         BUDGET.record()
     status = 400 if 'error' in data else 200
@@ -1941,6 +1950,123 @@ def _cache_status():
     }
 
 
+# ---------------------------------------------------------------- 부하 감시
+# "사람이 몰려서 서버를 키워야 하는가"를 숫자로 알기 위한 것. /status 의 load 항목.
+#
+#  · 동시 처리 중인 변환 요청 수를 워커(프로세스)마다 센다. 창구 수(스레드 수, WEB_THREADS,
+#    기본 4)에 닿으면 stats 의 load 표에 한 줄 남긴다 → 최근 1시간에 몇 번 꽉 찼는지 셀 수 있다.
+#  · 변환마다 걸린 시간은 conv.ms 에 남는다(캐시 이름 / 새 이름 따로 집계).
+#  · 메모리는 이 워커의 RSS. 워커가 둘이면 대략 두 배로 보면 된다(--preload 라 공유분이 있어 그보다 적다).
+#
+# 판정은 _load_alerts() — /status 가 호출될 때(3시간마다 도는 점검 작업이 부른다) 기준을 넘긴
+# 항목을 Sentry 로 보고한다. 날짜를 지문에 넣어 하루에 한 번씩 메일이 온다.
+try:
+    _WEB_THREADS = max(1, int(os.environ.get('WEB_THREADS', 4)))
+except Exception:
+    _WEB_THREADS = 4
+try:
+    _RSS_LIMIT_MB = int(os.environ.get('RSS_LIMIT_MB', 512))     # Starter = 512MB
+except Exception:
+    _RSS_LIMIT_MB = 512
+_INFLIGHT = 0
+_INFLIGHT_LOCK = threading.Lock()
+_INFLIGHT_LAST_LOG = 0.0
+_CONVERT_ENDPOINTS = ('result', 'api_convert')
+
+
+def _rss_mb():
+    """이 프로세스가 쓰는 메모리(MB). Linux 는 /proc, 그 외는 resource."""
+    try:
+        with open('/proc/self/status') as f:
+            for line in f:
+                if line.startswith('VmRSS:'):
+                    return int(line.split()[1]) // 1024
+    except Exception:
+        pass
+    try:
+        import resource
+        kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return int(kb // 1024) if sys.platform != 'darwin' else int(kb // (1024 * 1024))
+    except Exception:
+        return None
+
+
+@app.before_request
+def _inflight_enter():
+    global _INFLIGHT, _INFLIGHT_LAST_LOG
+    if request.endpoint not in _CONVERT_ENDPOINTS or request.method != 'POST':
+        return
+    with _INFLIGHT_LOCK:
+        _INFLIGHT += 1
+        n = _INFLIGHT
+        now = _time.time()
+        # 창구가 다 찼다 — 10초에 한 번만 기록(몰릴 때 DB 를 두드리지 않도록)
+        if n >= _WEB_THREADS and now - _INFLIGHT_LAST_LOG >= 10:
+            _INFLIGHT_LAST_LOG = now
+            log_it = True
+        else:
+            log_it = False
+    if log_it:
+        STATS.record_load(os.getpid(), n)
+
+
+@app.teardown_request
+def _inflight_leave(_exc=None):
+    global _INFLIGHT
+    if request.endpoint not in _CONVERT_ENDPOINTS or request.method != 'POST':
+        return
+    with _INFLIGHT_LOCK:
+        _INFLIGHT = max(0, _INFLIGHT - 1)
+
+
+def _load_status():
+    d = STATS.load_summary(hours=1)
+    d.update({
+        'inflight_now': _INFLIGHT,
+        'threads_per_worker': _WEB_THREADS,
+        'rss_mb': _rss_mb(),
+        'rss_limit_mb': _RSS_LIMIT_MB,
+        'pid': os.getpid(),
+    })
+    return d
+
+
+# 기준값 — 넘으면 알린다. 환경변수로 조정 가능.
+_LOAD_SLOW_MS = int(os.environ.get('LOAD_SLOW_MS', 2000))          # 캐시 이름 p95
+_LOAD_RSS_MB = int(os.environ.get('LOAD_RSS_MB', 400))             # 워커 메모리
+_LOAD_SATURATION = int(os.environ.get('LOAD_SATURATION', 3))       # 1시간에 창구 꽉 찬 횟수
+_LOAD_TRAFFIC = int(os.environ.get('LOAD_TRAFFIC', 100))           # 1시간 변환 건수
+
+
+def _load_alerts(d):
+    """기준을 넘긴 항목을 Sentry 로 보고하고, 사람이 읽을 문장 목록을 돌려준다."""
+    day = BUDGET.today()
+    alerts = []
+    cm = d.get('cached_ms') or {}
+    if cm.get('n', 0) >= 5 and cm.get('p95', 0) > _LOAD_SLOW_MS:
+        msg = (f"서버가 밀립니다 — 캐시 이름 응답 p95 {cm['p95']}ms (최근 1시간 {cm['n']}건, 기준 {_LOAD_SLOW_MS}ms). "
+               f"Render Start Command 의 -w 를 올리거나(예: -w 3) Instance Type 을 Standard 로 올리세요.")
+        alerts.append(msg)
+        report(msg, level='warning', fingerprint=['load-slow', day])
+    rss = d.get('rss_mb')
+    if rss is not None and rss > _LOAD_RSS_MB:
+        msg = (f"메모리가 찹니다 — 워커 {rss}MB / 한도 {_RSS_LIMIT_MB}MB (기준 {_LOAD_RSS_MB}MB). "
+               f"Render Instance Type 을 Standard(2GB)로 올리세요.")
+        alerts.append(msg)
+        report(msg, level='warning', fingerprint=['load-memory', day])
+    if d.get('saturation_events', 0) >= _LOAD_SATURATION:
+        msg = (f"창구가 모자랍니다 — 최근 1시간에 동시 처리가 창구 수({_WEB_THREADS})에 {d['saturation_events']}번 닿았습니다. "
+               f"Render Start Command 의 -w(워커 수)를 올리세요.")
+        alerts.append(msg)
+        report(msg, level='warning', fingerprint=['load-saturated', day])
+    if d.get('conv', 0) >= _LOAD_TRAFFIC:
+        msg = (f"사람이 몰리고 있습니다 — 최근 1시간 변환 {d['conv']}건(새 이름 {d.get('conv_new', 0)}건). "
+               f"예산 잔여 {BUDGET.status()[1] - BUDGET.status()[0]}건.")
+        alerts.append(msg)
+        report(msg, level='info', fingerprint=['load-traffic', day])
+    return alerts
+
+
 def _report_budget_exhausted():
     """
     하루 한도 소진을 보고한다. **fingerprint 에 날짜를 넣는다.**
@@ -2035,6 +2161,7 @@ def status():
         },
         'cache': _cache_status(),
         'budget': _budget_status(),
+        'load': _load_status(),
         'uptime_s': int(_time.time() - _BOOT_TS),
         'ts': int(_time.time()),
     }
@@ -2073,6 +2200,11 @@ def status():
                 body['ok'] = False
                 body['deep'] = {'ok': False,
                                 'error': f'{type(e).__name__}: {e}'}
+    # 부하 판정 — 기준을 넘긴 항목은 Sentry 로 보고(하루 한 번)하고 응답에도 싣는다
+    try:
+        body['load']['alerts'] = _load_alerts(body['load'])
+    except Exception as e:
+        body['load']['alerts'] = [f'판정 실패: {type(e).__name__}: {e}']
     return jsonify(body), (200 if body['ok'] else 503)
 
 
