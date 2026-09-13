@@ -21,7 +21,7 @@ import contextlib
 import threading
 
 from flask import (Flask, render_template, request, jsonify, redirect,
-                   url_for, make_response)
+                   url_for, make_response, send_file, abort)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(BASE, 'lib'))
@@ -580,7 +580,7 @@ def _compose_meaning_en(given, hanja_detail, native_meaning=None,
 # 문구 자체를 남겨두면 언젠가 다시 쓰이게 되므로 코드에서 지운다.
 
 
-def _generate_meaning(given, sex, english_first, translit, neutral=False):
+def _generate_meaning(given, sex, english_first, translit, neutral=False, allow_llm=True):
     """
     602개 사전에 없는 이름의 한자·의미설명을 meaning.py로 생성.
     한자 매칭은 API 키 없이도 되지만, 풍부한 설명 문구는 LLM이 필요하다.
@@ -619,6 +619,7 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False):
                 # 카드와 같은 출처(한자별 영어뜻)를 쓰게 한다.
                 # 이게 없으면 설명과 카드의 뜻이 서로 달라진다.
                 hanja_en=HANJA_EN,
+                allow_llm=allow_llm,
             )
             en = en or ''
             # 예전 캐시를 그대로 내보낸 경우 — 내용이 낡았으므로 기록한다
@@ -631,6 +632,7 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False):
                 given=given, sex=sex,
                 hanja_chars=chars, name_type=ntype,
                 english_name=english_first, first_kr=translit,
+                allow_llm=allow_llm,
             )
             if isinstance(res, dict):
                 en = res.get('meaning_en', '') or ''
@@ -725,7 +727,7 @@ def _gloss_to_en(kr_meaning):
     return ', '.join(out[:2]) if out else None
 
 
-def _pick_neutral(first_key, last_tr):
+def _pick_neutral(first_key, last_tr, allow_llm=True):
     """
     '그 외' 선택 시: 남녀 사전을 모두 조회해
       1) 남녀 공용으로 쓰이는 이름이 있으면 우선
@@ -734,7 +736,7 @@ def _pick_neutral(first_key, last_tr):
     """
     cands = []
     for sexk, sk in (('male', '남'), ('female', '여')):
-        tr = TRANSLIT.transliterate(first_key, sexk)
+        tr = TRANSLIT.transliterate(first_key, sexk, allow_llm=allow_llm)
         if not tr:
             continue
         r = _convert_quiet(tr, last_tr or '스미스', sk)   # last_tr은 호출부에서 보장됨
@@ -1265,11 +1267,14 @@ def _regender(text, sex):
 
 
 # ---------------------------------------------------------------- 변환 파이프라인
-def convert_name(first_en, last_en, sex):
+def convert_name(first_en, last_en, sex, allow_llm=True):
     """
     영어 이름 → 한국 이름 전체 결과.
     반환 dict 또는 {'error': ...}
     sex: '여' | '남' | 'other'(성별 무관)
+    allow_llm=False: 사전·캐시만으로 만든다. 음차가 캐시에 없으면 error, 의미 설명이
+      캐시에 없으면 템플릿 문구(플래그 남음). 공유 링크 GET(/n/...) 이 이 모드를 쓴다 —
+      URL 이 생기면 봇이 무한히 두드릴 수 있는데, GET 은 절대 LLM 비용을 내지 않는다.
     """
     neutral = (sex == 'other')
     sexk = 'female' if sex == '여' else 'male'
@@ -1288,11 +1293,11 @@ def convert_name(first_en, last_en, sex):
     # 음차는 사전 → 캐시 → LLM → 규칙 기반 폴백까지 이어져 실패하지 않는다.
     # 여기서 None 이 나오는 유일한 경우는 라틴 알파벳이 한 글자도 없는
     # 입력(숫자·기호만)이며, 이는 시스템 오류가 아니라 입력 오류다.
-    last_tr = TRANSLIT.transliterate(last_key, 'surname')
+    last_tr = TRANSLIT.transliterate(last_key, 'surname', allow_llm=allow_llm)
     if not last_tr:
         return {'error': _no_reading_error(last_en, 'surname')}
 
-    picked = _pick_neutral(first_key, last_tr) if neutral else None
+    picked = _pick_neutral(first_key, last_tr, allow_llm=allow_llm) if neutral else None
     if neutral and not picked:
         # 남녀 공용 후보를 찾지 못했다 — 사용자에게 실패를 보이는 대신
         # 여성 경로로 이어서 진행한다.
@@ -1306,7 +1311,7 @@ def convert_name(first_en, last_en, sex):
         sex = '남' if sexk == 'male' else '여'
     else:
         # 1) 음차 (사전 → 캐시 → LLM → 규칙 폴백)
-        first_tr = TRANSLIT.transliterate(first_key, sexk)
+        first_tr = TRANSLIT.transliterate(first_key, sexk, allow_llm=allow_llm)
         if not first_tr:
             return {'error': _no_reading_error(first_en, sexk)}
         # 2) 순우리말 이름이면 한자 매칭 엔진을 건너뛰고 소리 그대로 쓴다
@@ -1361,7 +1366,7 @@ def convert_name(first_en, last_en, sex):
 
     # 602개 밖 이름이면 meaning.py로 한자·의미설명을 실시간 생성
     if (not meaning_en or not hanja) and MEANING is not None:
-        gen = _generate_meaning(given, sex, first_en, first_tr, neutral=neutral)
+        gen = _generate_meaning(given, sex, first_en, first_tr, neutral=neutral, allow_llm=allow_llm)
         if gen:
             hanja = hanja or gen.get('hanja', '')
             hanja_detail = hanja_detail or gen.get('hanja_detail', [])
@@ -1611,6 +1616,7 @@ def _needs_llm(first_key, last_key, sex):
 
 
 def _log_conv(first_en, last_en, sex, is_new, data, country='', geo='', ms=None):
+    source = _source_cookie()
     """변환 1건을 통계에 기록(성공/실패 모두). 빈 입력은 제외."""
     if not (str(first_en).strip() and str(last_en).strip()):
         return
@@ -1638,6 +1644,7 @@ def _log_conv(first_en, last_en, sex, is_new, data, country='', geo='', ms=None)
         country=country,
         geo=geo,
         ms=ms,
+        source=source,
     )
     # 사용자가 실패를 겪은 경우 보고(입력 실수는 제외). 원인별로 묶는다.
     if not ok:
@@ -1689,12 +1696,200 @@ def _log_quality(first_en, last_en, data, findings=None):
                name=name, given=data.get('given', ''), detail=str(detail)[:140])
 
 
+# ---------------------------------------------------------------- 유입 경로
+# 어디서 왔는지 한 단어로 남긴다. 홍보 링크는 전부 ?ref=reddit-korean 처럼 꼬리표를 달아 뿌린다.
+#  · ?ref= 또는 ?utm_source= 가 있으면 그 값
+#  · 없으면 Referer 의 호스트만(경로·쿼리는 버린다 — 개인정보 최소화). 우리 사이트면 무시
+#  · 첫 방문 값만 30일 쿠키에 남긴다(그 사람을 데려온 경로가 무엇인지가 궁금한 것이므로)
+_SRC_RE = re.compile(r'[^A-Za-z0-9._:\-]+')
+
+
+def _detect_source():
+    ref = (request.args.get('ref') or request.args.get('utm_source') or '').strip()
+    if ref:
+        return _SRC_RE.sub('', ref)[:40]
+    r = request.headers.get('Referer', '')
+    if r:
+        host = re.sub(r'^https?://', '', r).split('/')[0].split(':')[0].lower()
+        mine = re.sub(r'^https?://', '', _site_url()).split('/')[0].split(':')[0].lower()
+        if host and host != mine and host != request.host.split(':')[0].lower():
+            return ('ref:' + host)[:40]
+    return ''
+
+
+def _source_cookie():
+    return (request.cookies.get('src') or '')[:60]
+
+
+def _remember_source(resp):
+    """첫 방문이면 유입 경로를 쿠키에 남긴다(값이 없으면 아무것도 안 한다)."""
+    if not request.cookies.get('src'):
+        src = _detect_source()
+        if src:
+            resp.set_cookie('src', src, max_age=60 * 60 * 24 * 30, samesite='Lax')
+    return resp
+
+
+def _is_external_visit():
+    """공유 링크를 눌러 들어온 조회인지 — Referer 가 우리 사이트가 아닐 때."""
+    r = request.headers.get('Referer', '')
+    if not r:
+        return True
+    host = re.sub(r'^https?://', '', r).split('/')[0].split(':')[0].lower()
+    return host != request.host.split(':')[0].lower() and \
+        host != re.sub(r'^https?://', '', _site_url()).split('/')[0].split(':')[0].lower()
+
+
 @app.route('/')
 def index():
-    # 국적은 한 번 고르면 쿠키에 남겨 다음 방문에 기본값으로 쓴다
-    return render_template('index.html', countries=_COUNTRIES,
-                           country=_norm_country(
-                               request.cookies.get('country', '')))
+    # 국적은 한 번 고르면 쿠키에 남겨 다음 방문에 기본값으로 쓴다.
+    # ?first=&last=&g= 는 공유 링크(/n/...)가 아직 만들어진 적 없는 이름을 보낼 때
+    # 입력란을 채워 두는 용도 — 사람이 Convert 를 눌러야 생성된다(GET 은 LLM 을 안 부른다).
+    resp = make_response(render_template(
+        'index.html', countries=_COUNTRIES,
+        country=_norm_country(request.cookies.get('country', '')),
+        og_image=(_site_url() + url_for('og_default', v=_OG_VERSION)) if _OG_OK else None,
+        first_name=request.args.get('first', '')[:40],
+        last_name=request.args.get('last', '')[:40],
+        sex=_G_TO_SEX.get(request.args.get('g', ''), None)))
+    return _remember_source(resp)
+
+
+# ---------------------------------------------------------------- 결과의 고정 주소
+# 변환 결과마다 주소를 준다: /n/<이름>/<성>?g=f|m|x  (g = 성별 선택)
+# 규칙 — **GET 은 절대 LLM 을 부르지 않는다.** 사전·캐시로 바로 만들 수 있는 이름만 보여주고,
+# 처음 보는 이름은 홈으로 보내되 입력란을 채워 둔다. 주소가 생기면 크롤러·봇이 무한히 두드릴 수
+# 있는데, 그때 LLM 이 돌면 하루 예산이 봇에게 털린다.
+# 흐름: 사람이 POST 로 변환(예산 1건) → 캐시에 남음 → 주소로 이동(PRG) → 링크를 받은 사람은 GET 으로 즉시(예산 0).
+_G_TO_SEX = {'f': '여', 'm': '남', 'x': 'other'}
+_SEX_TO_G = {'여': 'f', '남': 'm', 'other': 'x'}
+
+
+def _share_path(first_en, last_en, sex):
+    return url_for('name_page', first=first_en.strip(), last=last_en.strip(),
+                   g=_SEX_TO_G.get(sex, 'f'))
+
+
+def _share_url(first_en, last_en, sex):
+    return _site_url() + _share_path(first_en, last_en, sex)
+
+
+def _render_result(data, first_en, last_en, sex):
+    return render_template(
+        'result.html', d=data,
+        reason_json=json.dumps(data['reason'], ensure_ascii=False),
+        share_url=_share_url(first_en, last_en, sex),
+        og_image=_og_url(first_en, last_en, sex))
+
+
+@app.route('/n/<first>/<last>')
+def name_page(first, last):
+    first = first.strip()[:40]
+    last = last.strip()[:40]
+    sex = _G_TO_SEX.get(request.args.get('g', 'f'), '여')
+    if not RATE.check(_client_ip()):
+        return render_template('index.html', error=_BUSY_RATE,
+                               first_name=first, last_name=last, sex=sex,
+                               countries=_COUNTRIES), 429
+    if _needs_llm(first.lower(), last.lower(), sex):
+        # 아직 만들어진 적 없는 이름 — 만들지 않고 홈으로(입력란만 채워서)
+        return redirect(url_for('index', first=first, last=last,
+                                g=_SEX_TO_G.get(sex, 'f')))
+    data = convert_name(first, last, sex, allow_llm=False)
+    if 'error' in data:
+        return redirect(url_for('index', first=first, last=last,
+                                g=_SEX_TO_G.get(sex, 'f')))
+    resp = make_response(_render_result(data, first, last, sex))
+    if _is_external_visit():
+        # 변환 직후의 PRG 이동은 Referer 가 우리 사이트라 여기 안 걸린다.
+        # 남는 것은 공유 링크를 눌러 들어온 사람 — 바이럴 루프가 도는지의 증거.
+        STATS.record_event('view_share', _source_cookie() or _detect_source() or 'link',
+                           data.get('full_hangul', ''))
+    return _remember_source(resp)
+
+
+# ---------------------------------------------------------------- OG 공유 카드 이미지
+# 링크를 카톡·트위터 등에 붙이면 그 앱이 og:image 를 받아 카드로 보여준다.
+# 규칙은 /n/ 과 같다 — 캐시로 만들 수 있는 이름만 그린다(LLM 비용 0), 모르는 이름은 404.
+# 한 이름당 한 번만 그려 CACHE_DIR/og/ 에 두고 다음부터는 파일을 그대로 보낸다.
+try:
+    from og_card import render_result_card as _og_render, render_default_card as _og_default, \
+        CARD_VERSION as _OG_VERSION
+    _OG_OK = True
+except Exception as _oe:            # Pillow/numpy 없음 등 — 이미지 없이 텍스트 태그만 나간다
+    _OG_OK = False
+    print(f'[og] disabled: {_oe}', file=sys.stderr, flush=True)
+OG_DIR = os.path.join(CACHE_DIR, 'og')
+_OG_LOCK = threading.Lock()
+
+
+def _og_path(first, last, sex):
+    key = f'{first.strip().lower()}|{last.strip().lower()}|{_SEX_TO_G.get(sex, "f")}|v{_OG_VERSION}'
+    return os.path.join(OG_DIR, hashlib.md5(key.encode('utf-8')).hexdigest() + '.jpg')
+
+
+def _og_url(first, last, sex):
+    if not _OG_OK:
+        return None
+    return _site_url() + url_for('og_image', first=first.strip(), last=last.strip(),
+                                 g=_SEX_TO_G.get(sex, 'f'), v=_OG_VERSION)
+
+
+def _send_og(path):
+    resp = make_response(send_file(path, mimetype='image/jpeg', conditional=True))
+    resp.headers['Cache-Control'] = 'public, max-age=604800'      # 1주. 디자인이 바뀌면 v= 가 바뀐다
+    return resp
+
+
+@app.route('/og/<first>/<last>.jpg')
+def og_image(first, last):
+    if not _OG_OK:
+        abort(404)
+    first = first.strip()[:40]
+    last = last.strip()[:40]
+    sex = _G_TO_SEX.get(request.args.get('g', 'f'), '여')
+    path = _og_path(first, last, sex)
+    if os.path.exists(path):
+        return _send_og(path)
+    if not RATE.check(_client_ip()):
+        abort(429)
+    if _needs_llm(first.lower(), last.lower(), sex):
+        abort(404)                      # 만들어진 적 없는 이름 — 봇이 두드려도 비용 0
+    data = convert_name(first, last, sex, allow_llm=False)
+    if 'error' in data:
+        abort(404)
+    with _OG_LOCK:                      # 같은 카드를 동시에 두 번 그리지 않는다
+        if not os.path.exists(path):
+            try:
+                _og_render({
+                    'input': data['input'],
+                    'syllables': [x['ch'] for x in data['syllables']],
+                    'full_rom': data['full_rom'],
+                    'meaning_short': data.get('meaning_short') or '',
+                    'surname_hanja': data.get('surname_hanja') or '',
+                }, path)
+            except Exception as e:
+                report('og card render failed', level='warning',
+                       fingerprint=['og-render', type(e).__name__], error=str(e)[:200])
+                abort(404)
+    return _send_og(path)
+
+
+@app.route('/og/default.jpg')
+def og_default():
+    if not _OG_OK:
+        abort(404)
+    path = os.path.join(OG_DIR, f'default-v{_OG_VERSION}.jpg')
+    if not os.path.exists(path):
+        with _OG_LOCK:
+            if not os.path.exists(path):
+                try:
+                    _og_default(path)
+                except Exception as e:
+                    report('og default render failed', level='warning',
+                           fingerprint=['og-render', type(e).__name__], error=str(e)[:200])
+                    abort(404)
+    return _send_og(path)
 
 
 @app.route('/result', methods=['GET', 'POST'])
@@ -1729,14 +1924,31 @@ def result():
                                countries=_COUNTRIES, country=_picked)
     if is_new:
         BUDGET.record()          # 새 이름 1건 소비 기록
-    resp = make_response(render_template(
-        'result.html', d=data,
-        reason_json=json.dumps(data['reason'], ensure_ascii=False)))
+    # POST 뒤 고정 주소로 이동(PRG). 주소창의 주소가 곧 공유 링크가 되고, 새로고침해도
+    # 재변환되지 않는다. 단, 음차가 규칙 폴백으로 나와 캐시에 남지 않은 경우(LLM 실패)는
+    # GET 이 다시 만들 수 없으므로 예전처럼 여기서 바로 그린다.
+    if ('/' not in first_en + last_en
+            and not _needs_llm(first_en.strip().lower(), last_en.strip().lower(), sex)):
+        resp = redirect(_share_path(first_en, last_en, sex), code=303)
+    else:
+        resp = make_response(_render_result(data, first_en, last_en, sex))
     if _picked:
         # 다음 방문에 기본값으로 쓴다. 국가 코드 2글자뿐이라 민감정보가 아니다.
         resp.set_cookie('country', _picked, max_age=60 * 60 * 24 * 365,
                         samesite='Lax')
     return resp
+
+
+@app.route('/api/event', methods=['POST'])
+def api_event():
+    """공유·링크복사·저장 클릭을 남긴다. 결과 페이지의 버튼이 sendBeacon 으로 보낸다.
+    개인정보 없음 — 종류와 한국 이름, 유입 경로 쿠키뿐."""
+    payload = request.get_json(silent=True) or {}
+    kind = str(payload.get('kind', ''))[:20]
+    if kind not in ('share', 'copy', 'download'):
+        return ('', 204)
+    STATS.record_event(kind, _source_cookie(), str(payload.get('name', ''))[:20])
+    return ('', 204)
 
 
 @app.route('/api/convert', methods=['POST'])
@@ -1857,11 +2069,14 @@ def _site_url():
 
 @app.context_processor
 def _inject_site():
-    """템플릿에서 {{ site_url }} 로 쓴다(canonical·OG 태그용)."""
+    """템플릿에서 {{ site_url }}·{{ site_host }} 로 쓴다(canonical·OG 태그·카드의 사이트명).
+    도메인이 바뀌면 SITE_URL 환경변수 하나만 바꾸면 된다."""
     try:
-        return {'site_url': _site_url()}
+        url = _site_url()
+        host = re.sub(r'^https?://', '', url).split('/')[0]
+        return {'site_url': url, 'site_host': host}
     except Exception:
-        return {'site_url': ''}
+        return {'site_url': '', 'site_host': ''}
 
 
 @app.route('/robots.txt')
@@ -2272,10 +2487,15 @@ def admin():
     except Exception:
         ctry = {'picked': [], 'geo': [], 'picked_total': 0, 'geo_total': 0}
     ctry['names'] = _COUNTRY_NAMES
+    try:
+        src = STATS.sources(days=30, top_n=15)
+    except Exception:
+        src = {'rows': [], 'total': 0, 'events': {}, 'share_rate': None, 'window': 30}
+    src['peak'] = max([r['count'] for r in (src.get('rows') or [])] or [0])
     ctry['peak'] = max([r['count'] for r in (ctry.get('picked') or [])]
                        + [r['count'] for r in (ctry.get('geo') or [])] or [0])
     return render_template('admin.html', s=s, op=op, iss=iss, recent=recent,
-                           ctry=ctry)
+                           ctry=ctry, src=src)
 
 
 @app.route('/admin/recent')

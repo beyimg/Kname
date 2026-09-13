@@ -18,3 +18,6 @@ anthropic<2
 gunicorn<27
 sentry-sdk[flask]<3
 google-cloud-texttospeech<3
+# OG 공유 카드 그리기 (lib/og_card.py)
+Pillow<12
+numpy<3

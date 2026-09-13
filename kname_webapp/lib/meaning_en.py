@@ -380,9 +380,13 @@ class MeaningEnGenerator:
         english_name: Optional[str] = None,
         gloss_en: Optional[Dict[str, str]] = None,
         hanja_en: Optional[Dict[str, str]] = None,
+        allow_llm: bool = True,
     ) -> Tuple[Optional[str], str]:
         """
         (설명, 카드 앞면 한 줄) 을 함께 돌려준다.
+
+        allow_llm=False 면 캐시에 있는 것만 돌려주고 LLM 을 부르지 않는다
+        (공유 링크 GET 경로 — 봇이 두드려도 비용 0).
 
         한 줄은 모델이 쓴 문장이므로 문법이 깨지지 않는다. 로컬에서 한자 뜻을
         조립하던 경로는 이 값이 없을 때만 쓰인다.
@@ -400,9 +404,9 @@ class MeaningEnGenerator:
         # 만들 수 없을 때는 있는 것이라도 쓴다(도입부만 형식에 맞춰서).
         stale = cached if isinstance(cached, str) else (
             cached.get('text') if isinstance(cached, dict) else None)
-        if not self.api_key:
+        if not self.api_key or not allow_llm:
             if stale:
-                self.last_stale, self.last_stale_why = True, 'no-key'
+                self.last_stale, self.last_stale_why = True, ('no-key' if not self.api_key else 'no-llm')
                 return self._fix_opening(stale, given, label, rom), ''
             return None, ''
 

@@ -271,6 +271,43 @@
     {% if not recent %}<div class="empty" style="border:0;">아직 변환 기록이 없습니다</div>{% endif %}
   </div>
 
+  <div class="sec-label" style="margin-top:26px;">유입 경로 · 공유 (최근 {{ src.window or 30 }}일)</div>
+  <div class="grid2" style="display:flex;gap:16px;align-items:flex-start;margin-bottom:12px;">
+    <div style="flex:1;">
+      <div class="sub" style="color:var(--faint);font-size:11.5px;margin-bottom:6px;">
+        어디서 와서 변환했나 — 성공 {{ src.total }}건 <i>(ref: 는 Referer 호스트, direct 는 출처 없음)</i>
+      </div>
+      {% if src.rows %}
+      <div class="list">
+        {% for r in src.rows %}
+        <div class="row">
+          <div class="rank">{{ loop.index }}</div>
+          <div class="nm">{{ r.source }}</div>
+          <div class="rb"><span style="width:{{ (100 * r.count / src.peak) if src.peak else 0 }}%"></span></div>
+          <div class="ct">{{ r.count }}<small style="color:var(--faint)"> · 신규 {{ r.new }}</small></div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty">아직 기록이 없습니다</div>{% endif %}
+    </div>
+    <div style="flex:1;">
+      <div class="sub" style="color:var(--faint);font-size:11.5px;margin-bottom:6px;">
+        공유 행동 — <b>공유 클릭률 {{ src.share_rate if src.share_rate is not none else '—' }}%</b>
+        <i>(공유+링크복사+저장 ÷ 변환. 이 숫자가 바이럴 루프의 핵심)</i>
+      </div>
+      <div class="list">
+        {% for k, label in [('share','공유 시트'),('copy','링크 복사'),('download','이미지 저장'),('view_share','공유 링크로 들어온 조회')] %}
+        <div class="row">
+          <div class="rank">&nbsp;</div>
+          <div class="nm">{{ label }}</div>
+          <div class="rb"><span style="width:{{ (100 * (src.events.get(k, 0)) / src.total) if src.total else 0 }}%"></span></div>
+          <div class="ct">{{ src.events.get(k, 0) }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
   <div class="sec-label" style="margin-top:26px;">접속 국적 (최근 {{ ctry.window or 30 }}일)</div>
   <div class="grid2" style="display:flex;gap:16px;align-items:flex-start;margin-bottom:12px;">
     <div style="flex:1;">

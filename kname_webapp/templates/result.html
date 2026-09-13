@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ d.full_hangul }} ({{ d.full_rom }}) — your Korean name</title>
+{# 공유 링크(/n/...)용 태그. 개인의 실명이 주소에 들어가므로 검색엔진에는 싣지 않는다(noindex).
+   OG 이미지는 다음 단계(/og/...)에서 붙는다. #}
+<meta name="robots" content="noindex, follow">
+{% if share_url %}<link rel="canonical" href="{{ share_url }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ site_host }}">
+<meta property="og:url" content="{{ share_url }}">
+<meta property="og:title" content="{{ d.full_hangul }} ({{ d.full_rom }}) — {{ d.input }}'s Korean name">
+<meta property="og:description" content="{% if d.meaning_short %}{{ d.meaning_short }}{% if d.hanja %} · {{ d.surname_hanja }}{{ d.hanja }}{% endif %}{% else %}A real Korean name that sounds like {{ d.input }} — with the hanja, the meaning, and the reason behind every syllable.{% endif %}">
+{% if og_image %}<meta property="og:image" content="{{ og_image }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ d.full_hangul }} ({{ d.full_rom }}) — {{ d.input }}'s Korean name">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ og_image }}">{% else %}<meta name="twitter:card" content="summary">{% endif %}
+<meta name="twitter:title" content="{{ d.full_hangul }} ({{ d.full_rom }}) — {{ d.input }}'s Korean name">
+<meta name="twitter:description" content="{% if d.meaning_short %}{{ d.meaning_short }}{% else %}Find your Korean name{% endif %}">{% endif %}
 <link rel="stylesheet" href="{{ url_for('static', filename='notoserifkr.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -37,7 +54,7 @@
         </div>
         {% endif %}
         <div class="flip-hint no-share">&#8634; tap for the story behind it</div>
-        <div class="brand">mykoreanname.cc</div>
+        <div class="brand">{{ site_host }}</div>
       </div>
       {% if d.surname_hanja %}<div class="seal">{{ d.surname_hanja }}</div>{% endif %}
     </div></div>
@@ -93,6 +110,10 @@
     <button class="btn btn-primary" id="shareBtn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
       <span class="btn-label">Share</span>
+    </button>
+    <button class="btn btn-ghost" id="copyLinkBtn" title="{{ share_url }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+      <span class="btn-label">Copy link</span>
     </button>
     <button class="btn btn-secondary" id="downloadBtn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -194,7 +215,37 @@ window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
   // (인스타그램·카카오톡·메시지·에어드롭 등 설치된 앱이 모두 나타남)
   // 지원하지 않는 데스크톱 브라우저에서는 이미지 저장으로 대체한다.
   var shareBtn = document.getElementById('shareBtn');
-  var SHARE_TEXT = '{{ d.full_rom }} ({{ d.full_hangul }}) — my Korean name';
+  // 공유 링크 — 이 결과의 고정 주소(/n/...). 받은 사람은 눌러서 바로 같은 카드를 본다.
+  var SHARE_URL = {{ share_url|tojson }};
+  var SHARE_TITLE = {{ (d.full_hangul ~ ' — my Korean name')|tojson }};
+  var SHARE_TEXT = {{ ('I got my Korean name: ' ~ d.full_hangul ~ ' (' ~ d.full_rom ~ ')' ~ (', “' ~ d.meaning_short ~ '”' if d.meaning_short else '') ~ '. Find yours →')|tojson }};
+
+  // 행동 기록(공유·복사·저장) — 개인정보 없이 종류만. 실패해도 조용히 무시
+  function track(kind){
+    try{
+      var body = JSON.stringify({kind:kind, name:krName});
+      if(navigator.sendBeacon){ navigator.sendBeacon('/api/event', new Blob([body],{type:'application/json'})); }
+      else { fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},body:body,keepalive:true}); }
+    }catch(_){}
+  }
+
+  // ── 링크 복사 ────────────────────────────────────────
+  // iOS 는 파일이 있으면 일부 앱(인스타그램 등)에 글·링크를 안 넘긴다. 그래서 링크 복사가 따로 있다.
+  var copyBtn = document.getElementById('copyLinkBtn');
+  if(copyBtn && SHARE_URL){
+    copyBtn.addEventListener('click', async function(){
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          await navigator.clipboard.writeText(SHARE_URL);
+        } else {
+          var ta = document.createElement('textarea'); ta.value = SHARE_URL;
+          ta.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(ta);
+          ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        }
+        toast('Link copied'); track('copy');
+      }catch(e){ window.prompt('Copy this link', SHARE_URL); track('copy'); }
+    });
+  } else if(copyBtn){ copyBtn.style.display = 'none'; }
 
   // 파일 공유를 지원하지 않는 환경이면 버튼 라벨을 바꿔 오해를 줄인다
   (function(){
@@ -224,15 +275,14 @@ window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
 
       if(navigator.canShare && navigator.canShare({files:files})){
         // 네이티브 공유 시트 — 앞면·뒷면 이미지 모두 공유
-        await navigator.share({
-          files: files,
-          title: 'My Korean Name',
-          text : SHARE_TEXT + '\nGet yours at mykoreanname.cc'
-        });
+        var payload = { files: files, title: SHARE_TITLE, text: SHARE_TEXT };
+        if(SHARE_URL) payload.url = SHARE_URL;   // 지원하는 앱에서는 링크가 함께 간다
+        await navigator.share(payload);
+        track('share');
       } else {
         dl(frontBlob,'my-korean-name-front.png');
         if(backBlob) dl(backBlob,'my-korean-name-back.png');
-        toast('Saved!');
+        toast('Saved!'); track('download');
       }
     } catch(e){
       // 사용자가 공유창을 닫은 경우는 오류가 아니다
@@ -254,7 +304,7 @@ window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
     try{
       dl(await render(),'my-korean-name-front.png');
       var bb = await renderBack(); if(bb) dl(bb,'my-korean-name-back.png');
-      toast('Saved!');
+      toast('Saved!'); track('download');
     }catch(e){ toast('Could not save'); }
   });
 

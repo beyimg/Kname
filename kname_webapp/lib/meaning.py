@@ -271,8 +271,11 @@ class NameMeaning:
         urimal_meaning: Optional[str] = None,
         english_name: Optional[str] = None,
         first_kr: Optional[str] = None,
+        allow_llm: bool = True,
     ) -> Dict[str, str]:
         """이름의 의미를 풍부하게 설명.
+
+        allow_llm=False: 캐시에 없으면 LLM 을 부르지 않고 폴백 문구를 돌려준다(캐시에 남기지 않음).
 
         Args:
             given: 한국 이름 (예: '민준')
@@ -320,6 +323,15 @@ class NameMeaning:
             }
 
         # 5. LLM 호출
+        if not allow_llm:
+            parsed = self._fallback_response(given, sex, name_type, hanja_chars, urimal_meaning)
+            return {
+                'meaning_kr': parsed.get('meaning_kr', ''),
+                'meaning_en': parsed.get('meaning_en', ''),
+                'name_type': name_type,
+                'hanja_chars': hanja_chars,
+                'cached': False,
+            }
         if name_type == 'hanja':
             prompt = self._build_hanja_prompt(given, sex, hanja_chars,
                                               english_name=english_name, first_kr=first_kr)

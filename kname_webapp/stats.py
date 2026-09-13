@@ -85,7 +85,7 @@ class Stats:
                 geo      TEXT
             )''')
             # 이미 만들어진 DB 에는 칼럼이 없다 — 한 번만 붙인다
-            for _col in ('flags TEXT', 'country TEXT', 'geo TEXT', 'ms INTEGER'):
+            for _col in ('flags TEXT', 'country TEXT', 'geo TEXT', 'ms INTEGER', 'source TEXT'):
                 try:
                     c.execute(f'ALTER TABLE conv ADD COLUMN {_col}')
                 except Exception:
@@ -99,6 +99,15 @@ class Stats:
                 inflight INTEGER
             )''')
             c.execute('CREATE INDEX IF NOT EXISTS idx_load_ts ON load(ts)')
+            # 행동 기록: 공유·링크복사·저장 클릭, 공유 링크로 들어온 조회.
+            # kind: share | copy | download | view_share   source: 첫 방문의 유입 경로(쿠키)
+            c.execute('''CREATE TABLE IF NOT EXISTS event(
+                ts     INTEGER,
+                kind   TEXT,
+                source TEXT,
+                name   TEXT
+            )''')
+            c.execute('CREATE INDEX IF NOT EXISTS idx_event_ts ON event(ts)')
             # 결과물 품질 문제(비문·의미설명 없음 등). 변환은 성공했지만
             # 카드에 실린 결과가 이상한 경우를 여기 쌓는다.
             c.execute('''CREATE TABLE IF NOT EXISTS issue(
@@ -113,15 +122,15 @@ class Stats:
     # ------------------------------------------------------------ 기록
     def record(self, *, ok, is_new, native, quality, sex,
                first_en, last_en, given, hangul, flags='',
-               country='', geo='', ms=None):
+               country='', geo='', ms=None, source=''):
         if not self.ok:
             return
         try:
             with self._lock, self._conn() as c:
                 c.execute(
                     'INSERT INTO conv(ts,ok,is_new,native,quality,sex,'
-                    'first_en,last_en,given,hangul,flags,country,geo,ms) '
-                    'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                    'first_en,last_en,given,hangul,flags,country,geo,ms,source) '
+                    'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                     (int(time.time()), int(bool(ok)), int(bool(is_new)),
                      int(bool(native)), (quality or '')[:8], (sex or '')[:8],
                      (first_en or '')[:40].strip().lower(),
@@ -130,9 +139,57 @@ class Stats:
                      (flags or '')[:120],
                      (country or '')[:2].upper(),
                      (geo or '')[:2].upper(),
-                     int(ms) if ms is not None else None))
+                     int(ms) if ms is not None else None,
+                     (source or '')[:60]))
         except Exception:
             pass
+
+    def record_event(self, kind: str, source: str = '', name: str = '') -> None:
+        """공유·복사·저장 클릭, 공유 링크 조회를 남긴다."""
+        if not self.ok:
+            return
+        try:
+            with self._lock, self._conn() as c:
+                c.execute('INSERT INTO event(ts,kind,source,name) VALUES(?,?,?,?)',
+                          (int(time.time()), (kind or '')[:20], (source or '')[:60], (name or '')[:20]))
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------ 유입·공유
+    def sources(self, days=30, top_n=15) -> dict:
+        """유입 경로별 변환 수 + 공유 행동. GROWTH_STRATEGY 의 '가장 중요한 하나' = 공유 클릭률.
+
+        source 값: ref 태그(?ref=… / ?utm_source=…) 그대로, 없으면 'ref:<referer 호스트>',
+        둘 다 없으면 'direct'(주소 직접 입력·앱 내 링크 등). 사이트 안에서 온 것은 세지 않는다."""
+        out = {'ok': self.ok, 'window': days, 'rows': [], 'total': 0,
+               'events': {}, 'conversions': 0, 'share_rate': None, 'view_share': 0}
+        if not self.ok:
+            return out
+        try:
+            since = int(time.time()) - days * 86400
+            with self._conn() as c:
+                cur = c.cursor()
+                rows = cur.execute(
+                    'SELECT COALESCE(NULLIF(source,""),"direct") s, COUNT(*) n, SUM(is_new) new '
+                    'FROM conv WHERE ts>=? AND ok=1 GROUP BY s ORDER BY n DESC LIMIT ?',
+                    (since, top_n)).fetchall()
+                out['rows'] = [{'source': r[0], 'count': r[1], 'new': r[2] or 0} for r in rows]
+                out['total'] = cur.execute('SELECT COUNT(*) FROM conv WHERE ts>=? AND ok=1',
+                                           (since,)).fetchone()[0]
+                out['conversions'] = out['total']
+                ev = cur.execute('SELECT kind, COUNT(*) FROM event WHERE ts>=? GROUP BY kind',
+                                 (since,)).fetchall()
+                out['events'] = {k: n for k, n in ev}
+                out['view_share'] = out['events'].get('view_share', 0)
+                shares = sum(out['events'].get(k, 0) for k in ('share', 'copy', 'download'))
+                out['shares'] = shares
+                out['share_rate'] = (round(100.0 * shares / out['total'], 1)
+                                     if out['total'] else None)
+            return out
+        except Exception as e:
+            import sys
+            print(f'[stats] sources failed: {e}', file=sys.stderr, flush=True)
+            return out
 
     def record_load(self, pid: int, inflight: int) -> None:
         """동시 처리 중 요청이 창구 수에 닿은 순간을 남긴다(app.py 가 호출)."""

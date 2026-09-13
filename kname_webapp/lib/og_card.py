@@ -12,7 +12,7 @@
         'input': 'Emma Smith', 'syllables': ['서', '예', '나'],
         'full_rom': 'Seo Ye-na', 'meaning_short': 'Someone wise who shines with grace',
         'surname_hanja': '徐',
-    }, '/var/data/og/emma-smith-f.png')
+    }, '/var/data/og/emma-smith-f.jpg')
 
 폰트: 한글·한자·영문 모두 Noto Serif KR Light 한 벌로 그린다(FONT_PATH). 웹 폰트
 notoserifkr-app.woff2 에는 영문 글자가 없으므로 서버용 TTF 는 따로 둔다.
@@ -22,19 +22,26 @@ Pillow 에 이탤릭이 없어 이탤릭 줄은 층을 따로 그려 기울인�
 tools/make_paper_grain.py 의 설명 참고.
 """
 import os
+import re
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 W, H = 1200, 630
+# 디자인을 바꾸면 올린다 — 캐시된 카드 파일명에 들어가므로 예전 그림이 남지 않는다
+CARD_VERSION = 1
 INK, INK_SOFT, INK_FAINT = (26, 26, 26), (110, 110, 110), (168, 168, 168)
 LINE = (224, 216, 199)
 SEAL = (176, 67, 58)
 
 _BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# 본문 세리프(한글·한자·영문). 파일이 없으면 render_* 가 FileNotFoundError 를 낸다.
-FONT_PATH = os.environ.get('OG_FONT') or os.path.join(_BASE, 'static', 'fonts', 'NotoSerifKR-Light.otf')
-# 작은 대문자 라벨(YOUR KOREAN NAME / MYKOREANNAME.CC)용 산세리프. 없으면 본문 폰트로 대신한다.
-SANS_PATH = os.environ.get('OG_FONT_SANS') or os.path.join(_BASE, 'static', 'fonts', 'label-sans.ttf')
+# 본문 세리프(한글·한자·영문). tools/make_og_fonts.py 가 만든다. 파일이 없으면 render_* 가 OSError 를 낸다.
+FONT_PATH = os.environ.get('OG_FONT') or os.path.join(_BASE, 'assets', 'fonts', 'NotoSerifKR-Light.otf')
+# 작은 대문자 라벨(YOUR KOREAN NAME / 사이트명)용 산세리프. 없으면 본문 폰트로 대신한다.
+SANS_PATH = os.environ.get('OG_FONT_SANS') or os.path.join(_BASE, 'assets', 'fonts', 'label-sans.ttf')
+# 카드 아래 사이트명. SITE_URL 의 호스트를 대문자로(웹 카드의 .brand 와 같은 출처). 도메인이 바뀌면 같이 바뀐다.
+BRAND = (os.environ.get('OG_BRAND')
+         or re.sub(r'^https?://', '', os.environ.get('SITE_URL', '')).split('/')[0]
+         or 'kname.onrender.com').upper()
 
 # 종이 색·질감·가장자리 — 시안에서 확정한 값. 바꾸면 웹 카드(style.css --paper-grad)도 같이 맞출 것
 PAPER_BASE = (254.0, 253.0, 248.0)   # 요철·비네트 적용 전 바탕색 (측정 결과: 가운데 250·248·241)
@@ -169,7 +176,7 @@ def render_result_card(d, out):
         layer = _italic_layer(q, f_mean, INK)
         img.paste(layer, (0, 456 - 40), layer)
 
-    _draw_center(dr, 566, 'MYKOREANNAME.CC', f_brand, INK_FAINT, spacing=3)
+    _draw_center(dr, 566, BRAND, f_brand, INK_FAINT, spacing=3)
 
     if d.get('surname_hanja'):
         _seal(img, dr, d['surname_hanja'], f_seal)
@@ -199,7 +206,7 @@ def render_default_card(out, examples=('서예나', '문이언', '전하린')):
     img.paste(layer, (0, 408 - 40), layer)
     dr.rectangle(((W - 60) / 2, 476, (W + 60) / 2, 477), fill=LINE)
     _draw_center(dr, 500, 'Free  ·  takes 10 seconds  ·  no sign-up', f_label, INK_FAINT, spacing=1)
-    _draw_center(dr, 562, 'MYKOREANNAME.CC', f_label, INK_FAINT, spacing=3)
+    _draw_center(dr, 562, BRAND, f_label, INK_FAINT, spacing=3)
     _save(img, out)
     return out
 
