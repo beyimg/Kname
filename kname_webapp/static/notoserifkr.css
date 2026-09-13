@@ -1,13 +1,24 @@
 /* 한글·한자 세리프를 사이트에서 직접 제공(self-host)한다.
-   구글 폰트(Noto Serif KR)는 파일이 커서 모바일·인앱 브라우저에서
-   로딩이 실패/차단되는 경우가 있어 한글이 기본 고딕으로 떨어졌다.
-   아래 woff2 하나에 한글 11,172자 전체 + 한자 4,883자를 담아 같은 서버에서
-   불러오므로, 외부 의존 없이 어느 기기에서나 안정적으로 적용된다.
-   가중치는 하나의 파일로 100~900 범위를 모두 담당해 가짜 볼드(faux-bold)를 막는다. */
+   구글 폰트(Noto Serif KR)는 파일이 커서 모바일·인앱 브라우저에서 로딩이 실패/차단되는
+   경우가 있어 한글이 기본 고딕으로 떨어졌다. 그래서 같은 서버에서 내려준다.
+
+   이 파일은 tools/make_font_subset.py 가 만든다. 손으로 고치지 말 것.
+   - notoserifkr-app.v2.woff2: 한글 2353자(KS X 1001 + 데이터에 쓰인 음절) + 한자 1172자. 원본 1.8MB → 537 KB
+   - notoserifkr-extra.v2.woff2: 원본에 없던 한자 44자. unicode-range 덕에 그 글자가 화면에 있을 때만 받는다 (22 KB)
+   글꼴에 없는 글자가 나와도 깨지지 않고 기기 글꼴로 그려진다.
+   가중치는 파일 하나로 100~900 을 담당한다(굵게는 브라우저가 합성). */
 @font-face{
   font-family:'Noto Serif KR';
   font-style:normal;
   font-display:swap;
   font-weight:100 900;
-  src:url(notoserifkr-app.woff2) format('woff2');
+  src:url(notoserifkr-app.v2.woff2) format('woff2');
+}
+@font-face{
+  font-family:'Noto Serif KR';
+  font-style:normal;
+  font-display:swap;
+  font-weight:100 900;
+  src:url(notoserifkr-extra.v2.woff2) format('woff2');
+  unicode-range:U+3400, U+4FD0, U+518F, U+579E, U+57B8, U+5807, U+592C, U+593D, U+5A2B, U+5A84, U+5B9F, U+5D1F, U+633F, U+65F2, U+6600, U+6602, U+6624, U+6662, U+6679, U+66C8, U+6C84, U+6C98, U+6ED5, U+6F0C, U+70D3, U+71CF, U+7395, U+73A6, U+73D7, U+73E2, U+74B1, U+769B, U+7ADC, U+854A, U+8B53, U+8B7F, U+9052, U+90CE, U+90DD, U+9215, U+962D, U+9D0C, U+9ED9, U+9FFF;
 }

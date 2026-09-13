@@ -77,6 +77,56 @@ def _no_reading_error(name, kind):
 
 app = Flask(__name__)
 
+# ---------------------------------------------------------------- 정적 파일 캐시
+# 방문자가 폰트(0.5MB)·종이 질감·CSS 를 올 때마다 다시 받지 않게 한다.
+#  · 템플릿의 url_for('static', ...) 주소에 ?v=<파일 내용 해시> 가 자동으로 붙는다.
+#    파일을 고치면 주소가 바뀌므로, 오래 캐시해도 예전 CSS/JS 가 남는 일이 없다.
+#  · 폰트·이미지는 이름에 판을 넣어 관리한다(notoserifkr-app.v2.woff2, paper-grain.png).
+#    내용을 바꿀 때는 파일명(판)을 바꿀 것 — 같은 이름으로 덮어쓰면 1년간 예전 것이 보일 수 있다.
+#  · 발음 오디오는 하루. 목소리 설정을 바꾸면 다음 날부터 새것이 들린다.
+import hashlib
+_STATIC_VER = {}     # filename -> (mtime_ns, size, hash)
+
+
+def _static_version(filename):
+    path = os.path.join(app.static_folder, filename)
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    hit = _STATIC_VER.get(filename)
+    if hit and hit[0] == st.st_mtime_ns and hit[1] == st.st_size:
+        return hit[2]
+    with open(path, 'rb') as f:
+        h = hashlib.md5(f.read()).hexdigest()[:8]
+    _STATIC_VER[filename] = (st.st_mtime_ns, st.st_size, h)
+    return h
+
+
+@app.url_defaults
+def _static_url_version(endpoint, values):
+    if endpoint == 'static' and 'filename' in values and 'v' not in values:
+        v = _static_version(values['filename'])
+        if v:
+            values['v'] = v
+
+
+_IMMUTABLE_EXT = ('.woff2', '.woff', '.ttf', '.otf', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.webp')
+
+
+@app.after_request
+def _static_cache_headers(resp):
+    p = request.path
+    if not p.startswith('/static/') or resp.status_code != 200:
+        return resp
+    if 'v' in request.args or p.lower().endswith(_IMMUTABLE_EXT):
+        resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    elif p.lower().endswith('.mp3'):
+        resp.headers['Cache-Control'] = 'public, max-age=86400'
+    else:
+        resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
 # ---------------------------------------------------------------- 에러 모니터링
 # Sentry: SENTRY_DSN 환경변수가 있을 때만 켜진다. 앱 어딘가에서 예외가 터지면
 # 자동으로 잡아 스택 트레이스·발생 빈도·맥락과 함께 이메일로 알려준다.
