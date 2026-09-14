@@ -115,6 +115,9 @@ html,body{
 .btn-primary{background:#1a1a1a;color:#fff;}
 .btn-secondary{background:#f0f0f0;color:#1a1a1a;}
 .btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line);}
+/* 공유 링크로 들어온 사람이 자기 이름을 넣어 보게 하는 버튼 — 흰 바탕에 검정 글씨로 또렷하게 */
+.btn-white{background:#fff;color:var(--ink);border:1px solid #cfc8b8;box-sizing:border-box;box-shadow:0 2px 10px rgba(60,50,30,0.08);text-decoration:none;}
+.btn-white:hover{border-color:var(--ink);}
 .btn svg{width:19px;height:19px;}
 .btn:disabled{opacity:.45;cursor:default;}
 

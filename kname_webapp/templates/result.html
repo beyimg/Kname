@@ -123,6 +123,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
       Hear pronunciation
     </button>
+    <a class="btn btn-white" id="tryAnotherBtn" href="{{ site_url }}/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+      Try another name
+    </a>
   </div>
   <div class="hint" id="shareHint">Opens your phone&rsquo;s share sheet — Instagram, KakaoTalk, Messages, and more.</div>
 
@@ -218,7 +222,12 @@ window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
   // 공유 링크 — 이 결과의 고정 주소(/n/...). 받은 사람은 눌러서 바로 같은 카드를 본다.
   var SHARE_URL = {{ share_url|tojson }};
   var SHARE_TITLE = {{ (d.full_hangul ~ ' — my Korean name')|tojson }};
-  var SHARE_TEXT = {{ ('I got my Korean name: ' ~ d.full_hangul ~ ' (' ~ d.full_rom ~ ')' ~ (', “' ~ d.meaning_short ~ '”' if d.meaning_short else '') ~ '. Find yours →')|tojson }};
+  // 카카오톡·인스타그램 등은 이미지가 함께 가면 url 항목을 버린다. 그래서 링크를 문구 안에 직접 넣는다.
+  //   1줄: 내 결과 + 내 카드 링크(눌러 들어오면 카드가 뜨고 '다른 이름으로 해보기'가 있다)
+  //   2줄: Find yours → 사이트 주소
+  var SHARE_TEXT = {{ ('I got my Korean name: ' ~ d.full_hangul ~ ' (' ~ d.full_rom ~ ')' ~ (', “' ~ d.meaning_short ~ '”' if d.meaning_short else '') ~ '.')|tojson }}
+                 + (SHARE_URL ? '\n' + SHARE_URL : '')
+                 + '\nFind yours → ' + {{ site_url|tojson }};
 
   // 행동 기록(공유·복사·저장) — 개인정보 없이 종류만. 실패해도 조용히 무시
   function track(kind){
