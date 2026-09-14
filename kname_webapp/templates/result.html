@@ -69,6 +69,16 @@
           <div class="back-surname">{{ d.surname_desc }}</div>
         </div>
         <div class="back-divider"></div>
+        {% elif d.no_surname %}
+        <div class="back-section" style="margin-top:8px;">
+          <div class="back-section-label"><span>Your Korean surname</span></div>
+          <div class="back-surname back-nudge">
+            Korean names put the family name first — like <span class="kr">이수아</span>, Lee Su-a.
+            Add your last name and we&rsquo;ll find your Korean surname too, with its hanja and history.
+            <a class="nudge-link" href="{{ site_url }}/?first={{ d.first_en|urlencode }}&g={{ 'm' if d.sex == '남' else ('x' if d.sex == 'other' else 'f') }}&focus=last">Add my last name &rarr;</a>
+          </div>
+        </div>
+        <div class="back-divider"></div>
         {% endif %}
         <div class="back-section">
           <div class="back-section-label"><span>What your name means</span></div>

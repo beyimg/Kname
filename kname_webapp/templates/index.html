@@ -108,16 +108,16 @@
       </div>
 
       <div class="field">
-        <label for="last_name">Last name</label>
+        <label for="last_name">Last name <span class="opt">(optional)</span></label>
         <input type="text" id="last_name" name="last_name" placeholder="Hernandez"
                value="{{ last_name or '' }}" autocomplete="family-name" maxlength="40"
-               autocapitalize="words" spellcheck="false" required>
+               autocapitalize="words" spellcheck="false">
       </div>
 
       <div class="field">
         <label for="country">Where are you from? <span class="opt">(optional)</span></label>
         <select id="country" name="country" autocomplete="country">
-          <option value="">Prefer not to say</option>
+          <option value="">Optional</option>
           {% for code, name in (countries or []) %}
           <option value="{{ code }}" {% if country == code %}selected{% endif %}>{{ name }}</option>
           {% endfor %}
@@ -186,13 +186,13 @@
 
   document.getElementById('nameForm').addEventListener('submit', function (e) {
     var bad = null;
-    if (!last.value.trim())  { last.classList.add('is-invalid');  bad = last; }
     if (!first.value.trim()) { first.classList.add('is-invalid'); bad = first; }
     if (bad) { e.preventDefault(); bad.focus(); }
   });
   [first, last].forEach(function (el) {
     el.addEventListener('input', function () { el.classList.remove('is-invalid'); });
   });
+  if (/[?&]focus=last\b/.test(location.search)) { last.focus(); }
 
   // 더 알아보기: 한 항목을 열면 나머지는 닫는다(아코디언)
   document.querySelectorAll('.learn-list .li-item').forEach(function (d) {

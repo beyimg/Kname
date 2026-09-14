@@ -1267,6 +1267,9 @@ def _regender(text, sex):
 
 
 # ---------------------------------------------------------------- 변환 파이프라인
+_PLACEHOLDER_SURNAME_TR = '김'     # 성을 안 넣었을 때 엔진에 넣는 자리표시(결과에는 안 나감)
+
+
 def convert_name(first_en, last_en, sex, allow_llm=True):
     """
     영어 이름 → 한국 이름 전체 결과.
@@ -1283,9 +1286,9 @@ def convert_name(first_en, last_en, sex, allow_llm=True):
 
     if not first_key:
         return {'error': 'Please enter your first name.'}
-    if not last_key:
-        return {'error': 'Please enter your last name — a Korean name needs a family name '
-                         'to be complete, and it comes first (like 이수아, Lee Su-a).'}
+    # 성은 선택이다. 비워 두면 이름만 만들고, 성씨 결과는 비운다(뒷면에서 성을 넣어 보라고 권한다).
+    # 엔진은 성과의 어울림까지 보므로 흔한 성 '김'을 자리표시로 넣어 돌리되, 결과에는 내지 않는다.
+    no_surname = not last_key
     # 입력 길이 제한 — 너무 긴/이상한 값으로 AI 프롬프트를 흔드는 것 방지
     if len(first_key) > 40 or len(last_key) > 40:
         return {'error': 'Please enter a shorter name.'}
@@ -1293,9 +1296,12 @@ def convert_name(first_en, last_en, sex, allow_llm=True):
     # 음차는 사전 → 캐시 → LLM → 규칙 기반 폴백까지 이어져 실패하지 않는다.
     # 여기서 None 이 나오는 유일한 경우는 라틴 알파벳이 한 글자도 없는
     # 입력(숫자·기호만)이며, 이는 시스템 오류가 아니라 입력 오류다.
-    last_tr = TRANSLIT.transliterate(last_key, 'surname', allow_llm=allow_llm)
-    if not last_tr:
-        return {'error': _no_reading_error(last_en, 'surname')}
+    if no_surname:
+        last_tr = _PLACEHOLDER_SURNAME_TR
+    else:
+        last_tr = TRANSLIT.transliterate(last_key, 'surname', allow_llm=allow_llm)
+        if not last_tr:
+            return {'error': _no_reading_error(last_en, 'surname')}
 
     picked = _pick_neutral(first_key, last_tr, allow_llm=allow_llm) if neutral else None
     if neutral and not picked:
@@ -1409,6 +1415,8 @@ def convert_name(first_en, last_en, sex, allow_llm=True):
             eng_surname = r2.get('last_1')
         sres = SURNAME_INFO.get(eng_surname)
 
+    if no_surname:
+        sres = None                     # 성을 안 넣었으면 성씨 결과를 내지 않는다
     surname = sres.get('surname') if sres else None
     surname_rom = sres.get('romanized') if sres else None
     surname_hanja = sres.get('hanja') if sres else None
@@ -1530,6 +1538,7 @@ def convert_name(first_en, last_en, sex, allow_llm=True):
         'surname_rom': surname_rom,
         'surname_hanja': surname_hanja,
         'surname_desc': surname_desc,
+        'no_surname': no_surname,
         'full_hangul': (surname or '') + given,
         'full_rom': (f'{surname_rom} {given_rom}' if surname_rom else given_rom),
         'quality': quality,
@@ -1604,9 +1613,9 @@ def _client_ip():
 
 def _needs_llm(first_key, last_key, sex):
     """이 이름이 '새 이름'(사전·캐시에 없어 LLM 필요)인지. LLM 호출 없이 판정."""
-    if not first_key or not last_key:
+    if not first_key:
         return False
-    if TRANSLIT.transliterate(last_key, 'surname', allow_llm=False) is None:
+    if last_key and TRANSLIT.transliterate(last_key, 'surname', allow_llm=False) is None:
         return True
     if sex == 'other':
         return (TRANSLIT.transliterate(first_key, 'male', allow_llm=False) is None
@@ -1618,7 +1627,7 @@ def _needs_llm(first_key, last_key, sex):
 def _log_conv(first_en, last_en, sex, is_new, data, country='', geo='', ms=None):
     source = _source_cookie()
     """변환 1건을 통계에 기록(성공/실패 모두). 빈 입력은 제외."""
-    if not (str(first_en).strip() and str(last_en).strip()):
+    if not str(first_en).strip():
         return
     ok = 'error' not in data
     # 품질 점검을 먼저 돌려, 그 결과를 같은 행에 남긴다.
@@ -1766,6 +1775,8 @@ _SEX_TO_G = {'여': 'f', '남': 'm', 'other': 'x'}
 
 
 def _share_path(first_en, last_en, sex):
+    if not (last_en or '').strip():
+        return url_for('name_page', first=first_en.strip(), g=_SEX_TO_G.get(sex, 'f'))
     return url_for('name_page', first=first_en.strip(), last=last_en.strip(),
                    g=_SEX_TO_G.get(sex, 'f'))
 
@@ -1782,10 +1793,11 @@ def _render_result(data, first_en, last_en, sex):
         og_image=_og_url(first_en, last_en, sex))
 
 
+@app.route('/n/<first>')
 @app.route('/n/<first>/<last>')
-def name_page(first, last):
+def name_page(first, last=''):
     first = first.strip()[:40]
-    last = last.strip()[:40]
+    last = (last or '').strip()[:40]
     sex = _G_TO_SEX.get(request.args.get('g', 'f'), '여')
     if not RATE.check(_client_ip()):
         return render_template('index.html', error=_BUSY_RATE,
@@ -1831,6 +1843,9 @@ def _og_path(first, last, sex):
 def _og_url(first, last, sex):
     if not _OG_OK:
         return None
+    if not (last or '').strip():
+        return _site_url() + url_for('og_image', first=first.strip(),
+                                     g=_SEX_TO_G.get(sex, 'f'), v=_OG_VERSION)
     return _site_url() + url_for('og_image', first=first.strip(), last=last.strip(),
                                  g=_SEX_TO_G.get(sex, 'f'), v=_OG_VERSION)
 
@@ -1841,12 +1856,13 @@ def _send_og(path):
     return resp
 
 
+@app.route('/og/<first>.jpg')
 @app.route('/og/<first>/<last>.jpg')
-def og_image(first, last):
+def og_image(first, last=''):
     if not _OG_OK:
         abort(404)
     first = first.strip()[:40]
-    last = last.strip()[:40]
+    last = (last or '').strip()[:40]
     sex = _G_TO_SEX.get(request.args.get('g', 'f'), '여')
     path = _og_path(first, last, sex)
     if os.path.exists(path):

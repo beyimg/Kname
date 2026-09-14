@@ -237,6 +237,11 @@ html,body{
 .back-section-label::before,.back-section-label::after{content:"";flex:1;height:1px;background:#e0d8c7;}
 .back-surname,.back-meaning{font-size:12.7px;line-height:1.72;color:#413c34;max-width:262px;margin:0 auto;text-align:left;}
 .back-surname b,.back-meaning b{color:var(--ink);font-weight:500;}
+/* 성을 안 넣은 결과의 뒷면 — 성을 넣어 보라는 권유 */
+.back-nudge{background:rgba(255,255,255,.55);border:1px dashed #d8cfbc;border-radius:4px;padding:12px 14px;text-align:center;}
+.back-nudge .kr{font-family:var(--kr);color:var(--ink);}
+.nudge-link{display:inline-block;margin-top:9px;padding:8px 16px;border:1px solid var(--ink);border-radius:2px;
+  color:var(--ink);text-decoration:none;font-family:var(--sans);font-size:12px;letter-spacing:.4px;font-weight:600;background:#fff;}
 .meaning-pending{color:var(--ink-faint);font-style:italic;}
 .btn-retry{
   display:block;margin:12px auto 0;padding:8px 18px;
