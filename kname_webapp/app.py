@@ -625,6 +625,8 @@ def _generate_meaning(given, sex, english_first, translit, neutral=False, allow_
             # 예전 캐시를 그대로 내보낸 경우 — 내용이 낡았으므로 기록한다
             out['meaning_stale'] = bool(getattr(MEANING_EN, 'last_stale', False))
             out['meaning_stale_why'] = getattr(MEANING_EN, 'last_stale_why', None)
+            # 출력 전 검수 결과 요약(status / issues / reason). quality.audit 가 기록한다.
+            out['review'] = getattr(MEANING_EN, 'last_review', None)
 
         # ② 실패 시 meaning.py로 폴백 (한국어+영어 생성, 비용 높음)
         if not en:
@@ -1365,6 +1367,7 @@ def convert_name(first_en, last_en, sex, allow_llm=True):
     meaning_short = ''      # LLM이 설명과 함께 써 준 카드 앞면 한 줄
     meaning_stale = False   # 예전 캐시를 그대로 쓴 경우(내용이 낡았다)
     meaning_stale_why = None
+    meaning_review = None   # 출력 전 검수 요약(LLM 생성 설명에만 있다)
     # 설명의 출처를 끝까지 따라간다: dict(미리 작성된 602개) / llm / template /
     # native(순우리말 로컬 설명). 점검 도구가 이 값을 그대로 읽으면 되므로,
     # 문체로 되짚다가 오판하는 일이 없어진다.
@@ -1386,6 +1389,7 @@ def convert_name(first_en, last_en, sex, allow_llm=True):
             meaning_short = gen.get('meaning_short') or ''
             meaning_stale = bool(gen.get('meaning_stale'))
             meaning_stale_why = gen.get('meaning_stale_why')
+            meaning_review = gen.get('review')
 
     # 순우리말 정본 사전에 있으면: 한자를 감추고 그 뜻을 쓴다.
     # (DB 오분류·LLM 신호 여부와 무관하게 순우리말을 보장. HANJA_OK 이름은 한자 병기 허용)
@@ -1557,6 +1561,8 @@ def convert_name(first_en, last_en, sex, allow_llm=True):
         # 프롬프트가 바뀐 뒤 재생성에 실패해 예전 캐시를 쓴 경우
         'meaning_stale': bool(meaning_stale),
         'meaning_stale_why': meaning_stale_why,
+        # 출력 전 검수 요약 — quality.audit 가 review/* 코드로 기록한다
+        'meaning_review': meaning_review,
         'neutral_request': bool(neutral),
         'reason': reason,
     }
@@ -2468,6 +2474,90 @@ def status():
     return jsonify(body), (200 if body['ok'] else 503)
 
 
+def _review_status():
+    """출력 전 검수기(meaning_review) 상태. 없으면 '꺼짐' 으로."""
+    rv = getattr(MEANING_EN, 'reviewer', None) if MEANING_EN is not None else None
+    if rv is None:
+        return {'enabled': False, 'model': '(off)', 'disabled_reason': None,
+                'last_error': None, 'calls': 0, 'edits': 0, 'consecutive_failures': 0}
+    try:
+        return rv.status()
+    except Exception:
+        return {'enabled': False, 'model': '?', 'disabled_reason': 'status() 실패',
+                'last_error': None, 'calls': 0, 'edits': 0, 'consecutive_failures': 0}
+
+
+def _admin_authed():
+    want = os.environ.get('ADMIN_TOKEN')
+    tok = request.args.get('token', '') or request.cookies.get('admin_auth', '')
+    return bool(want and tok == want)
+
+
+@app.route('/admin/reviews')
+def admin_reviews():
+    """
+    출력 전 검수 기록 — 검수기가 무엇을 고쳤는지 전후 텍스트로 본다.
+    캐시(meaning_en_cache.json)에 남은 review 요약을 최근 순으로 보여준다.
+    검수 프롬프트를 조정할지 판단하는 근거가 여기 있다.
+    """
+    if not _admin_authed():
+        return ('Not found', 404)
+    rows = []
+    cache = getattr(MEANING_EN, '_cache', {}) if MEANING_EN is not None else {}
+    for key, ent in list(cache.items()):
+        if not isinstance(ent, dict) or not isinstance(ent.get('review'), dict):
+            continue
+        rv = ent['review']
+        if rv.get('status') == 'ok':
+            continue                      # 문제없음은 굳이 나열하지 않는다
+        rows.append({
+            'key': key, 'status': rv.get('status'), 'ts': rv.get('ts') or 0,
+            'issues': rv.get('issues') or [], 'reason': rv.get('reason'),
+            'before': rv.get('orig'), 'after': ent.get('text'),
+            'before_short': rv.get('orig_short'), 'after_short': ent.get('short'),
+        })
+    rows.sort(key=lambda r: -r['ts'])
+    rows = rows[:200]
+    st = _review_status()
+    from stats import _fmt as _stats_fmt
+    for r in rows:
+        r['when'] = _stats_fmt(r['ts'], '%Y-%m-%d %H:%M') if r['ts'] else ''
+    import html as _html
+    e = _html.escape
+    color = {'edited': '#0F6E56', 'rejected': '#854F0B', 'failed': '#993C1D'}
+    parts = ['<!doctype html><meta charset="utf-8"><title>설명 검수 기록</title>',
+             '<style>body{font:14px/1.5 system-ui,sans-serif;max-width:960px;margin:24px auto;padding:0 16px;color:#222}'
+             'h1{font-size:18px}.row{border:1px solid #e5e5e5;border-radius:8px;padding:12px 14px;margin:10px 0}'
+             '.st{font-weight:600}.k{color:#777;font-size:12px}.t{white-space:pre-wrap;margin:4px 0 8px}'
+             '.b{background:#faf3f3}.a{background:#f2faf6}.t.b,.t.a{padding:8px;border-radius:6px}'
+             'ul{margin:4px 0 8px 18px}small{color:#777}</style>',
+             f'<h1>설명 검수 기록 <small>· {e(st["model"])} · 검수 {st["calls"]}건 · 수정 {st["edits"]}건'
+             f'{" · " + e(str(st["disabled_reason"])) if st["disabled_reason"] else ""}</small></h1>',
+             '<p class="k">"ok"(문제없음)는 나열하지 않습니다. edited = 수정본 채택 · rejected = 검수기 수정본을 사후 검증이 거부(원문 유지) · failed = 검수 호출 실패(원문 유지)</p>',
+             '<p><a href="/admin">← 대시보드</a></p>']
+    if not rows:
+        parts.append('<p>아직 기록이 없습니다.</p>')
+    for r in rows:
+        parts.append(f'<div class="row"><span class="st" style="color:{color.get(r["status"], "#333")}">{e(r["status"])}</span>'
+                     f' <b>{e(r["key"])}</b> <span class="k">{e(r["when"])}</span>')
+        if r['issues']:
+            parts.append('<ul>' + ''.join(f'<li>{e(i)}</li>' for i in r['issues']) + '</ul>')
+        if r['reason']:
+            parts.append(f'<div class="k">사유: {e(str(r["reason"]))}</div>')
+        if r['status'] == 'edited':
+            parts.append(f'<div class="k">수정 전</div><div class="t b">{e(r["before"] or "")}</div>'
+                         f'<div class="k">수정 후</div><div class="t a">{e(r["after"] or "")}</div>')
+            if (r['before_short'] or '') != (r['after_short'] or ''):
+                parts.append(f'<div class="k">한 줄: <s>{e(r["before_short"] or "")}</s> → {e(r["after_short"] or "")}</div>')
+        else:
+            parts.append(f'<div class="k">현재 텍스트</div><div class="t">{e(r["after"] or "")}</div>')
+        parts.append('</div>')
+    resp = make_response('\n'.join(parts))
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    resp.headers['Cache-Control'] = 'no-store'
+    return resp
+
+
 @app.route('/admin')
 def admin():
     """
@@ -2505,6 +2595,8 @@ def admin():
         'tts_ok': bool(TTS_FULL.available),
         'tts_mode': TTS_FULL.last_mode,
         'tts_error': getattr(TTS_FULL, 'last_error', None),
+        # 출력 전 검수기 상태 — 모델명이 틀리면 여기서 '꺼짐(오류)' 로 보인다
+        'review': _review_status(),
         'new_today': s.get('new_today', 0),
         'daily_max': daily_max,
         'cache_entries': cache_entries,

@@ -107,6 +107,18 @@
       <div class="sub">{{ op.tts_mode or ('Google 자격증명 없음 — 로봇 음성으로 대체됨' if not op.tts_ok else '아직 호출 없음') }}</div>
     </div>
     <div class="card">
+      <div class="k">설명 검수(LLM)</div>
+      {% set rv = op.review %}
+      <div class="v" style="font-size:18px;color:{{ 'var(--ok)' if rv.enabled else ('var(--bad)' if rv.disabled_reason else 'var(--faint)') }}">
+        {{ '작동' if rv.enabled else ('꺼짐(오류)' if rv.disabled_reason else '꺼짐') }}</div>
+      <div class="sub">
+        {% if rv.disabled_reason %}{{ rv.disabled_reason }}
+        {% elif rv.enabled %}{{ rv.model }} · 검수 {{ rv.calls }}건 · 수정 {{ rv.edits }}건{% if rv.last_error %} · 최근 오류: {{ rv.last_error[:40] }}{% endif %}
+        {% else %}MEANING_REVIEW_MODEL 이 비어 있거나 키 없음{% endif %}
+        · <a href="/admin/reviews" style="color:inherit">기록</a>
+      </div>
+    </div>
+    <div class="card">
       <div class="k">오늘 신규(AI) 변환</div>
       <div class="v">{{ op.new_today }} <small>/ {{ op.daily_max }}</small></div>
       {% set nb = (100 * op.new_today / op.daily_max) if op.daily_max else 0 %}

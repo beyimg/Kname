@@ -13,6 +13,13 @@ def match_phrase(src, tgt, sim):
     임계값은 실제 매칭 466건 분포로 보정했다.
         strong  ≥ 0.87   partial ≥ 0.68   soft ≥ 0.52   loose < 0.52
     문구는 '무엇이 공통인지'(자음/모음)에 따라 정직하게 고른다.
+
+    원칙 — 정도 표현은 사실과 어긋나면 안 된다.
+      · 같은 글자면 "almost"·"similar"·"close" 같은 말을 붙이지 않는다.
+        (소피아의 아→아 를 "maps almost exactly onto" 이라고 써서 사용자가
+         지적했다. 사전 이름 전체를 돌려 보니 3,821건 중 766건이 이 경우였다.)
+      · 모음이 같은데 "a similar vowel" 이라 하거나(106건), 모음이 비슷할
+        뿐인데 "shares a vowel" 이라 하지(11건) 않는다.
     """
     c1, j1, _ = decompose(src)
     c2, j2, _ = decompose(tgt)
@@ -23,7 +30,12 @@ def match_phrase(src, tgt, sim):
     same_vowel = (j1 == j2)
     sim_vowel = (not same_vowel) and vowel_similar(j1, j2)
 
+    # ── identical — 같은 글자. 정도 표현 없이 그대로 말한다.
+    if src == tgt:
+        return ('near', "stays exactly as")
+
     # ── strong (≥0.87)
+    # 0.94 이상은 받침의 비음이 바뀌는 정도(선→성, 린→림, 엄→언)다. 이때만 "almost".
     if sim >= 0.94:
         return ('near', "maps almost exactly onto")
     if sim >= 0.87:
@@ -49,15 +61,23 @@ def match_phrase(src, tgt, sim):
     if sim >= 0.52:
         if same_onset:
             return ('soft', "lends its consonant to")
-        if same_vowel or sim_vowel:
+        if same_vowel:
             return ('soft', "shares a vowel with")
+        if sim_vowel:
+            # 모음이 '비슷할 뿐'이면 shares 라고 하지 않는다 (네→태, 샤→하)
+            return ('soft', "carries a similar vowel into")
         return ('soft', "loosely inspires")
 
     # ── loose (<0.52)
-    if same_vowel or sim_vowel:
+    if same_vowel:
+        # 모음이 '같은데' similar 라고 하지 않는다 (얼→헌, 이→민)
+        return ('distant', "carries its vowel into")
+    if sim_vowel:
         return ('distant', "carries a similar vowel into")
-    if same_onset or sim_onset:
+    if same_onset:
         return ('distant', "leaves a trace of its consonant in")
+    if sim_onset:
+        return ('distant', "leaves a trace of a similar consonant in")
     return ('distant', "loosely shapes")
 
 
@@ -76,11 +96,14 @@ LEVEL_STYLE = {
 }
 
 if __name__ == '__main__':
-    tests = [('아','아',1.0),('리','린',1.0),('엘','예',0.75),('소','수',0.4),
-             ('세','재',0.35),('데','대',0.75),('이','인',0.6),('버','현',0.35),
-             ('매','민',0.4),('브','범',0.4),('제','재',0.75)]
-    for src,tgt,sim in tests:
-        level, phrase = match_phrase(src,tgt,sim)
-        sr,tr = romanize_syllable(src), romanize_syllable(tgt)
+    # sim 은 phonetics.syllable_sim 의 실제 값을 쓴다 — 손으로 적은 값은 문구 조건과 어긋난다.
+    from syllable_match import syllable_similarity
+    tests = [('아','아'),('마','마'),('린','림'),('선','성'),('리','린'),('엘','예'),
+             ('소','수'),('세','재'),('데','대'),('이','인'),('네','태'),('샤','하'),
+             ('얼','헌'),('이','민'),('버','현'),('매','민'),('브','범'),('제','재')]
+    for src, tgt in tests:
+        sim = syllable_similarity(src, tgt)
+        level, phrase = match_phrase(src, tgt, sim)
+        sr, tr = romanize_syllable(src), romanize_syllable(tgt)
         lbl = LEVEL_STYLE[level]['label']
         print(f"  [{level:8s}|{lbl:8s}] the {src}({sr}) sound {phrase} {tgt}({tr})   (sim={sim})")

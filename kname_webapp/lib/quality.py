@@ -60,6 +60,10 @@ SEVERITY = {
     'short/too-long':      'warning',
     'short/label':         'info',
     'short/fallback':      'info',
+    # 출력 전 검수기(meaning_review.py)
+    'review/edited':       'info',      # 검수기가 고쳐서 나감 — /admin/reviews 에서 전후 확인
+    'review/rejected':     'warning',   # 검수기의 수정본을 사후 검증이 거부 — 검수 프롬프트를 볼 것
+    'review/failed':       'warning',   # 검수 호출 실패(모델명·키·타임아웃) — 원문 그대로 나감
 }
 
 # 카드 앞면 한 줄이 이보다 길면 레이아웃이 깨진다
@@ -225,5 +229,20 @@ def audit(data, pos_of=None):
                 if pos_of(w) is None:
                     out.append(('gloss/unclassified',
                                 f'{h.get("hanja") or "?"}: {w}'))
+
+    # ---------------------------------------------------------- 출력 전 검수
+    # LLM 생성 설명은 보여주기 전에 다른 모델이 한 번 더 읽고 고친다.
+    # 여기서는 '무슨 일이 있었는지'만 기록한다. 실제 전후 텍스트는 캐시에 있고
+    # /admin/reviews 가 보여준다.
+    rv = data.get('meaning_review')
+    if isinstance(rv, dict):
+        st = rv.get('status')
+        if st == 'edited':
+            issues = '; '.join(rv.get('issues') or [])[:150]
+            out.append(('review/edited', f'{given}: {issues or "(사유 없음)"}'))
+        elif st == 'rejected':
+            out.append(('review/rejected', f'{given}: {rv.get("reason") or "?"}'))
+        elif st == 'failed':
+            out.append(('review/failed', f'{given}: {rv.get("reason") or "?"}'))
 
     return out

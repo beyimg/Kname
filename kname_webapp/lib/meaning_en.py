@@ -27,7 +27,17 @@ DEFAULT_MODEL = "claude-sonnet-5"
 # 예전에는 프롬프트를 고쳐도 캐시가 그대로 남아, 파일을 손으로 지우지 않으면
 # 예전 형식 결과가 계속 나왔다("Boa carries ..." 처럼 도입부가 로마자만).
 # 사람이 기억해야 하는 절차는 반드시 잊히므로 버전으로 강제한다.
-PROMPT_VERSION = 4
+#
+# v5: 실존 인물·매체 언급 금지 규칙 추가. 사용자 결정 — 사전 밖 이름에서
+#     지어낸 인물이 나갈 위험이 문법 오류보다 크다. (사전 602개의 손으로 확인한
+#     언급은 그대로 둔다.)
+PROMPT_VERSION = 5
+
+# 출력 전 검수기(meaning_review.py). 생성 → 검수 → 캐시 순서다.
+try:
+    from meaning_review import MeaningReviewer, REVIEW_VERSION
+except Exception:                     # 검수 모듈이 없어도 생성은 되어야 한다
+    MeaningReviewer, REVIEW_VERSION = None, 0
 
 # 도입부 자리표시자. 모델은 이 토큰만 쓰고, 코드가 라벨로 바꿔 넣는다.
 # 형태가 하나뿐이므로 '모델이 어떻게 썼을까'를 알아맞힐 필요가 없다.
@@ -140,6 +150,10 @@ class MeaningEnGenerator:
                     self._cache = json.load(f)
             except Exception:
                 self._cache = {}
+        # 출력 전 검수기. 직전 호출의 검수 결과 요약을 last_review 에 남긴다
+        # (app.py 가 stats 에 기록한다). 검수기가 없거나 꺼져 있으면 None.
+        self.reviewer = MeaningReviewer(api_key=self.api_key) if MeaningReviewer else None
+        self.last_review: Optional[dict] = None
 
     # ------------------------------------------------------------ 내부
     def _client_or_raise(self):
@@ -340,7 +354,12 @@ class MeaningEnGenerator:
             + f'Write {NAME_SLOT} literally, exactly once, as the very first thing. '
             'Do not write the Korean name or its romanization anywhere in that first '
             f'sentence \u2014 {NAME_SLOT} stands in for it and is filled in afterwards. '
-            + 'Never invent facts about real people or media. 60-90 words. '
+            # 실존 인물 언급 금지(v5). "지어내지 말라"로는 부족했다 — 모델은
+            # 그럴듯한 인물을 확신을 갖고 쓴다. 검수 없이 사실 확인이 불가능하므로
+            # 아예 쓰지 않게 한다. (예시로 드는 한국 이름은 인물이 아니라 이름이다.)
+            + 'Do not mention any real person (singers, idols, actors, athletes, '
+            'historical figures) or any specific song, show, band, film or brand. '
+            'Korean names given as examples are fine. 60-90 words. '
             'Write the name in plain Revised Romanization using basic Latin letters only '
             '(Horim, not Hořim) — no diacritics or accented characters.\n\n'
             # 카드 앞면에 쓰는 한 줄. 예전에는 한자 뜻을 로컬에서 조립했는데,
@@ -396,8 +415,13 @@ class MeaningEnGenerator:
 
         self.last_stale = False
         self.last_stale_why = None
+        self.last_review = None
         cached = self._cache.get(key)
         if isinstance(cached, dict) and cached.get('v') == PROMPT_VERSION:
+            # 만들어는 졌는데 검수가 안 된(실패했던) 항목 — POST 경로에서만 다시
+            # 검수한다. GET(allow_llm=False)은 절대 LLM 비용을 내지 않는다.
+            if (allow_llm and self._needs_review(cached)):
+                self._review_into(cached, key, given, label, hanja_chars, english_name)
             return cached.get('text') or None, cached.get('short') or ''
         # 버전이 다르거나 예전 문자열 캐시다.
         # 프롬프트가 바뀌었으니 다시 만드는 것이 맞다. 다만 키가 없어 새로
@@ -454,11 +478,50 @@ class MeaningEnGenerator:
                 w = re.match(r'([a-z]+)\b', text)
                 if w and w.group(1) in _LEAD_VERBS:
                     text = f'{label} {text}'
+        entry = {'v': PROMPT_VERSION, 'text': text, 'short': short}
+        # 보여주기 전에 검수 — 생성 → 검수 → 캐시. 검수가 실패해도 원문은 그대로 나간다.
+        self._review_into(entry, key, given, label, hanja_chars, english_name, save=False)
         with self._lock:
-            self._cache[key] = {'v': PROMPT_VERSION, 'text': text,
-                                'short': short}
+            self._cache[key] = entry
             self._save_cache()
-        return text, short
+        return entry['text'], entry['short']
+
+    # ------------------------------------------------------------ 검수
+    @staticmethod
+    def _needs_review(entry: dict) -> bool:
+        """검수 규칙 버전이 다르거나(REVIEW_VERSION 올림) 검수가 끝난 적이 없으면 True."""
+        return bool(REVIEW_VERSION) and entry.get('r') != REVIEW_VERSION
+
+    def _review_into(self, entry: dict, key: str, given: str, label: str,
+                     hanja_chars, english_name, save: bool = True) -> None:
+        """entry 를 검수해 제자리에서 고친다. 결과 요약은 entry['review'] 와 last_review 에.
+
+        'r'(검수 완료 표시)은 검수기가 **실제로 판정을 내렸을 때만** 찍는다
+        (ok / edited / rejected). 호출 실패·꺼짐이면 찍지 않아 다음 POST 에서
+        다시 시도한다 — 무한 반복은 검수기의 circuit breaker 가 막는다.
+        """
+        if not self.reviewer or not entry.get('text'):
+            return
+        try:
+            res = self.reviewer.review(
+                entry['text'], entry.get('short') or '', given, label,
+                hanja_chars=hanja_chars, english_name=english_name,
+                clean_short=self._clean_short)
+        except Exception as e:                      # 검수기는 예외를 안 던지지만, 만일을 위해
+            self.last_review = {'status': 'failed', 'reason': f'{type(e).__name__}: {e}'[:160]}
+            return
+        summary = res.to_cache()
+        if res.status in ('ok', 'edited', 'rejected'):
+            entry['r'] = REVIEW_VERSION
+            if res.edited:
+                entry['text'], entry['short'] = res.text, res.short
+        if res.status != 'disabled':
+            entry['review'] = summary
+        self.last_review = summary
+        if save and res.status in ('ok', 'edited', 'rejected'):
+            with self._lock:
+                self._cache[key] = entry
+                self._save_cache()
 
     # 'SHORT: ...' 마지막 줄을 떼어낸다.
     _SHORT_RE = re.compile(r'^\s*SHORT\s*[:\-—]\s*(.+?)\s*$',

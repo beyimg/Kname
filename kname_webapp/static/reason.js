@@ -53,9 +53,11 @@ function renderConversionReason(container, r) {
     '</div>';
 
   // 3단계 — 음절 매칭 (색 구분)
+  // 매칭이 하나면 단수 (conversion_reason.py 의 block3 과 같은 규칙)
+  var noun = r.matches.length === 1 ? 'syllable' : 'syllables';
   h += '<div class="cr-step">' +
     stepLabel(3, 'How we matched the sounds') +
-    '<div class="cr-intro">We carried the most distinctive syllables of &ldquo;' +
+    '<div class="cr-intro">We carried the most distinctive ' + noun + ' of &ldquo;' +
     esc(r.english_name) + '&rdquo; (' + distinct + ') into a name that reads naturally in Korean:</div>';
 
   h += r.matches.map(function (m) {
@@ -72,7 +74,7 @@ function renderConversionReason(container, r) {
 
   // 범례 — 색깔 있는 매칭 박스 바로 아래 (같은 단계 안)
   h += '<div class="cr-legend">' +
-    '<span class="cr-legend-item"><span class="cr-dot" style="background:#1D9E75"></span>strong &mdash; nearly the same sound</span>' +
+    '<span class="cr-legend-item"><span class="cr-dot" style="background:#1D9E75"></span>strong &mdash; the same or nearly the same sound</span>' +
     '<span class="cr-legend-item"><span class="cr-dot" style="background:#639922"></span>partial &mdash; one sound in common</span>' +
     '<span class="cr-legend-item"><span class="cr-dot" style="background:#BA7517"></span>soft &mdash; only the consonant or vowel</span>' +
     '<span class="cr-legend-item"><span class="cr-dot" style="background:#D85A30"></span>loose &mdash; only a hint in common</span>' +

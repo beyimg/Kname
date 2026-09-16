@@ -103,7 +103,9 @@ def build_reason(english_name, translit, korean_given, quality,
                  f"{m['tgt']} ({m['tgt_rom']})" for m in matches]
         joined = (lines[0] if len(lines) == 1
                   else ", ".join(lines[:-1]) + ", and " + lines[-1])
-        block3 = (f'We carried the most distinctive syllables of "{english_name}" '
+        # 매칭이 하나면 단수 — "the most distinctive syllables (아)" 는 문법 오류
+        noun = 'syllable' if len(matches) == 1 else 'syllables'
+        block3 = (f'We carried the most distinctive {noun} of "{english_name}" '
                   f'({distinct}) into a name that reads naturally in Korean: '
                   f'{joined[0].upper() + joined[1:]}.')
     else:
