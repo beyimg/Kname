@@ -205,8 +205,9 @@ class MeaningEnGenerator:
     @staticmethod
     def _romanize(given: str) -> str:
         try:
-            from pronounce_guide import romanize_hyphen
-            return romanize_hyphen(given).replace('-', '')
+            # 붙여 쓴 로마자. 영어 낱말과 겹치는 이름은 하이픈을 남긴다(혜나 → Hye-na).
+            from pronounce_guide import romanize_joined
+            return romanize_joined(given)
         except Exception:
             return ''
 

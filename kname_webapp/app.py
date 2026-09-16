@@ -36,7 +36,7 @@ try:
 except Exception:
     _PROMPT_VERSION = None
 from tts_full import FullNameTTS
-from pronounce_guide import romanize_hyphen, romanize_syllable
+from pronounce_guide import romanize_hyphen, romanize_syllable, romanize_joined
 
 # 사용자가 겪는 오류/이상 결과 보고 헬퍼(Sentry+stderr). 없으면 no-op.
 try:
@@ -376,7 +376,7 @@ def _native_desc(given, meaning_en):
     """순우리말 이름 설명(영어). 순우리말 신호와 한줄의미 훅을 담는다."""
     # 도입부 로마자는 하이픈 없이 쓴다 — 사전 602개와 LLM 설명이 모두
     # '하람 (Haram)' 형식이므로, 여기만 'Ha-ram' 이면 카드마다 형식이 달라진다.
-    rom = romanize_hyphen(given).replace('-', '')
+    rom = romanize_joined(given)   # 영어 낱말과 겹치는 이름만 하이픈 유지(pronounce_guide.ROMAN_KEEP_HYPHEN)
     m = (meaning_en or '').strip().rstrip('.')
     return (f'{given} ({rom}) is a native Korean name — the native Korean word for "{m}." '
             f'It carries no Chinese characters; the meaning lives right in the sound. '

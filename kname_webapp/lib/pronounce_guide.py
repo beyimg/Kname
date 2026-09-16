@@ -66,6 +66,18 @@ def romanize_hyphen(text):
     syls[0] = syls[0].capitalize()
     return '-'.join(syls)
 
+
+# 하이픈을 빼면 영어 낱말과 겹치는 이름. 붙여 쓴 표기(설명문 라벨 등)에서도
+# 하이픈을 유지한다: 혜나 → Hyena(하이에나) · 루인 → Ruin(폐허).
+# 카드의 발음 표기는 원래 하이픈이 있으므로(romanize_hyphen) 영향 없다.
+ROMAN_KEEP_HYPHEN = {'혜나', '루인'}
+
+
+def romanize_joined(text):
+    """하이픈 없는 로마자(Yerin). 단, ROMAN_KEEP_HYPHEN 은 하이픈을 남긴다(Hye-na)."""
+    r = romanize_hyphen(text)
+    return r if text in ROMAN_KEEP_HYPHEN else r.replace('-', '')
+
 def syllable_pronunciation(syllable):
     """한 음절의 영어 발음 설명: '수' → 'Su — say "soo"'"""
     cho, jung, jong = decompose(syllable)
