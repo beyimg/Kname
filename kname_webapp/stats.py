@@ -282,6 +282,51 @@ class Stats:
             print(f'[stats] recent failed: {e}', file=sys.stderr, flush=True)
             return []
 
+    def export_rows(self, days=90, limit=20000):
+        """
+        /admin 의 '엑셀로 다운로드'용 — recent() 보다 넓게(기간 지정) 그리고
+        원본 칼럼을 그대로(ms, source 포함) 돌려준다. recent() 는 화면에 뿌릴
+        60줄짜리 요약이라 그걸로는 분석이 안 된다.
+
+        limit 은 방어용 상한이다(관리자 토큰이 새어나가도 응답 하나로 DB 전체를
+        긁어가진 못하게). 필요하면 늘리되, 무제한으로는 두지 않는다.
+        """
+        if not self.ok:
+            return []
+        try:
+            since = int(time.time()) - int(days) * 86400
+            with self._conn() as c:
+                rows = c.execute(
+                    'SELECT ts,ok,is_new,native,quality,sex,first_en,last_en,'
+                    'given,hangul,flags,country,geo,ms,source FROM conv '
+                    'WHERE ts>=? ORDER BY ts DESC LIMIT ?',
+                    (since, int(limit))).fetchall()
+            out = []
+            for (ts, ok, is_new, native, q, sex, fe, le, gv, hg, fl,
+                 ctry, geo, ms, source) in rows:
+                out.append({
+                    'when': _fmt(ts, '%Y-%m-%d %H:%M:%S'),
+                    'ok': bool(ok),
+                    'is_new': bool(is_new),
+                    'native': bool(native),
+                    'quality': q or '',
+                    'sex': sex or '',
+                    'first_en': (fe or '').title(),
+                    'last_en': (le or '').title(),
+                    'given': gv or '',
+                    'hangul': hg or '',
+                    'flags': fl or '',
+                    'country': ctry or '',
+                    'geo': geo or '',
+                    'ms': ms,
+                    'source': source or '',
+                })
+            return out
+        except Exception as e:
+            import sys
+            print(f'[stats] export_rows failed: {e}', file=sys.stderr, flush=True)
+            return []
+
     def record_issue(self, code, given='', detail=''):
         """결과물 품질 문제 1건 기록."""
         if not self.ok:

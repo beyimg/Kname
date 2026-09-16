@@ -1711,18 +1711,43 @@ def _log_quality(first_en, last_en, data, findings=None):
 #  · 없으면 Referer 의 호스트만(경로·쿼리는 버린다 — 개인정보 최소화). 우리 사이트면 무시
 #  · 첫 방문 값만 30일 쿠키에 남긴다(그 사람을 데려온 경로가 무엇인지가 궁금한 것이므로)
 _SRC_RE = re.compile(r'[^A-Za-z0-9._:\-]+')
+# Referer 의 스킴을 분리한다. http(s) 외에도 android-app:// 이 실제로 온다 —
+# 안드로이드 앱(레딧·구글앱·카톡 등) 안에서 링크를 열면 Chrome/WebView 가
+# 'Referer: android-app://com.reddit.frontpage/' 를 붙인다.
+_SCHEME_RE = re.compile(r'^([A-Za-z][A-Za-z0-9+.\-]*)://(.*)$', re.S)
+# 유입 경로 문자열 길이 상한. stats.conv.source 칼럼이 60자까지 받으므로 여기서도 60.
+# (40자로 자르면 app:com.google.android.googlequicksearchbox 가 잘려 나간다)
+_SRC_MAX = 60
+
+
+def _split_referer(r):
+    """Referer → (스킴, 호스트). 경로·쿼리는 버린다(개인정보 최소화).
+
+    예전에는 '^https?://' 만 벗겨서, android-app://com.reddit.frontpage/ 가
+    호스트 'android-app' 으로 뭉개졌다 — 어느 앱에서 왔는지가 그대로 날아갔다.
+    """
+    m = _SCHEME_RE.match(r or '')
+    scheme, rest = (m.group(1).lower(), m.group(2)) if m else ('', r or '')
+    host = rest.split('/')[0].split('?')[0].split('#')[0].split(':')[0].lower()
+    return scheme, host
 
 
 def _detect_source():
     ref = (request.args.get('ref') or request.args.get('utm_source') or '').strip()
     if ref:
-        return _SRC_RE.sub('', ref)[:40]
+        return _SRC_RE.sub('', ref)[:_SRC_MAX]
     r = request.headers.get('Referer', '')
     if r:
-        host = re.sub(r'^https?://', '', r).split('/')[0].split(':')[0].lower()
-        mine = re.sub(r'^https?://', '', _site_url()).split('/')[0].split(':')[0].lower()
-        if host and host != mine and host != request.host.split(':')[0].lower():
-            return ('ref:' + host)[:40]
+        scheme, host = _split_referer(r)
+        if not host:
+            return ''
+        # 안드로이드 인앱 브라우저 — 호스트 자리에 앱 패키지명이 온다.
+        # 우리 사이트와 비교할 대상이 아니므로 바로 돌려준다.
+        if scheme == 'android-app':
+            return _SRC_RE.sub('', 'app:' + host)[:_SRC_MAX]
+        _, mine = _split_referer(_site_url())
+        if host != mine and host != request.host.split(':')[0].lower():
+            return _SRC_RE.sub('', 'ref:' + host)[:_SRC_MAX]
     return ''
 
 
@@ -1740,13 +1765,17 @@ def _remember_source(resp):
 
 
 def _is_external_visit():
-    """공유 링크를 눌러 들어온 조회인지 — Referer 가 우리 사이트가 아닐 때."""
+    """공유 링크를 눌러 들어온 조회인지 — Referer 가 우리 사이트가 아닐 때.
+
+    판정을 _split_referer 로 통일한다. 따로 파싱하면 _detect_source 와 어긋나서
+    '유입 경로는 잡혔는데 외부 방문으로는 안 세는' 식의 불일치가 생긴다.
+    """
     r = request.headers.get('Referer', '')
     if not r:
         return True
-    host = re.sub(r'^https?://', '', r).split('/')[0].split(':')[0].lower()
-    return host != request.host.split(':')[0].lower() and \
-        host != re.sub(r'^https?://', '', _site_url()).split('/')[0].split(':')[0].lower()
+    _, host = _split_referer(r)
+    _, mine = _split_referer(_site_url())
+    return host != request.host.split(':')[0].lower() and host != mine
 
 
 @app.route('/')
@@ -2531,6 +2560,54 @@ def admin_recent():
         rows = []
     return jsonify({'rows': rows, 'severity': _Q_SEVERITY,
                     'names': _COUNTRY_NAMES, 'ts': int(_time.time())})
+
+
+@app.route('/admin/export')
+def admin_export():
+    """
+    변환 로그를 엑셀(.xlsx)로 다운로드. 인증은 /admin 과 동일(쿠키 또는 ?token=).
+    ?days=90 으로 기간을 바꿀 수 있다(기본 90일, 최대 365일 — DB·응답 크기 방어).
+    """
+    want = os.environ.get('ADMIN_TOKEN')
+    tok = request.args.get('token', '') or request.cookies.get('admin_auth', '')
+    if not (want and tok == want):
+        return ('Not found', 404)
+
+    days = request.args.get('days', 90, type=int) or 90
+    days = max(1, min(days, 365))
+
+    try:
+        import pandas as pd
+    except Exception:
+        return ('pandas/openpyxl not installed on server', 500)
+
+    rows = STATS.export_rows(days=days, limit=20000)
+    cols = ['when', 'ok', 'is_new', 'native', 'quality', 'sex', 'first_en',
+            'last_en', 'given', 'hangul', 'flags', 'country', 'geo', 'ms', 'source']
+    headers = {'when': 'Time (KST)', 'ok': 'Success', 'is_new': 'New name',
+               'native': 'Native (순우리말)', 'quality': 'Quality', 'sex': 'Sex',
+               'first_en': 'First name (input)', 'last_en': 'Last name (input)',
+               'given': 'Given name (KR)', 'hangul': 'Full name (KR)',
+               'flags': 'Quality flags', 'country': 'Country (picked)',
+               'geo': 'Country (geo guess)', 'ms': 'Response time (ms)',
+               'source': 'Traffic source'}
+    df = pd.DataFrame(rows, columns=cols).rename(columns=headers)
+
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='conversions')
+        ws = writer.sheets['conversions']
+        ws.freeze_panes = 'A2'
+        for i, col in enumerate(df.columns, start=1):
+            max_len = max((len(str(v)) for v in df[col]), default=10) if len(df) else 10
+            width = max(10, min(32, max_len + 2))
+            ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = width
+    buf.seek(0)
+
+    fname = f'kname-conversions-{_time.strftime("%Y%m%d")}.xlsx'
+    return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument'
+                                    '.spreadsheetml.sheet',
+                     as_attachment=True, download_name=fname)
 
 
 if __name__ == '__main__':
