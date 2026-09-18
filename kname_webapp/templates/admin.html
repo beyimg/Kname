@@ -95,6 +95,21 @@
       <div class="sub">{{ 'ANTHROPIC_API_KEY 설정됨' if op.llm else '키 미설정 — 사전 이름만 변환' }}</div>
     </div>
     <div class="card">
+      <div class="k">설명 생성 실패(→템플릿)</div>
+      {# 템플릿 문구는 사용자에게 나가면 안 된다. 유형별로 세어 두면
+         재시도를 늘려야 할지(transient) 타임아웃을 늘려야 할지(timeout)
+         바로 정할 수 있다. 예전에는 원인이 어디에도 남지 않았다. #}
+      {% set gf = op.gen_fail or {} %}
+      {% set gfn = gf.values() | sum %}
+      <div class="v" style="font-size:20px;color:{{ 'var(--ok)' if gfn == 0 else 'var(--bad)' }}">
+        {{ gfn }}건</div>
+      <div class="sub">
+        {% if gfn %}{% for k, v in gf.items() %}{{ k }} {{ v }}건{{ ' · ' if not loop.last }}{% endfor %}
+        {% else %}템플릿으로 떨어진 설명 없음{% endif %}
+        {% if op.gen_retry %} · 재시도 {{ op.gen_retry }}회(복구 {{ op.gen_recovered }}){% endif %}
+      </div>
+    </div>
+    <div class="card">
       <div class="k">에러 모니터링</div>
       <div class="v" style="font-size:20px;color:{{ 'var(--ok)' if op.sentry else 'var(--faint)' }}">
         {{ 'Sentry 켜짐' if op.sentry else '미연결' }}</div>

@@ -36,7 +36,14 @@ from typing import List, Optional, Tuple
 
 # 검수 규칙 버전. **체크리스트나 검증 규칙을 고칠 때마다 올린다.**
 # 캐시 항목의 'r' 가 이 값과 다르면 그 항목은 다시 검수한다.
-REVIEW_VERSION = 1
+#
+# v2: 체크리스트에 두 항목 추가 — 3인칭(you/your 금지)과 글자별 표기 형식.
+#     둘 다 생성 프롬프트에는 있었지만 검수 체크리스트로 옮겨지지 않아,
+#     검수기가 위반으로 보지 않고 통과시켰다. 실제 사고: 지건(Deacon) 설명이
+#     "Your name is Deacon." 으로 끝났는데 status=edited 로 통과했다 —
+#     검수기가 다른 부분만 고치고 이 문장은 규칙에 없으니 건드리지 않았다.
+#     교훈: 생성 프롬프트에 규칙을 넣을 때 검수 체크리스트에도 같이 넣어야 한다.
+REVIEW_VERSION = 2
 
 DEFAULT_REVIEW_MODEL = 'claude-haiku-4-5'
 
@@ -48,6 +55,17 @@ LEN_MIN, LEN_MAX = 0.6, 1.35
 
 _CJK = re.compile(r'[一-鿿]')
 _HANGUL = re.compile(r'[가-힣]')
+
+
+def _syl_rom(syllable: str) -> str:
+    """한 음절의 소문자 로마자. 생성기(meaning_en._syl_rom)와 같은 결과여야 한다 —
+    체크리스트 10번이 '정답 표기'로 이 값을 제시하므로 어긋나면 멀쩡한 문장을
+    고치라고 시키게 된다. 그래서 둘 다 romanize_syllable 하나를 쓴다."""
+    try:
+        from pronounce_guide import romanize_syllable
+        return romanize_syllable(syllable, capitalize=False)
+    except Exception:
+        return ''
 _DIACRITIC = re.compile(r'[áàâäãåāéèêëēěíìîïīóòôöõōøúùûüūůçčćñňńřšśžźżýÿďťł]', re.I)
 
 
@@ -120,8 +138,19 @@ class MeaningReviewer:
                 hanja_chars, english_name: Optional[str]) -> str:
         if hanja_chars:
             data_lines = '; '.join(f'{s} ({h}) = {g}' for s, h, g in hanja_chars if h)
+            # 체크리스트 10번이 대조할 '정답 표기'. 생성기와 같은 형식이라야
+            # 하므로 같은 함수(romanize_syllable)로 만든다.
+            forms = []
+            for s, h, _g in hanja_chars:
+                if not h:
+                    continue
+                r = _syl_rom(s)
+                forms.append(f'{s} ({h}, {r})' if r else f'{s} ({h})')
+            form_line = ('\n- Required form when naming a character: '
+                         + '; '.join(forms)) if forms else ''
         else:
             data_lines = 'a native Korean name (no hanja)'
+            form_line = ''
         en_line = f'\n- The reader\'s English name: {english_name}' if english_name else ''
         return (
             'You are a careful copy editor. Below is a short English explanation of a Korean '
@@ -131,7 +160,7 @@ class MeaningReviewer:
             'DATA (the only facts you may rely on):\n'
             f'- Korean name: {given}\n'
             f'- The text must begin with exactly: {label}\n'
-            f'- Characters and their meanings: {data_lines}{en_line}\n\n'
+            f'- Characters and their meanings: {data_lines}{form_line}{en_line}\n\n'
             f'TEXT:\n<<<\n{text}\n>>>\n\n'
             f'SHORT (one-line caption shown on the card):\n<<<\n{short or "(none)"}\n>>>\n\n'
             'CHECKLIST:\n'
@@ -149,7 +178,19 @@ class MeaningReviewer:
             '7. Keep the length, voice and warmth. Do not rewrite sentences that are already fine.\n'
             '8. SHORT must be one grammatical English noun phrase, 4-9 words, 30-55 characters, about '
             'the meaning only (not the sound, not the English name), starting with a capital letter, '
-            'no ending punctuation, no Korean, hanja or romanization.\n\n'
+            'no ending punctuation, no Korean, hanja or romanization.\n'
+            # 9·10 은 생성 프롬프트에만 있던 규칙이다. 검수 체크리스트에 없으면
+            # 검수기는 위반을 위반으로 보지 않는다(지건의 "Your name is Deacon.").
+            '9. Third person only. The text must never address the reader as "you" or "your", and '
+            'must not tell them what their name is. Rewrite such a sentence to speak about the '
+            'name or about "someone", or delete it if it adds nothing. This applies even when the '
+            'sentence is grammatical.\n'
+            '10. Whenever the text names an individual character, it must use the exact form given '
+            'in DATA above ("Required form when naming a character") — Korean syllable, then hanja '
+            'and lowercase romanization in parentheses, in that order. Fix a character written as '
+            'hanja alone, as the syllable alone, with the meaning inside the parentheses, or with '
+            'the contents reordered. Do not add a character that the text never mentions, and do '
+            'not touch the opening label.\n\n'
             'Respond with JSON only, no prose:\n'
             '{"ok": true}\n'
             'or\n'

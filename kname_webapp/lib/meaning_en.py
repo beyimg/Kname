@@ -15,8 +15,10 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import re
 import threading
+import time
 from typing import Dict, List, Optional, Tuple
 
 DEFAULT_MODEL = "claude-sonnet-5"
@@ -31,7 +33,12 @@ DEFAULT_MODEL = "claude-sonnet-5"
 # v5: 실존 인물·매체 언급 금지 규칙 추가. 사용자 결정 — 사전 밖 이름에서
 #     지어낸 인물이 나갈 위험이 문법 오류보다 크다. (사전 602개의 손으로 확인한
 #     언급은 그대로 둔다.)
-PROMPT_VERSION = 5
+# v6: 글자별 표기 형식을 '혜 (惠, hye)' 로 고정. 예전에는 지시가 없어 모델이
+#     매번 다르게 썼다 — 100개 배치의 LLM 11건이 '표기 없음' 6건, '한자만' 3건,
+#     '한글만' 2건으로 갈렸고 원하는 형식은 0건이었다. 이름 전체는 코드가
+#     라벨로 박아 넣지만(NAME_SLOT) 글자별은 모델이 쓰므로 규칙이 필요하다.
+#     사전 602개와 폴백 템플릿이 쓰는 형식과 같게 맞춘다.
+PROMPT_VERSION = 6
 
 # 출력 전 검수기(meaning_review.py). 생성 → 검수 → 캐시 순서다.
 try:
@@ -86,18 +93,26 @@ def _strip_diacritics(text: str) -> str:
 def classify_error(exc) -> str:
     """
     API 예외를 서비스 대응 기준으로 분류.
-      'transient' : 재시도하면 풀림 (529 과부하, 429 레이트리밋, 5xx, 타임아웃)
+      'transient' : 재시도하면 풀림 (529 과부하, 429 레이트리밋, 5xx)
+      'timeout'   : 응답이 제 시간에 오지 않음 — 재시도 비용이 가장 크다
       'credit'    : 크레딧 소진 — 충전 전까지 실패
       'auth'      : 키 문제
       'other'     : 그 외 (요청 오류 등)
+
+    'timeout' 을 'transient' 에서 떼어낸 이유: 둘은 대응이 다르다. 과부하는
+    잠깐 쉬면 풀리지만, 타임아웃은 다시 불러도 또 기다린다(시도마다 timeout 초).
+    한 덩어리로 묶여 있으면 어느 쪽이 일어났는지 기록에 남지 않아, 재시도를
+    늘려야 할지 타임아웃을 늘려야 할지 판단할 수 없다.
     """
     name = type(exc).__name__
     msg = str(exc).lower()
     status = getattr(exc, 'status_code', None)
 
+    if name == 'APITimeoutError' or 'timed out' in msg or 'timeout' in msg:
+        return 'timeout'
     if status in (429, 500, 502, 503, 504, 529) or name in (
             'OverloadedError', 'RateLimitError', 'APIStatusError',
-            'InternalServerError', 'APITimeoutError', 'APIConnectionError'):
+            'InternalServerError', 'APIConnectionError'):
         return 'transient'
     if 'credit balance' in msg or 'insufficient' in msg or 'billing' in msg:
         return 'credit'
@@ -105,6 +120,30 @@ def classify_error(exc) -> str:
         return 'auth'
     return 'other'
 
+
+# 앱 수준 재시도.
+#
+# 주의 — SDK 도 이미 재시도한다(_client_or_raise 의 max_retries). 그러므로
+# 실패가 사용자에게 보였다는 것은 SDK 재시도까지 전부 소진했다는 뜻이다.
+# 여기서 더 얹는 재시도의 값은 '한 번 더 부르는 것'이 아니라 **사이를 쉬는
+# 것**에 있다: SDK 재시도는 초 단위로 연달아 나가므로 레이트리밋 급증 구간을
+# 못 벗어난다. 그래서 짧은 대기를 끼워 한 번 더 시도한다.
+#
+# 'timeout' 은 재시도하지 않는다. 시도마다 timeout 초를 통째로 더 기다리게
+# 되는데 결과는 대개 또 타임아웃이다 — 사용자를 두 배로 기다리게 하고 같은
+# 템플릿을 보여주는 것이 가장 나쁜 조합이다. 타임아웃은 재시도가 아니라
+# GEN_TIMEOUT 으로 다룬다.
+# credit·auth·other 도 재시도해도 결과가 같으므로 즉시 포기한다.
+RETRY_MAX = 1                 # 첫 호출 외 추가 시도 횟수 (transient 한정)
+RETRY_SLEEP = 1.5             # 초. ±25% 지터 — 급증 구간을 벗어날 만큼만 쉰다
+
+# 생성 호출 예산. 최악 대기시간 = GEN_TIMEOUT × (SDK_RETRIES + 1) × (RETRY_MAX + 1)
+#   30초 × 2 × 2 = 120초가 상한이지만, 이는 타임아웃이 연속으로 날 때뿐이고
+#   타임아웃은 재시도하지 않으므로 실제 상한은 30초 × 2 = 60초다.
+# 예전 값(20초 × 4)은 최악 80초였는데도 400토큰 응답이 20초를 넘겨 실패했다.
+# 시도 횟수를 줄이고 한 번의 여유를 늘리는 쪽이 낫다.
+GEN_TIMEOUT = 30.0
+GEN_SDK_RETRIES = 1
 
 
 class MeaningEnGenerator:
@@ -154,6 +193,11 @@ class MeaningEnGenerator:
         # (app.py 가 stats 에 기록한다). 검수기가 없거나 꺼져 있으면 None.
         self.reviewer = MeaningReviewer(api_key=self.api_key) if MeaningReviewer else None
         self.last_review: Optional[dict] = None
+        # 재시도·실패 집계. 템플릿 폴백이 왜 났는지는 이 값이 없으면 알 수 없다
+        # (100개 배치에서 2건이 났지만 원인이 어디에도 남지 않았다).
+        self.retry_count = 0            # 재시도한 횟수
+        self.retry_recovered = 0        # 재시도로 살아난 건수
+        self.fail_kinds: Dict[str, int] = {}   # 유형별 최종 실패 건수
 
     # ------------------------------------------------------------ 내부
     def _client_or_raise(self):
@@ -162,11 +206,13 @@ class MeaningEnGenerator:
                 raise RuntimeError('ANTHROPIC_API_KEY is not set')
             import anthropic
             # 529(과부하)·429(레이트리밋)·5xx는 SDK가 지수 백오프로 자동 재시도한다.
-            # 기본 2회로는 지속적 과부하에 부족해 4회로 올린다.
+            # SDK 재시도는 연달아 나가므로 레이트리밋 급증 구간을 벗어나지
+            # 못한다. 그래서 횟수를 줄이고(GEN_SDK_RETRIES), 대신 앱 수준에서
+            # 쉬었다가 한 번 더 시도한다(_call_with_retry).
             # 응답이 없으면 사용자가 무한정 기다리게 되므로 타임아웃을 건다.
-            # (재시도 4회 × 타임아웃이므로 최악의 대기시간을 함께 고려)
             self._client = anthropic.Anthropic(
-                api_key=self.api_key, max_retries=3, timeout=20.0)
+                api_key=self.api_key, max_retries=GEN_SDK_RETRIES,
+                timeout=GEN_TIMEOUT)
         return self._client
 
     def _save_cache(self):
@@ -208,6 +254,15 @@ class MeaningEnGenerator:
             # 붙여 쓴 로마자. 영어 낱말과 겹치는 이름은 하이픈을 남긴다(혜나 → Hye-na).
             from pronounce_guide import romanize_joined
             return romanize_joined(given)
+        except Exception:
+            return ''
+
+    @staticmethod
+    def _syl_rom(syllable: str) -> str:
+        """한 음절의 소문자 로마자. 글자별 표기 '혜 (惠, hye)' 의 마지막 칸이다."""
+        try:
+            from pronounce_guide import romanize_syllable
+            return romanize_syllable(syllable, capitalize=False)
         except Exception:
             return ''
 
@@ -303,7 +358,11 @@ class MeaningEnGenerator:
                 en = ((hanja_en or {}).get(hanja)
                       or (gloss_en or {}).get(kr_gloss)
                       or kr_gloss)
-                lines.append(f'{syl} ({hanja}) = {en}')
+                # 글자별 표기를 모델이 조립하지 않게, 쓸 문자열을 그대로 준다.
+                # NAME_SLOT 과 같은 원리다 — 베껴 쓰게 하면 형식이 흔들리지 않는다.
+                syl_rom = self._syl_rom(syl)
+                tag = f'{syl} ({hanja}, {syl_rom})' if syl_rom else f'{syl} ({hanja})'
+                lines.append(f'{tag} = {en}')
             chars_desc = '; '.join(lines)
         else:
             chars_desc = 'a native Korean name (no hanja)'
@@ -328,7 +387,18 @@ class MeaningEnGenerator:
             'Cover, in flowing prose (not a list): first and above all what the characters mean '
             'together and the hope behind them; then how the name sounds (soft, crisp, open '
             'vowels, etc.).\n'
-            'STRICT RULE about the English name: what the Korean name MEANS comes only from the '
+            # 글자별 표기 형식. 지시가 없던 v5 에서는 모델이 '표기 없음 / 한자만 /
+            # 한글만' 으로 매번 갈렸다. 조립하게 하지 않고, 위 Characters 줄에
+            # 이미 완성해 둔 문자열을 베껴 쓰게 한다.
+            + ('FORMAT RULE for individual characters: name each character at least once, and '
+               'whenever you do, copy the exact form shown in the Characters line above, '
+               'including the parentheses — Korean syllable, then hanja and lowercase '
+               'romanization in parentheses. For example, write 혜 (惠, hye), never 惠 alone, '
+               'never 혜 alone, never 惠 (kindness), and never the meaning with no character '
+               'at all. Put the English meaning outside the parentheses, in your own sentence. '
+               'Do not reorder what is inside the parentheses.\n'
+               if hanja_chars else '')
+            + 'STRICT RULE about the English name: what the Korean name MEANS comes only from the '
             'characters listed above (or, for a native Korean name, from the Korean word itself). '
             'Never fold the English name\'s own meaning into the Korean name\'s meaning. For '
             'example, if the English name is Rosa, do not say the Korean name means "beautiful as '
@@ -377,6 +447,37 @@ class MeaningEnGenerator:
             'Bad: "Wisdom" (too short) / "Sounds soft and open" (about sound) / '
             '"Yunsu, a wise child" (names the person).'
         )
+
+    # ------------------------------------------------------------ 호출
+    def _call_with_retry(self, prompt: str) -> Tuple[Optional[str], Optional[str]]:
+        """모델을 부른다. (본문, 에러유형) — 성공이면 (raw, None), 실패면 (None, 유형).
+
+        transient 에러만 재시도한다. 마지막 시도의 에러 유형을 돌려주므로
+        호출부는 '왜 실패했는지'를 그대로 기록할 수 있다.
+        """
+        err = None
+        for attempt in range(RETRY_MAX + 1):
+            try:
+                client = self._client_or_raise()
+                resp = client.messages.create(
+                    model=self.model,
+                    max_tokens=self.max_tokens,
+                    messages=[{'role': 'user', 'content': prompt}],
+                )
+                raw = ''.join(b.text for b in resp.content
+                              if hasattr(b, 'text')).strip()
+                if attempt:
+                    self.retry_recovered += 1
+                return raw, None
+            except Exception as e:
+                err = classify_error(e)
+                # transient 만 재시도한다 — timeout 은 기다림만 두 배가 된다.
+                if err != 'transient' or attempt == RETRY_MAX:
+                    self.fail_kinds[err] = self.fail_kinds.get(err, 0) + 1
+                    return None, err
+                self.retry_count += 1
+                time.sleep(RETRY_SLEEP * random.uniform(0.75, 1.25))
+        return None, err
 
     # ------------------------------------------------------------ 공개 API
     def explain_en(
@@ -437,25 +538,18 @@ class MeaningEnGenerator:
 
         prompt = self._build_prompt(given, sex, hanja_chars, english_name,
                                     gloss_en, hanja_en)
-        try:
-            client = self._client_or_raise()
-            resp = client.messages.create(
-                model=self.model,
-                max_tokens=self.max_tokens,
-                messages=[{'role': 'user', 'content': prompt}],
-            )
-            raw = ''.join(b.text for b in resp.content if hasattr(b, 'text')).strip()
-            self.last_error = None
-        except Exception as e:
+        raw, err = self._call_with_retry(prompt)
+        if raw is None:
             # 호출부가 상황에 맞는 안내를 띄울 수 있도록 유형을 남긴다
-            self.last_error = classify_error(e)
+            self.last_error = err
             # 새로 만들지 못했으면 예전 캐시라도 내보낸다(빈 카드보다 낫다).
             # 다만 낡은 내용이므로 반드시 표시한다.
             if stale:
                 self.last_stale = True
-                self.last_stale_why = self.last_error or 'error'
+                self.last_stale_why = err or 'error'
                 return self._fix_opening(stale, given, label, rom), ''
             return None, ''
+        self.last_error = None
 
         body, short = self._split_short(raw)
         text = self._clean(body)

@@ -2409,6 +2409,15 @@ def status():
         'meaning': {
             'llm': MEANING_EN is not None,
             'last_error': getattr(MEANING_EN, 'last_error', None),
+            # 템플릿 폴백이 왜 났는지. 유형별 최종 실패 건수 — 이것이 없으면
+            # '템플릿이 나왔다'는 사실만 알고 어디를 손댈지 정할 수 없다.
+            #   transient = 과부하·레이트리밋 → 재시도 대기를 늘린다
+            #   timeout   = 응답 지연        → meaning_en.GEN_TIMEOUT 을 올린다
+            'fail_kinds': getattr(MEANING_EN, 'fail_kinds', None) or {},
+            # 재시도가 값을 하고 있는가. recovered 가 0 이 아니면 그만큼의
+            # 템플릿 폴백을 재시도가 막아낸 것이다.
+            'retries': getattr(MEANING_EN, 'retry_count', 0),
+            'retry_recovered': getattr(MEANING_EN, 'retry_recovered', 0),
             # 있으면 캐시가 파일에 안 써지고 있다 — 매 요청이 재생성된다
             'cache_write_error': getattr(MEANING_EN, 'cache_write_error', None),
             # 프롬프트 판번호가 올라가 한국어 설명 캐시를 버린 건수.
@@ -2597,6 +2606,11 @@ def admin():
         'tts_error': getattr(TTS_FULL, 'last_error', None),
         # 출력 전 검수기 상태 — 모델명이 틀리면 여기서 '꺼짐(오류)' 로 보인다
         'review': _review_status(),
+        # 설명 생성이 최종 실패해 템플릿으로 떨어진 건수(유형별)와 재시도 성과.
+        # 템플릿 문구는 사용자에게 나가면 안 되는 것이므로 여기서 바로 보인다.
+        'gen_fail': getattr(MEANING_EN, 'fail_kinds', None) or {},
+        'gen_retry': getattr(MEANING_EN, 'retry_count', 0),
+        'gen_recovered': getattr(MEANING_EN, 'retry_recovered', 0),
         'new_today': s.get('new_today', 0),
         'daily_max': daily_max,
         'cache_entries': cache_entries,

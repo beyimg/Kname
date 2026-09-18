@@ -157,6 +157,31 @@ def main():
         r'\b(?:a|an) (?:poetry|true|wisdom|virtue|grace|jade|gold|silk|water|'
         r'sunlight|moonlight|robust|crimson|second|sky|snow|rain|earth)\b')
 
+    # 독자를 'you/your' 로 부르는 문장. 생성 프롬프트와 검수 체크리스트가
+    # 모두 금지하는데도 "Your name is Deacon." 이 한 번 통과한 적이 있다.
+    SECOND_PERSON = re.compile(r'\b(?:you|your|yours|you\'re)\b', re.I)
+
+    def char_form_misses(given, hanja, text):
+        """글자별 표기 형식('혜 (惠, hye)')을 지키지 않은 글자 목록.
+
+        형식은 프롬프트가 지시하고 검수가 확인하지만, 둘 다 LLM 이므로
+        '지켜졌는지'는 코드로 세어야 안다. 문구 감사(tools/audit_reason_phrases.py)와
+        같은 취지다 — LLM 이 지킬 규칙은 결정론적으로 검사한다.
+        """
+        from pronounce_guide import romanize_syllable
+        miss = []
+        for i, syl in enumerate(given or ''):
+            if i >= len(hanja or ''):
+                break
+            hj = hanja[i]
+            if not hj:
+                continue
+            rom = romanize_syllable(syl, capitalize=False)
+            want = f'{syl} ({hj}, {rom})' if rom else f'{syl} ({hj})'
+            if want not in (text or ''):
+                miss.append(syl)
+        return miss
+
     # 대상 결정
     if args.file:
         cases = [c for c in (parse_line(l) for l in open(args.file, encoding='utf-8')) if c]
@@ -195,12 +220,37 @@ def main():
         short = d.get('meaning_short') or ''
         meaning = d.get('meaning_en') or ''
 
-        src = meaning_source(d.get('given'), meaning, d.get('meaning_error'),
+        meaning_error = d.get('meaning_error') or ''
+        src = meaning_source(d.get('given'), meaning, meaning_error,
                              d.get('meaning_source'))
+
+        # 검수(LLM) 결과. app.py 가 meaning_review 로 내려준다.
+        rev = d.get('meaning_review') or {}
+        rev_status = rev.get('status') or ''
+        rev_issues = rev.get('issues') or []
+        if isinstance(rev_issues, str):
+            rev_issues = [rev_issues]
 
         # 눈에 띄는 문제만 표시
         flags = []
-        if src == 'template': flags.append('템플릿(LLM실패)')
+        # 템플릿이 왜 나왔는지를 플래그에 박아 둔다. 예전에는 '템플릿(LLM실패)'
+        # 까지만 남고 원인(meaning_error)은 판정에만 쓰고 버려서, 재시도를
+        # 늘려야 할지 타임아웃을 늘려야 할지 알 수 없었다.
+        if src == 'template':
+            flags.append(f'템플릿(LLM실패:{meaning_error or "원인미상"})')
+        if rev_status in ('rejected', 'failed'):
+            flags.append(f'검수{rev_status}')
+        # 글자별 표기 형식('혜 (惠, hye)')을 지켰는가. LLM 이 새로 쓴 설명만
+        # 본다 — 사전 602개는 사람이 쓴 문장이고, 템플릿은 코드가 만들므로
+        # 형식이 어긋날 수 없다.
+        if src == 'llm':
+            bad_form = char_form_misses(d.get('given') or '',
+                                        d.get('hanja') or '', meaning)
+            if bad_form:
+                flags.append(f'표기형식({",".join(bad_form)})')
+        # 3인칭 규칙 위반 — 생성 프롬프트와 검수 체크리스트 모두의 금지 항목
+        if src == 'llm' and SECOND_PERSON.search(meaning):
+            flags.append('2인칭(you)')
         # 프롬프트·한자 뜻이 바뀐 뒤 재생성에 실패해 예전 캐시가 나온 경우.
         # 새로 만든 것과 구분되지 않으면 틀린 뜻이 조용히 계속 나간다.
         if d.get('meaning_stale'):
@@ -222,7 +272,12 @@ def main():
         say(f'     이름   : {d["full_hangul"]} ({d["full_rom"]})  '
             f'{(d.get("surname_hanja") or "") + (d.get("hanja") or "")}  [{d.get("quality")}]')
         say(f'     한 줄  : {short}')
-        say(f'     의미   : [{label}] {meaning[:220]}')
+        # 자르지 않는다. 예전에는 220자에서 잘라 놓고 잘렸다는 표시가 없어,
+        # LLM 이 문장을 끝맺지 못한 것처럼 보였다(실제로 그렇게 오해했다).
+        say(f'     의미   : [{label}] {meaning}')
+        if rev_status:
+            say(f'     검수   : {rev_status}'
+                + (f' — {"; ".join(str(x) for x in rev_issues)}' if rev_issues else ''))
 
         rows.append({
             'first': first, 'last': last, 'sex': sex,
@@ -231,6 +286,10 @@ def main():
             'hanja': (d.get('surname_hanja') or '') + (d.get('hanja') or ''),
             'quality': d.get('quality'),
             'source': src,
+            # 템플릿으로 떨어진 이유. 이것이 없어 원인을 추적할 수 없었다.
+            'meaning_error': meaning_error,
+            'review': rev_status,
+            'review_issues': ' / '.join(str(x) for x in rev_issues),
             'native': bool(d.get('is_native')),
             'short': short, 'meaning': meaning,
             'surname_desc': d.get('surname_desc') or '',
@@ -260,7 +319,33 @@ def main():
         '   (한자가 없어 로컬 생성, 정상)')
     say(f'  템플릿     {cnt.get("template", 0):4d}건  '
         f'{100*cnt.get("template",0)/n:5.1f}%   <- 0 이어야 정상')
+    # 템플릿이 나왔으면 원인을 바로 보여준다. 한 줄이라도 유형이 찍혀 있으면
+    # 재시도를 늘려야 할지(transient) 타임아웃을 늘려야 할지(timeout) 정할 수 있다.
+    tpl = [r for r in ok_rows if r.get('source') == 'template']
+    if tpl:
+        kinds = {}
+        for r in tpl:
+            k = r.get('meaning_error') or '원인미상'
+            kinds[k] = kinds.get(k, 0) + 1
+        say('    실패 원인: ' + ', '.join(f'{k} {v}건' for k, v in
+                                       sorted(kinds.items(), key=lambda x: -x[1])))
+        say('      transient=과부하·레이트리밋(재시도 소진) · timeout=응답 지연')
+        say('      credit=크레딧 소진 · auth=키 문제 · other=요청 오류')
     say('')
+    # 검수(LLM) 집계. 검수가 돌았는지 여부가 결과 파일에 남지 않아, 예전에는
+    # 캐시를 직접 열어 보지 않으면 적용 여부를 확인할 수 없었다.
+    rev_cnt = {}
+    for r in ok_rows:
+        if r.get('review'):
+            rev_cnt[r['review']] = rev_cnt.get(r['review'], 0) + 1
+    if rev_cnt:
+        say('설명 검수(LLM)')
+        for k, ko in (('ok', '문제없음'), ('edited', '수정함'),
+                      ('rejected', '수정거부'), ('failed', '검수실패'),
+                      ('disabled', '검수꺼짐')):
+            if rev_cnt.get(k):
+                say(f'  {ko:8s} {rev_cnt[k]:4d}건')
+        say('')
     say('이름 품질 등급')
     for q in ('Q1', 'Q2', 'Q3', 'Q4'):
         if cnt.get(q):
@@ -313,11 +398,21 @@ def main():
 XL_COLS = [
     ('번호', 6), ('영어 이름', 14), ('성', 14), ('성별', 6),
     ('음차', 12), ('한국 이름', 12), ('로마자', 16), ('한자', 10),
-    ('품질', 7), ('의미 출처', 10), ('한 줄 의미', 30),
-    ('의미 설명', 70), ('성씨 유래', 40), ('음절 매칭', 26), ('확인 플래그', 20),
+    ('품질', 7), ('의미 출처', 10), ('실패 원인', 12), ('검수', 10),
+    ('한 줄 의미', 30),
+    ('의미 설명', 70), ('성씨 유래', 40), ('음절 매칭', 26), ('확인 플래그', 24),
+    ('검수 지적', 50),
 ]
+# 줄바꿈해서 보여줄 긴 칸. 이름으로 찾는다 — 칸을 추가할 때 번호를 다시
+# 세지 않아도 되고, 세다가 틀려 엉뚱한 칸이 줄바꿈되는 일도 없다.
+_WRAP_COLS = {'한 줄 의미', '의미 설명', '성씨 유래', '음절 매칭',
+              '확인 플래그', '검수 지적'}
+_WRAP_IDX = {i for i, (nm, _w) in enumerate(XL_COLS, 1) if nm in _WRAP_COLS}
+_SRC_IDX = next(i for i, (nm, _w) in enumerate(XL_COLS, 1) if nm == '의미 출처')
 SRC_KO = {'llm': 'LLM', 'dict': '사전602', 'native': '순우리말', 'template': '템플릿',
           'none': '없음', 'error': '오류'}
+REV_KO = {'ok': '문제없음', 'edited': '수정함', 'rejected': '수정거부',
+          'failed': '검수실패', 'disabled': '검수꺼짐', '': ''}
 
 
 def write_xlsx(path, rows, cnt, n, warn):
@@ -358,17 +453,19 @@ def write_xlsx(path, rows, cnt, n, warn):
             i, r.get('first', ''), r.get('last', ''), r.get('sex', ''),
             r.get('translit', ''), r.get('full', ''), r.get('rom', ''),
             r.get('hanja', ''), r.get('quality', ''), SRC_KO.get(src, src),
+            r.get('meaning_error', ''), REV_KO.get(r.get('review', ''), r.get('review', '')),
             r.get('short', ''),
             r.get('meaning', '') or r.get('error', ''),
             r.get('surname_desc', ''), r.get('matches', ''),
             ', '.join(r.get('flags') or []),
+            r.get('review_issues', ''),
         ]
         for c, v in enumerate(vals, 1):
             cell = ws.cell(row=i + 1, column=c, value=v)
             cell.font = base
-            cell.alignment = wrap if c in (11, 12, 13, 14) else top
+            cell.alignment = wrap if c in _WRAP_IDX else top
         if src in fills:
-            ws.cell(row=i + 1, column=10).fill = fills[src]
+            ws.cell(row=i + 1, column=_SRC_IDX).fill = fills[src]
 
     ws.freeze_panes = 'C2'
     ws.auto_filter.ref = f'A1:{get_column_letter(len(XL_COLS))}{len(rows) + 1}'
@@ -408,8 +505,46 @@ def write_xlsx(path, rows, cnt, n, warn):
     put(11, '템플릿', cnt.get('template', 0), cnt.get('template', 0) / n,
         '0 이어야 정상 (LLM 실패)')
 
-    put(13, '이름 품질 등급', bold=True)
-    row = 14
+    row = 13
+    # 템플릿이 나온 이유. 유형이 없으면 손댈 곳을 정할 수 없다.
+    tpl_kinds = {}
+    for r in rows:
+        if r.get('source') == 'template':
+            k = r.get('meaning_error') or '원인미상'
+            tpl_kinds[k] = tpl_kinds.get(k, 0) + 1
+    if tpl_kinds:
+        put(row, '템플릿 실패 원인', bold=True)
+        row += 1
+        notes = {'transient': '과부하·레이트리밋 — 재시도 소진',
+                 'timeout': '응답 지연 — GEN_TIMEOUT 을 올린다',
+                 'credit': '크레딧 소진', 'auth': 'API 키 문제',
+                 'other': '요청 오류', '원인미상': '기록 없음(구버전)'}
+        for k, v in sorted(tpl_kinds.items(), key=lambda x: -x[1]):
+            put(row, k, v, v / n, notes.get(k, ''))
+            row += 1
+        row += 1
+
+    # 검수(LLM) 집계 — 검수가 실제로 돌았는지 여기서 바로 확인된다.
+    rev_cnt = {}
+    for r in rows:
+        if r.get('review'):
+            rev_cnt[r['review']] = rev_cnt.get(r['review'], 0) + 1
+    if rev_cnt:
+        put(row, '설명 검수(LLM)', bold=True)
+        row += 1
+        rev_note = {'ok': '고칠 것 없음', 'edited': '검수가 고쳐서 내보냄',
+                    'rejected': '수정본이 검증을 못 통과 — 원문 유지',
+                    'failed': '검수 호출 실패 — 원문 유지',
+                    'disabled': '검수기가 꺼져 있음'}
+        for k in ('ok', 'edited', 'rejected', 'failed', 'disabled'):
+            if rev_cnt.get(k):
+                put(row, REV_KO.get(k, k), rev_cnt[k], rev_cnt[k] / n,
+                    rev_note.get(k, ''))
+                row += 1
+        row += 1
+
+    put(row, '이름 품질 등급', bold=True)
+    row += 1
     for q in ('Q1', 'Q2', 'Q3', 'Q4'):
         if cnt.get(q):
             put(row, q, cnt[q], cnt[q] / n)
