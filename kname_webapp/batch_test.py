@@ -90,6 +90,9 @@ def main():
     ap.add_argument('--n', type=int, help='사전에서 무작위 N개')
     ap.add_argument('--out', help='결과 파일 이름(확장자 제외). '
                                   '생략하면 --file 이름에서 자동으로 정한다')
+    ap.add_argument('--strict', action='store_true',
+                    help='배포 전 점검용. 사용자에게 나가면 안 되는 결과(템플릿·'
+                         '잘림·표기형식·2인칭·예전캐시)가 하나라도 있으면 exit 1')
     args = ap.parse_args()
 
     import app as A
@@ -392,6 +395,22 @@ def main():
     print('\n저장: ' + ' / '.join(saved))
     print('엑셀 파일을 열면 필터·정렬로 검토할 수 있고,')
     print('JSON 내용을 대화에 붙여 넣으면 함께 검토할 수 있습니다.')
+
+    # --strict: 이 배치가 '검증 루프'의 관문이다. 사용자에게 나가면 안 되는
+    # 것이 하나라도 있으면 실패로 끝내, 배포 스크립트나 사람이 놓치지 않게 한다.
+    # 실시간 요청마다 LLM 이 LLM 을 다시 검수하는 루프 대신, 오프라인에서
+    # 돌리는 이 배치가 그 역할을 한다 — 결정론적이고, 비용이 한 번뿐이며,
+    # 결과가 파일로 남는다.
+    if args.strict:
+        BLOCK = ('템플릿(', '표기형식(', '2인칭(', '예전캐시(', '검수failed', '검수rejected')
+        bad = [(r['first'], r['last'], f) for r in ok_rows
+               for f in (r.get('flags') or []) if f.startswith(BLOCK)]
+        if bad:
+            print(f'\n[strict] 나가면 안 되는 결과 {len(bad)}건:')
+            for first, last, f in bad[:30]:
+                print(f'  - {first} {last}: {f}')
+            sys.exit(1)
+        print('\n[strict] 통과 — 나가면 안 되는 결과 없음')
 
 
 # ---------------------------------------------------------------- 엑셀 출력

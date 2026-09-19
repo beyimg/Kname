@@ -145,6 +145,17 @@ RETRY_SLEEP = 1.5             # 초. ±25% 지터 — 급증 구간을 벗어날
 GEN_TIMEOUT = 30.0
 GEN_SDK_RETRIES = 1
 
+# 출력 토큰 상한. 400 이었을 때 v6 형식('희 (喜, hui), meaning glad')이 토큰을
+# 더 먹어 응답이 잘렸다 — 우솔은 'car' 에서 끊기고, 희건은 'SHOR' 에서 끊겨
+# 한 줄(SHORT)이 통째로 사라졌다(100개 배치 2차). 한글·한자·괄호는 영어보다
+# 토큰이 비싸다. 60-90 단어 + 한 줄에 700 이면 넉넉하고, 남는 만큼은 과금되지
+# 않는다(출력 토큰은 쓴 만큼만).
+GEN_MAX_TOKENS = 700
+
+# 빈 응답·잘린 응답은 한 번 더 부른다. 확률적 현상이라 같은 프롬프트로 다시
+# 부르면 대개 정상으로 온다. 두 번째도 나쁘면 포기한다(예전 캐시 또는 템플릿).
+REGEN_ON_BAD_OUTPUT = 1
+
 
 class MeaningEnGenerator:
     """
@@ -160,7 +171,7 @@ class MeaningEnGenerator:
         api_key: Optional[str] = None,
         model: str = DEFAULT_MODEL,
         cache_path: Optional[str] = 'meaning_en_cache.json',
-        max_tokens: int = 400,
+        max_tokens: int = GEN_MAX_TOKENS,
         temperature: float = 0.7,
     ):
         self.nm = name_meaning
@@ -198,6 +209,10 @@ class MeaningEnGenerator:
         self.retry_count = 0            # 재시도한 횟수
         self.retry_recovered = 0        # 재시도로 살아난 건수
         self.fail_kinds: Dict[str, int] = {}   # 유형별 최종 실패 건수
+        self.last_error_msg: Optional[str] = None   # 마지막 예외 메시지(앞 160자)
+        self.last_stop_reason: Optional[str] = None # 마지막 응답의 stop_reason
+        self.regen_count = 0            # 빈/잘린 응답으로 다시 부른 횟수
+        self.regen_recovered = 0        # 그 중 살아난 건수
 
     # ------------------------------------------------------------ 내부
     def _client_or_raise(self):
@@ -256,6 +271,30 @@ class MeaningEnGenerator:
             return romanize_joined(given)
         except Exception:
             return ''
+
+    @staticmethod
+    def _chars_en(hanja_chars, gloss_en=None, hanja_en=None):
+        """[(음절, 한자, 영어뜻)]. 생성 프롬프트와 검수 DATA 가 **같은 뜻**을 본다.
+
+        한자별 영어뜻(hanja_en)을 먼저 쓴다. 한국어뜻→영어 표(gloss_en)는 낱말
+        하나에 영어 하나를 붙이므로 동음이의어를 구분하지 못한다. 그래서 예전에는
+          馬(말=horse) · 斗(말=곡식 단위) · 勿(말=~하지 말라) → 'words'
+          年(해=year) → 'sun'
+          蔚(딸 ← 잘못된 데이터) → 'daughter'
+        처럼 틀린 뜻이 프롬프트로 들어갔다. 카드에 찍히는 뜻은 한자별 표를
+        쓰고 있었으므로 설명과 카드가 서로 달랐다.
+
+        검수기에도 이 결과를 넘긴다. 예전에는 검수 DATA 가 한국어 뜻(착하다)이고
+        생성은 영어 뜻(virtuous)이라, 검수기가 생성기가 받은 바로 그 낱말을
+        'DATA 에 없다'며 고쳤다(혜선, 100개 배치 2차).
+        """
+        out = []
+        for syl, hanja, kr_gloss in (hanja_chars or []):
+            en = ((hanja_en or {}).get(hanja)
+                  or (gloss_en or {}).get(kr_gloss)
+                  or kr_gloss)
+            out.append((syl, hanja, en))
+        return out
 
     @staticmethod
     def _syl_rom(syllable: str) -> str:
@@ -345,19 +384,7 @@ class MeaningEnGenerator:
         """영어 출력만 요구하는 짧은 프롬프트."""
         lines = []
         if hanja_chars:
-            for syl, hanja, kr_gloss in hanja_chars:
-                # 한자별 영어뜻(hanja_en)을 먼저 쓴다.
-                #
-                # 한국어뜻→영어 표(gloss_en)는 낱말 하나에 영어 하나를 붙이므로
-                # 동음이의어를 구분하지 못한다. 그래서 예전에는
-                #   馬(말=horse) · 斗(말=곡식 단위) · 勿(말=~하지 말라) → 'words'
-                #   年(해=year) → 'sun'
-                #   蔚(딸 ← 잘못된 데이터) → 'daughter'
-                # 처럼 틀린 뜻이 프롬프트로 들어갔다. 카드에 찍히는 뜻은
-                # 한자별 표를 쓰고 있었으므로 설명과 카드가 서로 달랐다.
-                en = ((hanja_en or {}).get(hanja)
-                      or (gloss_en or {}).get(kr_gloss)
-                      or kr_gloss)
+            for syl, hanja, en in self._chars_en(hanja_chars, gloss_en, hanja_en):
                 # 글자별 표기를 모델이 조립하지 않게, 쓸 문자열을 그대로 준다.
                 # NAME_SLOT 과 같은 원리다 — 베껴 쓰게 하면 형식이 흔들리지 않는다.
                 syl_rom = self._syl_rom(syl)
@@ -466,11 +493,16 @@ class MeaningEnGenerator:
                 )
                 raw = ''.join(b.text for b in resp.content
                               if hasattr(b, 'text')).strip()
+                # 빈 응답의 원인을 알려면 stop_reason 이 필요하다
+                # (max_tokens 면 출력 한도에 걸린 것). transliterate.py 와 같다.
+                self.last_stop_reason = getattr(resp, 'stop_reason', None)
                 if attempt:
                     self.retry_recovered += 1
                 return raw, None
             except Exception as e:
                 err = classify_error(e)
+                # 유형만으로는 'other' 가 무엇이었는지 알 수 없다(400? 검증 오류?).
+                self.last_error_msg = f'{type(e).__name__}: {e}'[:160]
                 # transient 만 재시도한다 — timeout 은 기다림만 두 배가 된다.
                 if err != 'transient' or attempt == RETRY_MAX:
                     self.fail_kinds[err] = self.fail_kinds.get(err, 0) + 1
@@ -478,6 +510,49 @@ class MeaningEnGenerator:
                 self.retry_count += 1
                 time.sleep(RETRY_SLEEP * random.uniform(0.75, 1.25))
         return None, err
+
+    def _bad_output(self, raw: Optional[str]) -> Optional[str]:
+        """응답을 쓸 수 없는 이유. 정상이면 None.
+
+        'truncated' : stop_reason 이 max_tokens — 문장이 중간에 끊겼다. 잘린
+                      문장은 템플릿보다 나쁘다(사용자가 'car' 로 끝나는 설명을 본다).
+        'empty'     : 본문이 없거나 40자 미만.
+        """
+        if self.last_stop_reason == 'max_tokens':
+            return 'truncated'
+        body, _short = self._split_short(raw or '')
+        if not self._clean(body):
+            return 'empty'
+        return None
+
+    def _generate(self, prompt: str) -> Tuple[Optional[str], Optional[str]]:
+        """호출 + 출력 품질 확인. (raw, 실패사유) — 성공이면 (raw, None).
+
+        API 오류 재시도(_call_with_retry)와 별개로, 응답이 왔는데 비었거나
+        잘렸으면 같은 프롬프트로 한 번 더 부른다. 100개 배치 2차에서 13건 중
+        6건이 빈 응답, 2건이 잘림이었다 — 이것을 그대로 두면 예전 캐시(구형식)
+        나 템플릿이 나간다.
+        """
+        raw, err = self._call_with_retry(prompt)
+        if raw is None:
+            return None, err
+        why = self._bad_output(raw)
+        for _ in range(REGEN_ON_BAD_OUTPUT if why else 0):
+            self.regen_count += 1
+            raw2, err2 = self._call_with_retry(prompt)
+            if raw2 is None:
+                break                          # API 오류 — 첫 응답으로 판단
+            why2 = self._bad_output(raw2)
+            if not why2:
+                self.regen_recovered += 1
+                return raw2, None
+            raw, why = raw2, why2
+        if why:
+            # 사유에 stop_reason 과 응답 앞부분을 붙인다 — 다음 배치에서 '왜'가
+            # 그대로 보이도록. (예전 캐시 플래그 '예전캐시(...)' 에 실린다.)
+            head = (raw or '').replace('\n', ' ')[:60]
+            return None, f'{why}-response stop={self.last_stop_reason} raw={head!r}'
+        return raw, None
 
     # ------------------------------------------------------------ 공개 API
     def explain_en(
@@ -523,7 +598,9 @@ class MeaningEnGenerator:
             # 만들어는 졌는데 검수가 안 된(실패했던) 항목 — POST 경로에서만 다시
             # 검수한다. GET(allow_llm=False)은 절대 LLM 비용을 내지 않는다.
             if (allow_llm and self._needs_review(cached)):
-                self._review_into(cached, key, given, label, hanja_chars, english_name)
+                self._review_into(cached, key, given, label,
+                                  self._chars_en(hanja_chars, gloss_en, hanja_en),
+                                  english_name)
             return cached.get('text') or None, cached.get('short') or ''
         # 버전이 다르거나 예전 문자열 캐시다.
         # 프롬프트가 바뀌었으니 다시 만드는 것이 맞다. 다만 키가 없어 새로
@@ -538,9 +615,11 @@ class MeaningEnGenerator:
 
         prompt = self._build_prompt(given, sex, hanja_chars, english_name,
                                     gloss_en, hanja_en)
-        raw, err = self._call_with_retry(prompt)
+        raw, err = self._generate(prompt)
         if raw is None:
-            # 호출부가 상황에 맞는 안내를 띄울 수 있도록 유형을 남긴다
+            # 호출부가 상황에 맞는 안내를 띄울 수 있도록 유형을 남긴다.
+            # API 오류면 유형(transient/timeout/...), 응답 문제면
+            # 'empty-response ...' / 'truncated-response ...' 에 원인이 실려 있다.
             self.last_error = err
             # 새로 만들지 못했으면 예전 캐시라도 내보낸다(빈 카드보다 낫다).
             # 다만 낡은 내용이므로 반드시 표시한다.
@@ -552,8 +631,8 @@ class MeaningEnGenerator:
         self.last_error = None
 
         body, short = self._split_short(raw)
-        text = self._clean(body)
-        if not text:
+        text = self._clean(body)          # _generate 가 확인했으므로 비지 않는다
+        if not text:                      # 만일을 위한 방어
             if stale:
                 self.last_stale = True
                 self.last_stale_why = 'empty-response'
@@ -575,7 +654,9 @@ class MeaningEnGenerator:
                     text = f'{label} {text}'
         entry = {'v': PROMPT_VERSION, 'text': text, 'short': short}
         # 보여주기 전에 검수 — 생성 → 검수 → 캐시. 검수가 실패해도 원문은 그대로 나간다.
-        self._review_into(entry, key, given, label, hanja_chars, english_name, save=False)
+        self._review_into(entry, key, given, label,
+                          self._chars_en(hanja_chars, gloss_en, hanja_en),
+                          english_name, save=False)
         with self._lock:
             self._cache[key] = entry
             self._save_cache()
@@ -588,8 +669,12 @@ class MeaningEnGenerator:
         return bool(REVIEW_VERSION) and entry.get('r') != REVIEW_VERSION
 
     def _review_into(self, entry: dict, key: str, given: str, label: str,
-                     hanja_chars, english_name, save: bool = True) -> None:
+                     chars_en, english_name, save: bool = True) -> None:
         """entry 를 검수해 제자리에서 고친다. 결과 요약은 entry['review'] 와 last_review 에.
+
+        chars_en: [(음절, 한자, 영어뜻)] — _chars_en() 의 결과. 생성 프롬프트가
+        받은 것과 같은 영어 뜻이어야 한다(한국어 뜻을 주면 검수기가 생성기의
+        낱말을 'DATA 에 없다'며 고친다).
 
         'r'(검수 완료 표시)은 검수기가 **실제로 판정을 내렸을 때만** 찍는다
         (ok / edited / rejected). 호출 실패·꺼짐이면 찍지 않아 다음 POST 에서
@@ -600,7 +685,7 @@ class MeaningEnGenerator:
         try:
             res = self.reviewer.review(
                 entry['text'], entry.get('short') or '', given, label,
-                hanja_chars=hanja_chars, english_name=english_name,
+                hanja_chars=chars_en, english_name=english_name,
                 clean_short=self._clean_short)
         except Exception as e:                      # 검수기는 예외를 안 던지지만, 만일을 위해
             self.last_review = {'status': 'failed', 'reason': f'{type(e).__name__}: {e}'[:160]}

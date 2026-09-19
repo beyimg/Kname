@@ -13,13 +13,19 @@
  "빛나:여:Wilhelmina": "Bitna means \"to shine\" in Korean—a pure, native word that carries the hope you'll radiate warmth and light wherever you go. The name sounds gentle yet luminous: the soft \"b\" opens into a bright \"ee\" vowel, then flows through \"t\" and \"na\" like sunlight spilling across water. It shares syllables with other glowing names like Eunbit and Yebit, all evoking brilliance. Like Wilhelmina, which means \"resolute protector,\" Bitna speaks to strength—but yours shines outward, illuminating the world around you.",
  "빛나:여:Bethany": "Bitna carries light itself—a pure Korean name, no borrowed hanja, just the native words for \"shine\" and \"to be,\" fused into a wish that someone might glow simply by existing. Spoken aloud, it's bright and quick: a crisp \"bit\" followed by the soft, open \"na,\" like a spark catching air. It echoes through names like Eunbit and Yebit, cousins in radiance. For someone called Bethany in English, Bitna feels like its inner translation: light given a name, then given a person to belong to.",
  "이재:여:Imogen": {
-  "v": 5,
-  "text": "이재 (利才, Ijae) joins beneficial (利) with talent (才), painting a hope for someone whose gifts naturally serve and uplift those around them — a mind sharp enough to shine, and generous enough to share that shine freely. Spoken aloud, it stays light and clean, two open syllables that lift gently at the end, easy to say softly. Abroad, it settles comfortably beside Imogen, familiar in rhythm though wholly its own in meaning.",
-  "short": "A talent that benefits everyone around them",
-  "r": 1,
+  "v": 6,
+  "text": "이재 (利才, Ijae) joins 이 (利, i), meaning beneficial, with 재 (才, jae), meaning talent, painting the hope that such gifts ripen into real, useful good in the world — a mind sharp enough to help, not just to shine. Spoken aloud, the name stays light and clean, its vowels open like a held breath, its consonants soft rather than sharp, giving it a bright, easy lilt. Abroad, it settles comfortably beside the name Imogen, familiar on the tongue without losing its own quiet music.",
+  "short": "A talent that brings real benefit",
+  "r": 2,
   "review": {
-   "status": "ok",
-   "ts": 1789736413
+   "status": "edited",
+   "ts": 1789743464,
+   "issues": [
+    "Checklist 9: Text addresses reader as 'someone's gifts' and 'someone's' — rewrite to third person only",
+    "Checklist 9: Text uses 'someone's gifts will ripen' which implies direct address; restructure to speak about the name it"
+   ],
+   "orig": "이재 (利才, Ijae) joins 이 (利, i), meaning beneficial, with 재 (才, jae), meaning talent, painting the hope that someone's gifts will ripen into real, useful good in the world — a mind sharp enough to help, not just to shine. Spoken aloud, the name stays light and clean, its vowels open like a held breath, its consonants soft rather than sharp, giving it a bright, easy lilt. Abroad, it settles comfortably beside the name Imogen, familiar on the tongue without losing its own quiet music.",
+   "orig_short": "A talent that brings real benefit"
   }
  },
  "나은:여:Nell": {
@@ -45,18 +51,21 @@
   "short": ""
  },
  "희건:남:Finnegan": {
-  "v": 5,
-  "text": "희건 (喜建, Huigeon) joins gladness with the act of building, so the two characters together read as someone meant to establish joy — not just to feel it, but to found it, lay its groundwork, and let it stand firm for others to lean on. Spoken aloud, Huigeon opens softly on breath, brightens through a rounded \"wi,\" then closes with a crisp, grounded \"geon\" — light meeting solid.",
-  "short": "One who builds and establishes gladness",
-  "r": 1,
+  "v": 6,
+  "text": "희건 (喜建, Huigeon) joins 희 (喜, hui), meaning glad, with 건 (建, geon), meaning to establish, so together the name carries the hope that someone will build a life founded on lasting gladness, not fleeting cheer but joy strong enough to stand on. Spoken aloud, hui-geon flows softly, the breathy hui opening into the crisp, grounded geon, vowels wide and easy on the tongue. Abroad, it settles comfortably alongside Finnegan, both names carrying a bright, friendly lilt that feels warm and familiar in either language.",
+  "short": "Gladness as a foundation for lasting joy",
+  "r": 2,
   "review": {
    "status": "edited",
-   "ts": 1789736420,
+   "ts": 1789743472,
    "issues": [
-    "The phrase 'its rhythm echoes comfortably into Finnegan' presents the English name's meaning/sound as related to the Kor"
+    "Character 희 must be written as 희 (喜, hui) not 희 (喜, hui) in the second mention - applying required form",
+    "Character 건 must be written as 건 (建, geon) not 건 (建, geon) in the second mention - applying required form",
+    "Remove 'SHOR' at end - appears to be a stray character",
+    "Add SHORT caption as required"
    ],
-   "orig": "희건 (喜建, Huigeon) joins gladness with the act of building, so the two characters together read as someone meant to establish joy — not just to feel it, but to found it, lay its groundwork, and let it stand firm for others to lean on. Spoken aloud, Huigeon opens softly on breath, brightens through a rounded \"wi,\" then closes with a crisp, grounded \"geon\" — light meeting solid. Abroad, its rhythm echoes comfortably into Finnegan.",
-   "orig_short": "One who builds and establishes gladness"
+   "orig": "희건 (喜建, Huigeon) joins 희 (喜, hui), meaning glad, with 건 (建, geon), meaning to establish, so together the name carries the hope that someone will build a life founded on lasting gladness, not fleeting cheer but joy strong enough to stand on. Spoken aloud, hui-geon flows softly, the breathy hui opening into the crisp, grounded geon, vowels wide and easy on the tongue. Abroad, it settles comfortably alongside Finnegan, both names carrying a bright, friendly lilt that feels warm and familiar in either language. SHOR",
+   "orig_short": ""
   }
  },
  "이든:남:Leland": {
@@ -332,51 +341,50 @@
   }
  },
  "빛나:여:Verity": {
-  "v": 5,
-  "text": "빛나 (Bitna) — this is the native Korean word for \"to shine,\" built from 빛, meaning light, and a verb ending. Parents choosing it hope for a daughter who casts her own brightness into the world, someone whose presence lights a room without needing permission. Spoken aloud, Bitna is quick and clean, its consonants crisp, its vowels open and bright, ending on that light final \"a.\" Abroad, it settles easily beside Verity, the two sharing a gentle, familiar ring.",
-  "short": "A light that shines on its own",
-  "r": 1,
+  "v": 6,
+  "text": "빛나 (Bitna) — above all, this is the native Korean word meaning \"to shine\" or \"shining,\" carrying the hope that it will express a light that is unborrowed, unforced, simply present wherever it goes. Parents choosing it often picture a quiet brightness that draws people close, the kind that lights a room without demanding attention. Spoken aloud, it opens softly on the lips, then closes crisp and clean — bit-na, gentle yet clear.",
+  "short": "A person who shines with their own light",
+  "r": 2,
   "review": {
    "status": "edited",
-   "ts": 1789736215,
+   "ts": 1789743381,
    "issues": [
-    "The phrase 'a soft verb ending that sets it glowing into motion' is vague and speculative about grammar; DATA only confi"
+    "Removed second-person address 'you' and 'their own making' in favor of third-person description of the name's meaning"
    ],
-   "orig": "빛나 (Bitna) — above all, this is the native Korean word for \"to shine,\" built from 빛, meaning light, and a soft verb ending that sets it glowing into motion. Parents choosing it hope for a daughter who casts her own brightness into the world, someone whose presence lights a room without needing permission. Spoken aloud, Bitna is quick and clean, its consonants crisp, its vowels open and bright, ending on that light final \"a.\" Abroad, it settles easily beside Verity, the two sharing a gentle, familiar ring.",
-   "orig_short": "A light that shines on its own"
+   "orig": "빛나 (Bitna) — above all, this is the native Korean word meaning \"to shine\" or \"shining,\" carrying the hope that someone will radiate light of their own making: unborrowed, unforced, simply present wherever they go. Parents choosing it often picture a quiet brightness that draws people close, the kind that lights a room without demanding attention. Spoken aloud, it opens softly on the lips, then closes crisp and clean — bit-na, gentle yet clear. Abroad, it settles easily beside Verity, familiar in rhythm though different in meaning.",
+   "orig_short": "A person who shines with their own light"
   }
  },
  "라빈:여:Lavinia": {
-  "v": 5,
-  "text": "라빈 (羅彬, Rabin) unfurls with light shining, holding the hope of a life that opens gradually and gracefully, revealing brightness at every unfolding. It carries the quiet wish that someone will grow into their own radiance, not all at once, but gently, like fabric catching the light as it billows open. Spoken aloud, the name feels soft and open, its vowels wide and warm, ending on a crisp, clear note. Abroad, it echoes gently in the familiar shape of Lavinia.",
-  "short": "Light unfolding into radiance",
-  "r": 1,
+  "v": 6,
+  "text": "라빈 (羅彬, Rabin) joins 라 (羅, ra), meaning silk or something unfurling gently into the open, with 빈 (彬, bin), meaning shining, together carrying the hope of someone who unfolds brightness gracefully, like fabric catching light as it spreads. The sound moves beautifully with soft consonants, open vowels, a name that flows easily off the tongue in one smooth breath. It shares its rhythm with names like 라희, 아라, 수빈, and 유빈.",
+  "short": "A gentle brightness unfolding like silk",
+  "r": 2,
   "review": {
    "status": "edited",
-   "ts": 1789736312,
+   "ts": 1789743402,
    "issues": [
-    "Remove 'silk that unfurls' - this adds silk as a meaning not in DATA; 펼치다 means unfurl/open, not silk",
-    "Remove 'joins' - unclear what it means and not supported by the hanja meanings",
-    "'a light that shines' is awkward; should be 'light shining' since both characters refer to illumination/radiance"
+    "Checklist 9: Remove second-person address 'their brightness' and rewrite to third person",
+    "Checklist 5: Remove implication that Lavinia's meaning applies to the Korean name by removing the echo/familiarity claim"
    ],
-   "orig": "라빈 (羅彬, Rabin) joins silk that unfurls with a light that shines, holding the hope of a life that opens gradually and gracefully, revealing brightness at every unfolding. It carries the quiet wish that someone will grow into their own radiance, not all at once, but gently, like fabric catching the light as it billows open. Spoken aloud, the name feels soft and open, its vowels wide and warm, ending on a crisp, clear note. Abroad, it echoes gently in the familiar shape of Lavinia.",
-   "orig_short": "Shining silk unfurling into light"
+   "orig": "라빈 (羅彬, Rabin) joins 라 (羅, ra), meaning silk or something unfurling gently into the open, with 빈 (彬, bin), meaning shining, together carrying the hope of someone who unfolds their brightness gracefully, like fabric catching light as it spreads. The sound matches that image beautifully: soft consonants, open vowels, a name that moves easily off the tongue in one smooth breath. It shares its rhythm with names like 라희, 아라, 수빈, and 유빈, and echoes pleasantly abroad in the name Lavinia, close enough to feel instantly familiar to English speakers.",
+   "orig_short": "A gentle brightness unfolding like silk"
   }
  },
  "빛나:여:Bexley": {
-  "v": 5,
-  "text": "빛나 (Bitna) — above all, this is the native Korean word for shining, radiant, glowing with light. Parents choosing it hope for a daughter who lights up any room she enters, whose presence itself feels like brightness spilling into the lives around her — someone luminous, noticed, remembered fondly. It shares its glow with names like eunbit and yebit, cousins bright with the same light. Spoken aloud, Bitna feels soft yet clear, its open vowels rounding gently, its rhythm quick and warm. Abroad, it settles easily beside Bexley, both names carrying a bright, easy familiarity on the tongue.",
-  "short": "A radiant presence that shines with light",
-  "r": 1,
+  "v": 6,
+  "text": "빛나 (Bitna) — above all, this is the native Korean word for \"shines\" or \"to shine,\" carrying the hope that someone will glow with their own inner light, radiant and unmistakable wherever they go. A person with this name brightens rooms simply by being present. Spoken aloud, Bitna feels crisp and clean, its short vowels catching like a spark before settling into a soft, open close — quick, luminous, easy to say. It sits comfortably beside names like Eunbit and Yena.",
+  "short": "A radiant person who shines with inner light",
+  "r": 2,
   "review": {
    "status": "edited",
-   "ts": 1789736332,
+   "ts": 1789743409,
    "issues": [
-    "Romanization inconsistency: 'Bitna' in opening but 'Binna' later in text",
-    "SHORT is 8 words but needs to be a noun phrase (currently reads as a relative clause)"
+    "Remove 'you' and 'your' (violates rule 9): replace 'Parents choosing it dream of a daughter who brightens rooms simply b",
+    "Remove reference to 'Bexley' as echo of the Korean name (violates rule 5: presenting English name's meaning as Korean na"
    ],
-   "orig": "빛나 (Bitna) — above all, this is the native Korean word for shining, radiant, glowing with light. Parents choosing it hope for a daughter who lights up any room she enters, whose presence itself feels like brightness spilling into the lives around her — someone luminous, noticed, remembered fondly. It shares its glow with names like eunbit and yebit, cousins bright with the same light. Spoken aloud, Binna feels soft yet clear, its open vowels rounding gently, its rhythm quick and warm. Abroad, it settles easily beside Bexley, both names carrying a bright, easy familiarity on the tongue.",
-   "orig_short": "Someone radiant who shines with light"
+   "orig": "빛나 (Bitna) — above all, this is the native Korean word for \"shines\" or \"to shine,\" carrying the hope that a person will glow with their own inner light, radiant and unmistakable wherever they go. Parents choosing it dream of a daughter who brightens rooms simply by being present. Spoken aloud, Bitna feels crisp and clean, its short vowels catching like a spark before settling into a soft, open close — quick, luminous, easy to say. It sits comfortably beside names like Eunbit and Yena, and echoes gently in the sound of Bexley, familiar to English speakers abroad.",
+   "orig_short": "A person who shines with radiant light"
   }
  },
  "채담:여:Zelda": {
@@ -396,21 +404,19 @@
   }
  },
  "호정:여:Honora": {
-  "v": 5,
-  "text": "호정 (浩正, Hojeong) unites broad with upright, embodying the hope of a spirit as vast as open sky yet always true to its own compass—calling one to think generously, act rightly, and carry both warmth and integrity through every choice. Spoken aloud, it opens softly on breath, rounds through a wide vowel, then settles into a crisp, quiet ending, gentle yet grounded. Abroad, it echoes comfortably near Honora, letting it travel easily while remaining wholly its own.",
-  "short": "A generous and upright spirit",
-  "r": 1,
+  "v": 6,
+  "text": "호정 (浩正, Hojeong) joins 호 (浩, ho), meaning broad, with 정 (正, jeong), meaning upright, painting the hope of a spirit that stretches wide and generous while standing firmly on honest ground. The name holds the wish for someone who can embrace much within them — room enough for others — yet never bend from what is right. Spoken aloud, it flows softly, open vowels rounding into a crisp, clear finish, gentle yet grounded. It settles easily in English beside Honora, familiar on the tongue.",
+  "short": "A broad-hearted spirit standing upright",
+  "r": 2,
   "review": {
    "status": "edited",
-   "ts": 1789736495,
+   "ts": 1789743485,
    "issues": [
-    "Change 'joins' to 'unites' or similar - 'joins' is awkward with abstract nouns 'broad' and 'upright'",
-    "Change 'painting the hope' to 'embodying the hope' - more precise verb",
-    "Remove comma after 'compass' - the clause is restrictive, not parenthetical",
-    "Change 'someone meant to think' to 'calling one to think' - more appropriate to the genre of name explanation"
+    "Rule 9: Remove second-person address 'It is the wish for a person' should be rewritten to avoid directly addressing the ",
+    "Rule 9: Sentence 'Spoken aloud, the name flows softly...' and 'Abroad, it settles easily beside the name Honora' address"
    ],
-   "orig": "호정 (浩正, Hojeong) joins broad with upright, painting the hope of a spirit as vast as open sky yet always true to its own compass — someone meant to think generously, act rightly, and carry both warmth and integrity through every choice. Spoken aloud, it opens softly on breath, rounds through a wide vowel, then settles into a crisp, quiet ending, gentle yet grounded. Abroad, it echoes comfortably near Honora, letting it travel easily while remaining wholly its own.",
-   "orig_short": "A generous spirit guided by uprightness"
+   "orig": "호정 (浩正, Hojeong) joins 호 (浩, ho), meaning broad, with 정 (正, jeong), meaning upright, painting the hope of someone whose spirit stretches wide and generous while standing firmly on honest ground. It is the wish for a person who can hold much within them — room enough for others — yet never bend from what is right. Spoken aloud, the name flows softly, open vowels rounding into a crisp, clear finish, gentle yet grounded. Abroad, it settles easily beside the name Honora, familiar on the tongue.",
+   "orig_short": "A broad-hearted spirit standing upright"
   }
  },
  "바론:남:Barrett": {
@@ -430,18 +436,19 @@
   }
  },
  "지건:남:Deacon": {
-  "v": 5,
-  "text": "지건 (智建, Jigeon) joins wisdom (智) with the act of establishing (建), painting someone meant to build a life upon deep understanding—a person whose choices rest on insight, who constructs a future thoughtfully rather than by chance. Spoken aloud, it carries a soft, crisp rhythm, its open vowels lending a clean, confident sound. Your name is Deacon.",
-  "short": "Wisdom that builds a steady future",
-  "r": 1,
+  "v": 6,
+  "text": "지건 (智建, Jigeon) joins 지 (智, ji), meaning wisdom, with 건 (建, geon), meaning to establish, painting the hope that one builds a life on deep, thoughtful understanding rather than fleeting cleverness—wisdom made sturdy, given form and foundation. Spoken aloud, the name feels soft yet crisp, opening on that clear \"ji\" sound before settling into the grounded, open vowel of \"geon,\" like a gentle step followed by a firm plant of the foot. Abroad, it echoes easily into the familiar English name Deacon, giving it a comfortable, natural landing in new company.",
+  "short": "Wisdom given lasting, steady foundation",
+  "r": 2,
   "review": {
    "status": "edited",
-   "ts": 1789736588,
+   "ts": 1789743510,
    "issues": [
-    "Remove 'Abroad, it echoes gently in the name Deacon' - this presents Deacon as an echo/equivalent of the Korean name, wh"
+    "Checklist 9: Remove second-person reference 'someone will build a life' - rewrite to third person",
+    "Checklist 10: Character form '건 (建, geon)' appears in body text and must match DATA format exactly"
    ],
-   "orig": "지건 (智建, Jigeon) joins wisdom (智) with the act of establishing (建), painting someone meant to build a life upon deep understanding—a person whose choices rest on insight, who constructs a future thoughtfully rather than by chance. Spoken aloud, it carries a soft, crisp rhythm, its open vowels lending a clean, confident sound. Abroad, it echoes gently in the name Deacon, familiar on the tongue while remaining wholly its own.",
-   "orig_short": "Wisdom that builds a steady future"
+   "orig": "지건 (智建, Jigeon) joins 지 (智, ji), meaning wisdom, with 건 (建, geon), meaning to establish, painting the hope that someone will build a life on deep, thoughtful understanding rather than fleeting cleverness—wisdom made sturdy, given form and foundation. Spoken aloud, the name feels soft yet crisp, opening on that clear \"ji\" sound before settling into the grounded, open vowel of \"geon,\" like a gentle step followed by a firm plant of the foot. Abroad, it echoes easily into the familiar English name Deacon, giving it a comfortable, natural landing in new company.",
+   "orig_short": "Wisdom given lasting, steady foundation"
   }
  },
  "라은:여:Lark": {
@@ -455,18 +462,36 @@
   }
  },
  "우솔:남:Orson": {
-  "v": 5,
-  "text": "우솔 (佑帥, Usol) joins the quiet strength of \"to help\" with the bearing of \"leader,\" painting the picture of someone destined to guide others not through force but through steady support—a leader who lifts people up rather than standing above them. Spoken aloud, Usol feels light and rounded, its open vowels gliding easily, ending on that soft, clean \"-sol\" the way many Korean names do. Abroad, it settles comfortably near Orson, familiar on new tongues while still carrying its own quiet music.",
-  "short": "A supportive leader who helps others rise",
-  "r": 1,
+  "v": 6,
+  "text": "우솔 (佑帥, Usol) joins 우 (佑, u), meaning to help, with 솔 (帥, sol), meaning leader, painting the hope that someone would grow into a person who guides and shelters others, a helper who leads by steady care rather than force. Spoken aloud, the name flows smoothly, its open vowels giving it a soft, crisp brightness, gentle yet clear, not unlike names such as 시우 or 한솔. Abroad, it settles easily beside the name Orson, familiar on the tongue while carrying its own distinct identity.",
+  "short": "A helper who leads with steady care",
+  "r": 2,
   "review": {
    "status": "edited",
-   "ts": 1789736618,
+   "ts": 1789743525,
    "issues": [
-    "Remove specific name examples 'Hansol or Solmin' per CHECKLIST 4 (specific Korean given names used as examples must be r"
+    "Text is incomplete (ends mid-word 'car')",
+    "Checklist item 9: 'this person' violates third-person requirement; rewrite to speak about the name or someone in general",
+    "Missing SHORT caption (required by checklist item 8)"
    ],
-   "orig": "우솔 (佑帥, Usol) joins the quiet strength of \"to help\" with the bearing of \"leader,\" painting the picture of someone destined to guide others not through force but through steady support—a leader who lifts people up rather than standing above them. Spoken aloud, Usol feels light and rounded, its open vowels gliding easily, ending on that soft, clean \"-sol\" the way names like Hansol or Solmin do. Abroad, it settles comfortably near Orson, familiar on new tongues while still carrying its own quiet music.",
-   "orig_short": "A supportive leader who helps others rise"
+   "orig": "우솔 (佑帥, Usol) joins 우 (佑, u), meaning to help, with 솔 (帥, sol), meaning leader, painting the hope that this person would grow into someone who guides and shelters others, a helper who leads by steady care rather than force. Spoken aloud, the name flows smoothly, its open vowels giving it a soft, crisp brightness, gentle yet clear, not unlike names such as 시우 or 한솔. Abroad, it settles easily beside the name Orson, familiar on the tongue while car",
+   "orig_short": ""
+  }
+ },
+ "혜선:여:Persephone": {
+  "v": 6,
+  "text": "혜선 (惠善, Hyeseon) joins 혜 (惠, hye), meaning kindness, with 선 (善, seon), meaning good, weaving together a hope that this name carries forward a gentle, generous heart and an unwavering sense of goodness. Spoken aloud, the name flows softly, its open vowels rounding gently between crisp consonants, leaving a bright, airy sound. Abroad, it settles comfortably beside the name Persephone, sharing a similar graceful rhythm, so it feels both distinctly Korean and easy to carry into new company.",
+  "short": "A kind and good heart",
+  "r": 2,
+  "review": {
+   "status": "edited",
+   "ts": 1789743396,
+   "issues": [
+    "Checklist 9: Remove second-person address 'someone will move through the world with a gentle, generous heart' - rewrite ",
+    "Checklist 2: 'virtuous' is not in DATA; DATA says 선 (善) = 착하다 (good/kind), not virtuous"
+   ],
+   "orig": "혜선 (惠善, Hyeseon) joins 혜 (惠, hye), meaning kindness, with 선 (善, seon), meaning virtuous, weaving together a hope that someone will move through the world with a gentle, generous heart and an unwavering sense of goodness. Spoken aloud, the name flows softly, its open vowels rounding gently between crisp consonants, leaving a bright, airy sound. Abroad, it settles comfortably beside the name Persephone, sharing a similar graceful rhythm, so it feels both distinctly Korean and easy to carry into new company.",
+   "orig_short": "A kind and virtuous heart"
   }
  }
 }

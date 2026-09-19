@@ -43,7 +43,21 @@ from typing import List, Optional, Tuple
 #     "Your name is Deacon." 으로 끝났는데 status=edited 로 통과했다 —
 #     검수기가 다른 부분만 고치고 이 문장은 규칙에 없으니 건드리지 않았다.
 #     교훈: 생성 프롬프트에 규칙을 넣을 때 검수 체크리스트에도 같이 넣어야 한다.
-REVIEW_VERSION = 2
+# v3: v2 의 9·10번이 **과잉 반응**했다(100개 배치 2차: 수정 9건 중 7건이 근거 없는
+#     지적 — 'someone will build a life' 를 2인칭이라며, '희 (喜, hui)' 를
+#     '희 (喜, hui)' 로 고치라며). 두 규칙을 '어떤 낱말이 있으면 위반' 식으로
+#     기계적으로 다시 쓰고, 11번(지적은 원문을 인용할 것)을 더했다. 그리고
+#     코드가 확인 가능한 9·10번만 지적됐는데 원문에 근거가 없으면 수정본을
+#     거부한다(unfounded()). 5번은 생성 규칙과 같은 폭으로(영어 이름 한 번
+#     언급 허용). 검수 DATA 의 뜻을 한국어→영어로 바꿔 생성기와 같은 낱말을 본다.
+# v4: 체크리스트를 **넷으로 되돌림** — 문법·부자연스러운 영어·실존 인물·뜻 대조.
+#     3인칭·글자 표기·영어 이름 언급·SHORT 형식은 검수기에서 뺐다(코드가 판정:
+#     batch_test 의 SECOND_PERSON / char_form_misses, meaning_en._clean_short,
+#     validate 의 라벨·한자 보존). 그리고 지적마다 원문 인용을 요구하고, 인용이
+#     원문에 없으면 수정본을 버린다(quotes_missing). 1차 배치(8개 항목)에서는
+#     실제 catch 만 있었고 2차(11개 항목)에서 근거 없는 수정이 7/9 였다 —
+#     항목을 늘릴수록 검수기는 없는 문제를 찾는다.
+REVIEW_VERSION = 4
 
 DEFAULT_REVIEW_MODEL = 'claude-haiku-4-5'
 
@@ -57,15 +71,6 @@ _CJK = re.compile(r'[一-鿿]')
 _HANGUL = re.compile(r'[가-힣]')
 
 
-def _syl_rom(syllable: str) -> str:
-    """한 음절의 소문자 로마자. 생성기(meaning_en._syl_rom)와 같은 결과여야 한다 —
-    체크리스트 10번이 '정답 표기'로 이 값을 제시하므로 어긋나면 멀쩡한 문장을
-    고치라고 시키게 된다. 그래서 둘 다 romanize_syllable 하나를 쓴다."""
-    try:
-        from pronounce_guide import romanize_syllable
-        return romanize_syllable(syllable, capitalize=False)
-    except Exception:
-        return ''
 _DIACRITIC = re.compile(r'[áàâäãåāéèêëēěíìîïīóòôöõōøúùûüūůçčćñňńřšśžźżýÿďťł]', re.I)
 
 
@@ -136,69 +141,78 @@ class MeaningReviewer:
     @staticmethod
     def _prompt(text: str, short: str, given: str, label: str,
                 hanja_chars, english_name: Optional[str]) -> str:
+        """검수 프롬프트 — **문법·자연스러움·실존 인물·뜻 대조, 넷뿐이다.**
+
+        v2·v3 에서 3인칭·글자 표기 형식·영어 이름 언급 같은 규칙을 여기 얹었더니,
+        검수기가 멀쩡한 문장을 그 규칙 위반이라며 다시 썼다(100개 배치 2차: 수정
+        9건 중 7건). 그 규칙들은 정규식과 문자열 비교로 정확히 판정되는 것들이다.
+        코드가 할 수 있는 일은 코드가 하고, LLM 에는 코드가 못 하는 것만 맡긴다.
+
+        지적은 원문 인용이 필수다. 인용이 원문에 없으면 코드가 수정본을 버린다
+        (quotes_missing) — 짚을 수 없으면 고칠 수 없다.
+        """
         if hanja_chars:
             data_lines = '; '.join(f'{s} ({h}) = {g}' for s, h, g in hanja_chars if h)
-            # 체크리스트 10번이 대조할 '정답 표기'. 생성기와 같은 형식이라야
-            # 하므로 같은 함수(romanize_syllable)로 만든다.
-            forms = []
-            for s, h, _g in hanja_chars:
-                if not h:
-                    continue
-                r = _syl_rom(s)
-                forms.append(f'{s} ({h}, {r})' if r else f'{s} ({h})')
-            form_line = ('\n- Required form when naming a character: '
-                         + '; '.join(forms)) if forms else ''
         else:
             data_lines = 'a native Korean name (no hanja)'
-            form_line = ''
-        en_line = f'\n- The reader\'s English name: {english_name}' if english_name else ''
         return (
-            'You are a careful copy editor. Below is a short English explanation of a Korean '
-            'name, written for the person who just received it. Check it against the DATA and '
-            'the CHECKLIST. Fix only real problems with the smallest possible edit. If nothing '
-            'needs changing, say so.\n\n'
-            'DATA (the only facts you may rely on):\n'
+            'You are a copy editor. Below is a short English explanation of a Korean name. '
+            'Read it once as a native English speaker would and fix ONLY the four kinds of '
+            'problem listed. Most texts are already fine; then answer {"ok": true}.\n\n'
+            'DATA:\n'
             f'- Korean name: {given}\n'
-            f'- The text must begin with exactly: {label}\n'
-            f'- Characters and their meanings: {data_lines}{form_line}{en_line}\n\n'
+            f'- Characters and their meanings: {data_lines}\n\n'
             f'TEXT:\n<<<\n{text}\n>>>\n\n'
-            f'SHORT (one-line caption shown on the card):\n<<<\n{short or "(none)"}\n>>>\n\n'
-            'CHECKLIST:\n'
-            '1. Grammar, spelling, punctuation, subject-verb agreement, articles, sentence fragments.\n'
-            '2. Every stated character meaning must match DATA. Do not add meanings that are not in DATA.\n'
-            '3. Internal contradictions, and hedges that contradict the facts (for example calling two '
-            'identical things "almost the same", or "nearly" for an exact match).\n'
-            '4. Remove any mention of a real, specific person (singers, idols, actors, athletes, '
-            'historical figures) and of any specific song, show, band, film or brand. Delete the clause '
-            'or replace it with a neutral phrase, keeping the sentence grammatical. Plain Korean given '
-            'names used only as examples of names (e.g. "as in 채린") are fine and must stay.\n'
-            '5. The English name\'s own meaning must not be presented as the Korean name\'s meaning.\n'
-            f'6. Keep the opening "{label}" exactly. Keep every Korean syllable and every hanja that is '
-            'in DATA exactly as written; add no new hanja and no new Korean names.\n'
-            '7. Keep the length, voice and warmth. Do not rewrite sentences that are already fine.\n'
-            '8. SHORT must be one grammatical English noun phrase, 4-9 words, 30-55 characters, about '
-            'the meaning only (not the sound, not the English name), starting with a capital letter, '
-            'no ending punctuation, no Korean, hanja or romanization.\n'
-            # 9·10 은 생성 프롬프트에만 있던 규칙이다. 검수 체크리스트에 없으면
-            # 검수기는 위반을 위반으로 보지 않는다(지건의 "Your name is Deacon.").
-            '9. Third person only. The text must never address the reader as "you" or "your", and '
-            'must not tell them what their name is. Rewrite such a sentence to speak about the '
-            'name or about "someone", or delete it if it adds nothing. This applies even when the '
-            'sentence is grammatical.\n'
-            '10. Whenever the text names an individual character, it must use the exact form given '
-            'in DATA above ("Required form when naming a character") — Korean syllable, then hanja '
-            'and lowercase romanization in parentheses, in that order. Fix a character written as '
-            'hanja alone, as the syllable alone, with the meaning inside the parentheses, or with '
-            'the contents reordered. Do not add a character that the text never mentions, and do '
-            'not touch the opening label.\n\n'
+            'LOOK FOR (nothing else):\n'
+            '1. Grammar and mechanics: spelling, punctuation, subject-verb agreement, wrong '
+            'articles, sentence fragments, a sentence that stops mid-way.\n'
+            '2. Unnatural English: a phrase a native speaker would not write, a word used with '
+            'the wrong sense, a clumsy or contradictory turn (for example "almost the same" about '
+            'two identical things).\n'
+            '3. A real, specific person (singer, idol, actor, athlete, historical figure) or a '
+            'specific song, show, band, film or brand. Remove it or replace it with a neutral '
+            'phrase, keeping the sentence grammatical. Korean given names used only as examples '
+            'of names are fine.\n'
+            '4. A character meaning that contradicts DATA, or a meaning the text attributes to a '
+            'character that DATA does not give it.\n\n'
+            'NOT problems — leave these alone: how the text refers to the person (someone, a '
+            'person, they, their); the form in which characters are written, such as 혜 (惠, hye); '
+            'a mention of an English name; the opening label; the overall wording, length, voice '
+            'and warmth.\n\n'
+            'CONSTRAINTS on any fix: keep the opening exactly as it is; keep every Korean '
+            'syllable and every hanja exactly as written; add no new hanja and no new Korean '
+            'names; change as few words as possible.\n\n'
             'Respond with JSON only, no prose:\n'
             '{"ok": true}\n'
             'or\n'
-            '{"ok": false, "issues": ["one short note per fix"], "text": "<full corrected TEXT>", '
-            '"short": "<corrected SHORT, or the original SHORT if it was fine>"}'
+            '{"ok": false, "issues": [{"quote": "<the exact wrong words, copied verbatim from '
+            'TEXT>", "fix": "<what you changed them to>"}], "text": "<full corrected TEXT>"}\n'
+            'Every issue must carry a "quote" copied verbatim from TEXT. If you cannot quote the '
+            'wrong words, there is no issue.'
         )
 
     # ------------------------------------------------------------ 사후 검증
+    @staticmethod
+    def quotes_missing(orig: str, issues) -> Optional[str]:
+        """지적에 원문 인용이 없거나, 인용이 원문에 없으면 그 사유. 정상이면 None.
+
+        검수기가 고치려면 '어디가 틀렸는지'를 원문 그대로 인용해야 한다. 인용할
+        수 없는 지적은 지적이 아니다 — v2·v3 에서 근거 없는 지적으로 멀쩡한
+        문장을 다시 쓴 일이 9건 중 7건이었다. 규칙 이름을 따지는 대신(9번이냐
+        10번이냐) 이 한 가지로 전부 거른다: 짚을 수 없으면 고칠 수 없다.
+        """
+        if not issues:
+            return '지적 없음'
+        norm = lambda t: re.sub(r'\s+', ' ', (t or '')).strip().lower()
+        o = norm(orig)
+        for it in issues:
+            q = it.get('quote') if isinstance(it, dict) else None
+            if not q or not str(q).strip():
+                return '인용 없는 지적'
+            if norm(str(q)) not in o:
+                return f'원문에 없는 인용 ({str(q)[:40]!r})'
+        return None
+
     @staticmethod
     def validate(orig: str, new: str, given: str, label: str) -> Optional[str]:
         """수정본을 받아들여도 되는가. 문제가 있으면 사유(한국어), 없으면 None.
@@ -286,8 +300,12 @@ class MeaningReviewer:
             return base
 
         new_text = re.sub(r'\s+', ' ', str(obj.get('text') or '')).strip()
-        issues = [str(i)[:120] for i in (obj.get('issues') or []) if str(i).strip()]
-        why = self.validate(text, new_text, given, label)
+        raw_issues = [i for i in (obj.get('issues') or []) if i]
+        # 기록용 요약: '인용 → 고침'. (예전 캐시는 문자열 목록이라 그대로 둔다)
+        issues = [(f'{i.get("quote", "")!s} → {i.get("fix", "")!s}' if isinstance(i, dict)
+                   else str(i))[:120] for i in raw_issues]
+        why = (self.quotes_missing(text, raw_issues)
+               or self.validate(text, new_text, given, label))
         if why:
             base.status, base.reason, base.issues = 'rejected', why, issues
             return base
