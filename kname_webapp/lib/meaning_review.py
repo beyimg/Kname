@@ -3,8 +3,10 @@
 LLM 생성 의미 설명의 출력 전 검수기.
 
 meaning_en.py 가 설명을 만들면, **보여주기 전에** 다른 모델이 한 번 더 읽고
-문법·내용 모순·데이터 불일치·실존 인물 언급을 고친다. 결과는 캐시에 남으므로
-비용과 지연은 이름당 한 번뿐이다.
+**두 가지만** 고친다: ① 문법 오류, ② 뜻이 안 맞는 부자연스러운 표현(같은 소리
+아→아 에 "almost" 를 붙이는 것 같은). 그 밖의 것은 보지 않는다 — 실존 인물,
+한자 뜻 대조, 표기 형식, 3인칭은 생성 프롬프트와 코드가 맡는다(v6, 사용자 결정).
+결과는 캐시에 남으므로 비용과 지연은 이름당 한 번뿐이다.
 
 왜 필요한가
   사용자들이 사소한 문법 오류나 의미상 어긋남("같은 소리인데 almost")에
@@ -57,7 +59,17 @@ from typing import List, Optional, Tuple
 #     원문에 없으면 수정본을 버린다(quotes_missing). 1차 배치(8개 항목)에서는
 #     실제 catch 만 있었고 2차(11개 항목)에서 근거 없는 수정이 7/9 였다 —
 #     항목을 늘릴수록 검수기는 없는 문제를 찾는다.
-REVIEW_VERSION = 4
+# v5: v4 초판이 DATA 에서 **입력 이름을 빼먹은 것**을 되돌린다. 검수기는 본문
+#     끝의 'beside Kaede' 에서 Kaede 가 누구인지 알 수 없었고, 3번 규칙만 남은
+#     상태에서 일본 이름을 애니 캐릭터로 읽어 그 문장을 지웠다(일본 배치 25건
+#     중 14건). 3번에 "입력 이름은 위반이 아니다"를 명시했다.
+#     교훈: 규칙을 줄이는 것과 **맥락을 줄이는 것**은 다르다. 판단에 필요한
+#     사실은 남겨야 한다 — 빼면 모델은 없는 사실을 지어낸다.
+# v6: 사용자 결정 — 역할을 **둘로 고정**: ① 문법 오류 교정, ② 뜻이 안 맞는 부자연
+#     스러운 표현 교정(아→아 에 "almost" 같은 것). 실존 인물·한자 뜻 대조는 검수
+#     대상에서 뺐다(생성 프롬프트가 지키게 한다). DATA 에서 한자 뜻도 뺐다 —
+#     주면 대조하고 싶어진다. 입력 이름만 남긴다(v5 교훈).
+REVIEW_VERSION = 6
 
 DEFAULT_REVIEW_MODEL = 'claude-haiku-4-5'
 
@@ -141,57 +153,80 @@ class MeaningReviewer:
     @staticmethod
     def _prompt(text: str, short: str, given: str, label: str,
                 hanja_chars, english_name: Optional[str]) -> str:
-        """검수 프롬프트 — **문법·자연스러움·실존 인물·뜻 대조, 넷뿐이다.**
+        """검수 프롬프트 — 역할은 **둘뿐이다** (v6, 사용자 결정).
 
-        v2·v3 에서 3인칭·글자 표기 형식·영어 이름 언급 같은 규칙을 여기 얹었더니,
-        검수기가 멀쩡한 문장을 그 규칙 위반이라며 다시 썼다(100개 배치 2차: 수정
-        9건 중 7건). 그 규칙들은 정규식과 문자열 비교로 정확히 판정되는 것들이다.
-        코드가 할 수 있는 일은 코드가 하고, LLM 에는 코드가 못 하는 것만 맡긴다.
+          ① 문법·기계적 오류를 고친다.
+          ② 뜻이 안 맞는 부자연스러운 표현을 고친다 — 대표 사례: 같은 소리 아→아 에
+             "almost" 를 붙이는 것. 같은 것에 '거의' 는 틀린 말이다.
 
-        지적은 원문 인용이 필수다. 인용이 원문에 없으면 코드가 수정본을 버린다
-        (quotes_missing) — 짚을 수 없으면 고칠 수 없다.
+        그 밖의 것은 **아예 보지 않는다**: 실존 인물·작품 언급, 한자 뜻이 데이터와
+        맞는지, 글자 표기 형식, 3인칭, 입력 이름 언급, 라벨, 어조·길이.
+        v2~v5 에서 그런 항목을 얹을 때마다 검수기는 멀쩡한 문장을 그 항목 위반이라며
+        고쳤다(2차 7/9, 3차 14/19). 그 항목들은 생성 프롬프트가 이미 지키게 하거나
+        코드가 판정한다.
+
+        지적은 원문 인용이 필수다(quotes_missing). 입력 이름은 지우면 안 된다
+        (name_dropped). 라벨·한자·길이는 validate 가 지킨다.
+
+        DATA 에 한자 뜻을 **주지 않는다** — 주면 대조하고 싶어진다. 입력 이름만
+        알려 준다: 본문 끝의 'beside Kaede' 가 누구인지 모르면 없애려 들기 때문이다.
         """
-        if hanja_chars:
-            data_lines = '; '.join(f'{s} ({h}) = {g}' for s, h, g in hanja_chars if h)
-        else:
-            data_lines = 'a native Korean name (no hanja)'
+        own_line = (f'\n- The name this person typed in (their own name, in any language): '
+                    f'{english_name}. Its one mention near the end is intentional.'
+                    if english_name else '')
         return (
             'You are a copy editor. Below is a short English explanation of a Korean name. '
-            'Read it once as a native English speaker would and fix ONLY the four kinds of '
-            'problem listed. Most texts are already fine; then answer {"ok": true}.\n\n'
+            'Read it as a native English speaker would. You have exactly two jobs; anything '
+            'outside them is not your concern. Most texts need nothing; then answer '
+            '{"ok": true}.\n\n'
             'DATA:\n'
-            f'- Korean name: {given}\n'
-            f'- Characters and their meanings: {data_lines}\n\n'
+            f'- Korean name: {given}{own_line}\n\n'
             f'TEXT:\n<<<\n{text}\n>>>\n\n'
-            'LOOK FOR (nothing else):\n'
-            '1. Grammar and mechanics: spelling, punctuation, subject-verb agreement, wrong '
-            'articles, sentence fragments, a sentence that stops mid-way.\n'
-            '2. Unnatural English: a phrase a native speaker would not write, a word used with '
-            'the wrong sense, a clumsy or contradictory turn (for example "almost the same" about '
-            'two identical things).\n'
-            '3. A real, specific person (singer, idol, actor, athlete, historical figure) or a '
-            'specific song, show, band, film or brand. Remove it or replace it with a neutral '
-            'phrase, keeping the sentence grammatical. Korean given names used only as examples '
-            'of names are fine.\n'
-            '4. A character meaning that contradicts DATA, or a meaning the text attributes to a '
-            'character that DATA does not give it.\n\n'
-            'NOT problems — leave these alone: how the text refers to the person (someone, a '
-            'person, they, their); the form in which characters are written, such as 혜 (惠, hye); '
-            'a mention of an English name; the opening label; the overall wording, length, voice '
-            'and warmth.\n\n'
+            'JOB 1 \u2014 grammar and mechanics: spelling, punctuation, subject-verb agreement, '
+            'wrong or missing articles, wrong prepositions, sentence fragments, a sentence that '
+            'stops mid-way, a word repeated by mistake.\n'
+            'JOB 2 \u2014 wording that does not make sense: a phrase whose words contradict '
+            'each other or the facts stated in the same text. The typical case is a hedge '
+            'applied to identical things: "the 아 sound maps almost exactly onto 아" or '
+            '"nearly the same as" when the two are the same \u2014 there, delete the hedge '
+            '("maps exactly onto", "the same as"). Also a word used with the wrong sense, or '
+            'an expression a native speaker would not write.\n\n'
+            'NOT your concern \u2014 leave these exactly as they are even if you would have '
+            'written them differently: what the characters are said to mean; any name or '
+            'person the text mentions, including the name this person typed in; the form in '
+            'which characters are written, such as \ud61c (\u60e0, hye); how the text refers to '
+            'the person (someone, they, their); the opening label; the length, voice, warmth '
+            'and word choice of sentences that are already correct.\n\n'
             'CONSTRAINTS on any fix: keep the opening exactly as it is; keep every Korean '
-            'syllable and every hanja exactly as written; add no new hanja and no new Korean '
-            'names; change as few words as possible.\n\n'
+            'syllable and every hanja exactly as written; change as few words as possible.\n\n'
             'Respond with JSON only, no prose:\n'
             '{"ok": true}\n'
             'or\n'
             '{"ok": false, "issues": [{"quote": "<the exact wrong words, copied verbatim from '
             'TEXT>", "fix": "<what you changed them to>"}], "text": "<full corrected TEXT>"}\n'
-            'Every issue must carry a "quote" copied verbatim from TEXT. If you cannot quote the '
-            'wrong words, there is no issue.'
+            'Every issue must carry a "quote" copied verbatim from TEXT. If you cannot quote '
+            'the wrong words, there is no issue.'
         )
 
     # ------------------------------------------------------------ 사후 검증
+    @staticmethod
+    def name_dropped(orig: str, new: str, english_name: Optional[str]) -> Optional[str]:
+        """입력 이름이 원문에 있었는데 수정본에서 사라졌으면 그 사유. 아니면 None.
+
+        본문 끝에서 입력 이름을 한 번 언급하는 것은 설계된 동작이다 — 사용자에게
+        '당신 이름과 이렇게 닮았다'고 말해 주는 문장이고, 이 서비스의 요점이다.
+        검수기가 그것을 지운 적이 있다(일본 이름 배치 25건 중 14건). 프롬프트로
+        '지우지 말라'고 했지만, 지켜졌는지는 코드가 세어야 안다.
+
+        원문에 없었으면 아무 제약도 걸지 않는다(언급은 선택이다).
+        """
+        n = (english_name or '').strip()
+        if not n or len(n) < 2:
+            return None
+        if n.lower() in (orig or '').lower() and n.lower() not in (new or '').lower():
+            return f'입력 이름 삭제 ({n})'
+        return None
+
     @staticmethod
     def quotes_missing(orig: str, issues) -> Optional[str]:
         """지적에 원문 인용이 없거나, 인용이 원문에 없으면 그 사유. 정상이면 None.
@@ -305,6 +340,7 @@ class MeaningReviewer:
         issues = [(f'{i.get("quote", "")!s} → {i.get("fix", "")!s}' if isinstance(i, dict)
                    else str(i))[:120] for i in raw_issues]
         why = (self.quotes_missing(text, raw_issues)
+               or self.name_dropped(text, new_text, english_name)
                or self.validate(text, new_text, given, label))
         if why:
             base.status, base.reason, base.issues = 'rejected', why, issues

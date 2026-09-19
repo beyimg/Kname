@@ -104,6 +104,19 @@ r = R([json.dumps({'ok': False, 'issues': [{'quote': 'Your name is Emily', 'fix'
 res = r.review(ORIG, SHORT, GIVEN, LABEL, CHARS, 'Emily', MeaningEnGenerator._clean_short)
 ok(res.status == 'rejected' and '원문에 없는 인용' in (res.reason or ''), f'rejected: {res.reason}')
 
+print('8d) 입력 이름을 지운 수정본 → 거부 (name_dropped)')
+ORIG_N = ORIG + ' Abroad, it settles comfortably beside Emily.'
+r = R([json.dumps({'ok': False, 'issues': [{'quote': 'beside Emily', 'fix': 'beside a familiar name'}],
+                   'text': ORIG_N.replace('beside Emily', 'beside a familiar name'), 'short': SHORT})])
+res = r.review(ORIG_N, SHORT, GIVEN, LABEL, CHARS, 'Emily', MeaningEnGenerator._clean_short)
+ok(res.status == 'rejected' and '입력 이름 삭제' in (res.reason or ''), f'rejected: {res.reason}')
+
+print('8e) 입력 이름을 남긴 수정본 → 채택')
+r = R([json.dumps({'ok': False, 'issues': [{'quote': 'K-pop fans know it as Yerin of GFRIEND', 'fix': 'removed'}],
+                   'text': FIXED + ' Abroad, it settles comfortably beside Emily.', 'short': SHORT})])
+res = r.review(ORIG_N, SHORT, GIVEN, LABEL, CHARS, 'Emily', MeaningEnGenerator._clean_short)
+ok(res.status == 'edited' and 'Emily' in res.text, 'edited, input name kept')
+
 print('9) 코드펜스·앞뒤 말 섞인 JSON 도 파싱')
 r = R(['Sure! ```json\n{"ok": true}\n```'])
 res = r.review(ORIG, SHORT, GIVEN, LABEL, CHARS, 'Emily', MeaningEnGenerator._clean_short)
