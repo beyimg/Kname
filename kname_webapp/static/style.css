@@ -363,3 +363,37 @@ html,body{
 .li-body .kr{font-family:var(--kr);color:var(--ink);}
 .li-body b{color:var(--ink);font-weight:400;}
 .privacy-note{font-family:var(--sans);font-size:10.5px;line-height:1.55;color:var(--ink-faint);text-align:center;max-width:320px;margin:2px auto 0;}
+
+/* ---------- 검색용 이름 페이지 (/name/<first>) 전용 ---------- */
+/* 머리말: 검색어("sophia in korean")에 첫 줄에서 답한다. h1 은 이 페이지에만 있다. */
+.seo-intro{width:100%;max-width:400px;text-align:center;margin-bottom:6px;}
+.seo-h1{font-family:var(--serif);font-weight:400;font-size:30px;margin:0 0 8px;color:var(--ink);letter-spacing:0.2px;}
+.seo-lead{font-family:var(--serif);font-size:16px;line-height:1.65;color:var(--ink-soft);margin:0;}
+.seo-lead b{color:var(--ink);font-weight:600;}
+.seo-lead .kr{font-family:var(--kr);}
+.seo-other{display:block;margin-top:6px;font-size:13.5px;font-family:var(--sans);color:var(--ink-faint);}
+.seo-other a{color:var(--ink);}
+
+/* 성까지 넣어 전체 이름 만들기 — 변환 이유 상자와 같은 종이 질감, 눈에 띄게 */
+.seo-cta{
+  width:100%;max-width:400px;background:var(--paper);
+  background-image:var(--paper-tex),var(--paper-grad);
+  background-size:200px 200px,cover;background-repeat:repeat,no-repeat;
+  border-radius:4px;padding:30px 28px 26px;position:relative;
+  box-shadow:0 12px 40px rgba(60,50,30,0.12);text-align:center;
+}
+.seo-cta .inset-border{inset:10px;border-color:#d8d8d8;}
+.seo-cta-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:10px;}
+.seo-cta-eyebrow{font-size:12.5px;letter-spacing:3.5px;text-transform:uppercase;color:var(--ink-faint);font-family:var(--sans);font-weight:500;}
+.seo-cta-title{font-family:var(--serif);font-size:19px;line-height:1.45;color:var(--ink);}
+.seo-cta-title .kr{font-family:var(--kr);}
+.seo-cta-body{font-family:var(--serif);font-size:15px;line-height:1.6;color:var(--ink-soft);max-width:320px;}
+.seo-cta-btn{max-width:300px;margin-top:6px;text-decoration:none;}
+.seo-cta-note{font-size:12px;color:var(--ink-faint);font-family:var(--sans);letter-spacing:0.3px;}
+
+/* 이웃 이름 — 크롤러용 내부 링크. 조용하게 */
+.seo-more{width:100%;max-width:400px;text-align:center;}
+.seo-more-label{font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:var(--ink-faint);font-family:var(--sans);margin-bottom:10px;}
+.seo-more-links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 14px;}
+.seo-more-links a{font-family:var(--serif);font-size:15px;color:var(--ink-soft);text-decoration:none;border-bottom:1px solid var(--line);}
+.seo-more-links a:hover{color:var(--ink);border-color:var(--ink);}

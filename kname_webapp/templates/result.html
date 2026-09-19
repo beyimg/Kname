@@ -3,14 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{% if seo %}
+{# 검색용 이름 페이지(/name/<first>). 이름만 있고 개인 식별이 없으므로 색인한다.
+   제목·설명은 "sophia in korean" 류 검색어에 맞춘다. #}
+<title>{{ seo.title }}</title>
+<meta name="description" content="{{ seo.description }}">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{{ seo.canonical }}">
+{% else %}
 <title>{{ d.full_hangul }} ({{ d.full_rom }}) — your Korean name</title>
 {# 공유 링크(/n/...)용 태그. 개인의 실명이 주소에 들어가므로 검색엔진에는 싣지 않는다(noindex).
    OG 이미지는 다음 단계(/og/...)에서 붙는다. #}
 <meta name="robots" content="noindex, follow">
-{% if share_url %}<link rel="canonical" href="{{ share_url }}">
-<meta property="og:type" content="website">
+{% if share_url %}<link rel="canonical" href="{{ share_url }}">{% endif %}
+{% endif %}
+{% if share_url %}<meta property="og:type" content="website">
 <meta property="og:site_name" content="{{ site_host }}">
-<meta property="og:url" content="{{ share_url }}">
+<meta property="og:url" content="{{ seo.canonical if seo else share_url }}">
 <meta property="og:title" content="{{ d.full_hangul }} ({{ d.full_rom }}) — {{ d.input }}'s Korean name">
 <meta property="og:description" content="{% if d.meaning_short %}{{ d.meaning_short }}{% if d.hanja %} · {{ d.surname_hanja }}{{ d.hanja }}{% endif %}{% else %}A real Korean name that sounds like {{ d.input }} — with the hanja, the meaning, and the reason behind every syllable.{% endif %}">
 {% if og_image %}<meta property="og:image" content="{{ og_image }}">
@@ -27,6 +36,17 @@
 </head>
 <body>
 <div class="wrap">
+
+  {% if seo %}
+  <!-- ── 검색 페이지 머리말: 검색어에 답하는 한 문장 (h1 은 이 페이지에만) ── -->
+  <div class="seo-intro">
+    <h1 class="seo-h1">{{ d.first_en }} in Korean</h1>
+    <p class="seo-lead">The Korean name that sounds like <b>{{ d.first_en }}</b> is
+      <b class="kr">{{ d.given }}</b> ({{ d.given_rom }}){% if d.meaning_short %} &mdash; &ldquo;{{ d.meaning_short }}&rdquo;{% endif %}.
+      {% if seo.other %}<span class="seo-other">Looking for {{ d.first_en }} as {{ seo.other.label }}? <a href="{{ seo.other.url }}">See that version &rarr;</a></span>{% endif %}
+    </p>
+  </div>
+  {% endif %}
 
   <!-- ── 카드 ─────────────────────────────────────────── -->
   <div class="card-wrap"><div class="flipper" id="flipper">
@@ -140,6 +160,20 @@
   </div>
   <div class="hint" id="shareHint">Opens your phone&rsquo;s share sheet — Instagram, KakaoTalk, Messages, and more.</div>
 
+  {% if seo %}
+  <!-- ── 성까지 넣어 전체 이름 만들기 (검색 페이지에만) ── -->
+  <div class="seo-cta">
+    <div class="inset-border"></div>
+    <div class="seo-cta-inner">
+      <div class="seo-cta-eyebrow">This is only half of it</div>
+      <div class="seo-cta-title">Korean names come with a family name first &mdash; like <span class="kr">이{{ d.given }}</span>, Lee {{ d.given_rom }}.</div>
+      <div class="seo-cta-body">Add your last name and we&rsquo;ll match it to a real Korean surname, with its own hanja and origin, so you get your <b>full Korean name</b>, not just the given name.</div>
+      <a class="btn btn-primary seo-cta-btn" href="{{ seo.cta_url }}">Get my full Korean name &rarr;</a>
+      <div class="seo-cta-note">Free &middot; no sign-up &middot; takes 10 seconds</div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ── 변환 이유 ────────────────────────────────────── -->
   <div class="reason-section">
     <div class="inset-border"></div>
@@ -151,7 +185,15 @@
     </div>
   </div>
 
-  <a class="back-link" href="{{ url_for('index') }}">&larr; Try another name</a>
+  {% if seo and seo.siblings %}
+  <!-- ── 이웃 이름 링크 (검색 페이지에만) — 크롤러가 타고 다니는 내부 링크 ── -->
+  <div class="seo-more">
+    <div class="seo-more-label">More names in Korean</div>
+    <div class="seo-more-links">{% for name, url in seo.siblings %}<a href="{{ url }}">{{ name }}</a>{% endfor %}</div>
+  </div>
+  {% endif %}
+
+  <a class="back-link" href="{{ url_for('index') }}">&larr; {% if seo %}Find your own Korean name{% else %}Try another name{% endif %}</a>
 </div>
 
 <div class="toast" id="toast">Saved!</div>

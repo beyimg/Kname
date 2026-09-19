@@ -496,6 +496,12 @@ class MeaningEnGenerator:
                 # 빈 응답의 원인을 알려면 stop_reason 이 필요하다
                 # (max_tokens 면 출력 한도에 걸린 것). transliterate.py 와 같다.
                 self.last_stop_reason = getattr(resp, 'stop_reason', None)
+                # 텍스트가 0 인데 토큰을 다 썼다면(stop=max_tokens, raw='') 텍스트가
+                # 아닌 블록이 토큰을 먹은 것이다. 블록 종류를 남겨 다음 배치에서
+                # 확인한다 — 위 필터는 .text 없는 블록(thinking 등)을 버린다.
+                if not raw:
+                    kinds = [getattr(b, 'type', type(b).__name__) for b in resp.content]
+                    self.last_stop_reason = f'{self.last_stop_reason} blocks={kinds}'
                 if attempt:
                     self.retry_recovered += 1
                 return raw, None
@@ -518,7 +524,7 @@ class MeaningEnGenerator:
                       문장은 템플릿보다 나쁘다(사용자가 'car' 로 끝나는 설명을 본다).
         'empty'     : 본문이 없거나 40자 미만.
         """
-        if self.last_stop_reason == 'max_tokens':
+        if str(self.last_stop_reason or '').startswith('max_tokens'):
             return 'truncated'
         body, _short = self._split_short(raw or '')
         if not self._clean(body):

@@ -337,8 +337,10 @@ class MeaningReviewer:
         new_text = re.sub(r'\s+', ' ', str(obj.get('text') or '')).strip()
         raw_issues = [i for i in (obj.get('issues') or []) if i]
         # 기록용 요약: '인용 → 고침'. (예전 캐시는 문자열 목록이라 그대로 둔다)
+        # 120자였을 때 인용이 길면 '→ 고침' 부분이 통째로 잘려 무엇을 고쳤는지
+        # 볼 수 없었다(일본 배치 4차). 인용+고침이 다 보이게 넉넉히 둔다.
         issues = [(f'{i.get("quote", "")!s} → {i.get("fix", "")!s}' if isinstance(i, dict)
-                   else str(i))[:120] for i in raw_issues]
+                   else str(i))[:400] for i in raw_issues]
         why = (self.quotes_missing(text, raw_issues)
                or self.name_dropped(text, new_text, english_name)
                or self.validate(text, new_text, given, label))

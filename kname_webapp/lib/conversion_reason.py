@@ -120,7 +120,10 @@ def build_reason(english_name, translit, korean_given, quality,
                    else 'sound' if weak_sound else None)
     note = None
     if note_reason:
-        note = (f'Some English names don\'t have a close Korean equivalent, and "{english_name}" '
+        # '영어 이름'이라 부르지 않는다 — 입력은 Sakura·Kaede 같은 일본 이름일 수도,
+        # 다른 언어일 수도 있다. "Some English names ... and Sakura is one of them"
+        # 은 사실이 아니다(변환 이유 문장 전수 검토, 2026-09-19).
+        note = (f'Some names don\'t have a close Korean equivalent, and "{english_name}" '
                 f'is one of them — a direct sound-for-sound match would feel awkward or unnatural in Korean. '
                 f'So after matching what we could, we chose {korean_given} ({kr_rom}): a real, '
                 f'natural-sounding Korean name that stays as close as possible to your original name\'s sound and feel.')

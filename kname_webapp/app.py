@@ -19,6 +19,7 @@ import sys
 import json
 import contextlib
 import threading
+from urllib.parse import quote
 
 from flask import (Flask, render_template, request, jsonify, redirect,
                    url_for, make_response, send_file, abort)
@@ -1855,6 +1856,96 @@ def name_page(first, last=''):
     return _remember_source(resp)
 
 
+# ---------------------------------------------------------------- 검색용 이름 페이지 /name/<first>
+# "sophia in korean" 처럼 **이름만** 검색하는 사람을 위한 페이지. /n/ 과 다른 점:
+#   · 색인된다(index). /n/ 은 개인 실명이 주소에 들어가므로 noindex 다.
+#   · 사전에 있는 이름만 만든다 — LLM 호출 0, 비용 0. 없는 이름은 홈으로.
+#   · 레이트리밋을 걸지 않는다. 크롤러가 2,000장을 훑는 것이 목적이다.
+#   · 성(last name)이 없으므로, 성까지 넣어 전체 이름을 만들라는 안내를 넣는다.
+# 주소는 소문자 이름 하나. 남·여 둘 다 사전에 있는 63개는 ?g=m 으로 남자 이름판.
+_NAME_PAGE_CACHE_S = 24 * 3600
+
+
+def _name_page_sexes(key):
+    """사전에서 이 이름이 실려 있는 성별 목록. 여 → 남 순(사전 비율 1480:588)."""
+    out = []
+    if key in NAME_TO_TRANSLIT['female']:
+        out.append('여')
+    if key in NAME_TO_TRANSLIT['male']:
+        out.append('남')
+    return out
+
+
+def _name_page_url(key, sex, sexes):
+    """정규 주소. 사전의 첫 성별이면 ?g 없이, 둘째면 ?g=m/f 를 붙인다."""
+    u = f'{_site_url()}/name/{key}'
+    if sexes and sex != sexes[0]:
+        u += f'?g={_SEX_TO_G.get(sex, "f")}'
+    return u
+
+
+def _name_page_siblings(key, sex, n=8):
+    """같은 첫 글자·같은 성별의 이웃 이름들 — 내부 링크(크롤러가 타고 다닌다)."""
+    pool = NAME_TO_TRANSLIT['female' if sex == '여' else 'male']
+    same = sorted(k for k in pool if k[:1] == key[:1] and k != key)
+    if not same:
+        return []
+    # 알파벳 순에서 이 이름 주변을 잘라 낸다 — 늘 같은 8개가 나오게(캐시·색인 안정)
+    i = sum(1 for k in same if k < key)
+    lo = max(0, min(i - n // 2, len(same) - n))
+    return [(k.title(), _name_page_url(k, sex, _name_page_sexes(k))) for k in same[lo:lo + n]]
+
+
+@app.route('/name/<first>')
+def seo_name_page(first):
+    key = first.strip().lower()[:40]
+    sexes = _name_page_sexes(key)
+    if not sexes:
+        # 사전 밖 이름 — 만들지 않는다(비용). 입력란만 채워 홈으로.
+        return redirect(url_for('index', first=first.strip()[:40]))
+    if key != first:                                   # 대문자·공백 → 정규 주소로
+        return redirect(url_for('seo_name_page', first=key, **request.args), 301)
+    want = _G_TO_SEX.get(request.args.get('g', ''), None)
+    sex = want if want in sexes else sexes[0]
+    if want and want not in sexes:                     # 없는 성별판 → 있는 판으로
+        return redirect(_name_page_url(key, sex, sexes), 301)
+
+    data = convert_name(key.title(), '', sex, allow_llm=False)
+    if 'error' in data:
+        return redirect(url_for('index', first=key.title()))
+
+    other = None
+    for s in sexes:
+        if s != sex:
+            other = {'sex': s, 'url': _name_page_url(key, s, sexes),
+                     'label': "a boy's name" if s == '남' else "a girl's name"}
+    seo = {
+        'canonical': _name_page_url(key, sex, sexes),
+        'title': (f'{data["first_en"]} in Korean: {data["given"]} ({data["given_rom"]}) '
+                  f'— meaning, hanja and pronunciation'),
+        'description': (f'{data["first_en"]} as a Korean name is {data["given"]} '
+                        f'({data["given_rom"]})'
+                        + (f' — “{data["meaning_short"]}”' if data.get('meaning_short') else '')
+                        + '. See the hanja, what each syllable means, how to say it, and why '
+                        'these sounds were chosen. Add your last name for the full Korean name.'),
+        'other': other,
+        'siblings': _name_page_siblings(key, sex),
+        # 성까지 넣어 전체 이름을 만드는 입력 화면. focus=last 는 커서를 성 칸에 둔다.
+        'cta_url': (f'{_site_url()}/?first={quote(data["first_en"])}'
+                    f'&g={_SEX_TO_G.get(sex, "f")}&focus=last&ref=name-page'),
+    }
+    html = render_template(
+        'result.html', d=data, seo=seo,
+        reason_json=json.dumps(data['reason'], ensure_ascii=False),
+        share_url=_share_url(key.title(), '', sex),
+        og_image=_og_url(key.title(), '', sex))
+    resp = make_response(html)
+    resp.headers['Cache-Control'] = f'public, max-age={_NAME_PAGE_CACHE_S}'
+    if _is_external_visit():
+        STATS.record_event('view_name_page', _detect_source() or 'direct', data.get('given', ''))
+    return resp
+
+
 # ---------------------------------------------------------------- OG 공유 카드 이미지
 # 링크를 카톡·트위터 등에 붙이면 그 앱이 og:image 를 받아 카드로 보여준다.
 # 규칙은 /n/ 과 같다 — 캐시로 만들 수 있는 이름만 그린다(LLM 비용 0), 모르는 이름은 404.
@@ -2144,16 +2235,41 @@ def robots():
     return make_response(body, 200, {'Content-Type': 'text/plain'})
 
 
+_SITEMAP_CACHE = {'body': None, 'site': None}
+
+
+def _sitemap_body():
+    """홈 + 검색용 이름 페이지 전부. 사전 이름 2,005개, 남녀 둘 다 있는 63개는
+    두 장이라 2,068개 URL. 한도(50,000)에 한참 못 미친다.
+
+    결과 페이지(/result·/n/)는 넣지 않는다 — POST 로만 열리거나 noindex 다.
+    사전은 프로세스 수명 동안 바뀌지 않으므로 한 번 만들어 둔다."""
+    site = _site_url()
+    if _SITEMAP_CACHE['body'] and _SITEMAP_CACHE['site'] == site:
+        return _SITEMAP_CACHE['body']
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>',
+             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+             f'  <url><loc>{site}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>']
+    keys = sorted(set(NAME_TO_TRANSLIT['female']) | set(NAME_TO_TRANSLIT['male']))
+    for key in keys:
+        if not re.fullmatch(r"[a-z][a-z'\-]*", key):      # 주소에 못 넣는 키는 건너뛴다
+            continue
+        sexes = _name_page_sexes(key)
+        for sex in sexes:
+            loc = _name_page_url(key, sex, sexes).replace('&', '&amp;')
+            lines.append(f'  <url><loc>{loc}</loc><changefreq>monthly</changefreq>'
+                         f'<priority>0.6</priority></url>')
+    lines.append('</urlset>')
+    body = '\n'.join(lines) + '\n'
+    _SITEMAP_CACHE.update(body=body, site=site)
+    return body
+
+
 @app.route('/sitemap.xml')
 def sitemap():
-    # 결과 페이지는 POST 로만 열리고 이름마다 달라지므로 넣지 않는다.
-    body = ('<?xml version="1.0" encoding="UTF-8"?>\n'
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-            f'  <url><loc>{_site_url()}/</loc>'
-            '<changefreq>weekly</changefreq>'
-            '<priority>1.0</priority></url>\n'
-            '</urlset>\n')
-    return make_response(body, 200, {'Content-Type': 'application/xml'})
+    resp = make_response(_sitemap_body(), 200, {'Content-Type': 'application/xml'})
+    resp.headers['Cache-Control'] = 'public, max-age=86400'
+    return resp
 
 
 # 기본 오류 화면은 흰 배경에 영어 한 줄이라 고장난 사이트처럼 보인다.

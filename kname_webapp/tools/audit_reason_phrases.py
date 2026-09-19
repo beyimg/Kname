@@ -6,6 +6,13 @@
 
     python tools/audit_reason_phrases.py           # 요약 + 모순 목록, 모순 있으면 exit 1
     python tools/audit_reason_phrases.py --all     # 문구별 분포까지
+    python tools/audit_reason_phrases.py --sentences   # 변환 이유가 쓰는 영어 문장 전부(뼈대)
+
+--sentences: 변환 이유 4개 블록이 만들어 내는 **서로 다른 영어 문장**을 이름 자리를
+지운 뼈대로 전부 찍는다. 2,068개 이름을 돌려도 뼈대는 25개 안팎이다 — 변환 이유는
+LLM 이 아니라 템플릿이므로, 문법·자연스러움 검토는 요청마다 LLM 을 돌릴 일이 아니라
+이 25개를 한 번 읽고 원본(conversion_reason.py · match_phrasing.py · reason.js)을
+고치는 일이다. 템플릿을 바꿨으면 이 목록을 다시 읽는다.
 
 배경: 소피아의 아→아 에 "maps almost exactly onto" 이 붙어 사용자가 지적했다.
 사전 전체를 돌려 보니 3,821건 중 766건이 같은 문제였고, 모음이 같은데
@@ -38,7 +45,54 @@ def flags(r):
         out.append('초성이 다른데 "its consonant"')
     if r['same_onset'] and 'similar consonant' in ph:
         out.append('초성이 같은데 "similar consonant"')
+    # 반대 방향도 본다 — 정도 표현이 빠진 쪽의 모순
+    if 'exactly' in ph and 'almost' not in ph and not r['identical']:
+        out.append('다른 글자인데 "exactly"')
+    if r['same_onset'] and 'close consonant' in ph:
+        out.append('초성이 같은데 "close consonant"')
+    if r['identical'] and 'straight into' in ph:
+        out.append('같은 글자인데 "carries straight into" (exactly 가 맞음)')
     return out
+
+
+def _shape(s):
+    """이름·로마자·발음 힌트 자리를 지워 문장 뼈대만 남긴다."""
+    import re
+    s = re.sub(r'"[^"]*"', '"…"', s)
+    s = re.sub(r'[가-힣]+ \([A-Za-z\-]+\)', 'X (R)', s)
+    s = re.sub(r'[가-힣]+', 'X', s)
+    # 발음 힌트 목록(블록 1·2)은 통째로 H 로 — 어휘는 따로 찍는다
+    s = re.sub(r'(syllable sounds: |like this: ).*$', r'\1H; H; …', s)
+    s = re.sub(r'(the X \(R\) sound [^,.]+? X \(R\))', 'M', s)   # 매칭 구절 → M
+    s = re.sub(r'(?:M, )+M, and M', 'M, …, and M', s)
+    return s
+
+
+def print_sentences(n2t, t2r):
+    frames, phrases = collections.Counter(), collections.Counter()
+    for sex in ('male', 'female'):
+        for en, tr in n2t[sex].items():
+            res = t2r['given'][sex].get(tr)
+            if not res or not res.get('given'):
+                continue
+            for q in ('Q1', 'Q3'):                  # Q3 는 note 문장을 만든다
+                out = build_reason(en.title(), tr, res['given'], q)
+                for i, b in enumerate(out['blocks']):
+                    frames[(i + 1, _shape(b))] += 1
+            for m in out['matches']:
+                phrases[m['phrase']] += 1
+    print('\n변환 이유 문장 뼈대 (X=한글, R=로마자, H=발음 힌트 항목, M=매칭 구절)')
+    for (i, s), n in sorted(frames.items(), key=lambda x: (x[0][0], -x[1])):
+        print(f'  블록{i} ×{n:5d}: {s}')
+    print('\n매칭 구절 M = "the X (R) sound ___ X (R)"')
+    for ph, n in phrases.most_common():
+        print(f'  ×{n:5d}: {ph}')
+    from pronounce_guide import VOWEL_HINT, ONSET_HINT
+    print('\n발음 힌트 H = X (R) — <모음 힌트>[ <받침 꼬리>]   (lib/pronounce_guide.py)')
+    print('  모음 힌트:', ' | '.join(sorted(set(VOWEL_HINT.values()))))
+    print('  받침 꼬리:', ' | '.join([' with a soft "-ng" ending', ' ending in "-n"', ' ending in a soft "-l"',
+                                   ' ending in "-m"', ' ending in a light "-k"', ' ending in a light "-t"',
+                                   ' ending in a light "-p"']))
 
 
 def main():
@@ -61,6 +115,8 @@ def main():
                                  same_onset=(c1 == c2 and has1),
                                  same_vowel=(j1 == j2)))
     print(f'이름 {names}개 · 매칭 {len(rows)}건')
+    if '--sentences' in sys.argv:
+        print_sentences(n2t, t2r)
     if '--all' in sys.argv:
         print('\n문구별 분포')
         for (lvl, ph), n in sorted(collections.Counter((r['level'], r['phrase']) for r in rows).items(),
