@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>demo</title>
+{# 영상 촬영용 자동 시연. 실제 앱 페이지를 같은 origin 의 iframe 에 띄우고, 이 페이지의
+   스크립트가 정해진 박자로 타이핑·제출·뒤집기·발음 재생을 대신 누른다.
+   iframe 을 쓰는 이유: 카드·폰트·변환 이유·소리가 진짜 앱과 100% 같아야 하고,
+   같은 origin 이라 부모가 iframe 문서를 직접 조작할 수 있다.
+   소리는 iframe 안의 버튼을 누르지 않고 **부모가 직접 재생**한다 — 모바일 브라우저는
+   사용자 손이 닿은 문서에서만 소리를 허용하는데, 시작할 때의 탭이 부모에 떨어진다. #}
+<style>
+  html,body{margin:0;height:100%;background:#f9f4e7;overflow:hidden;}
+  #stage{position:fixed;inset:0;border:0;width:100vw;height:100vh;height:100dvh;background:#f9f4e7;}
+  #overlay,#card{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    text-align:center;padding:32px;background:#f9f4e7;z-index:10;}
+  #overlay{flex-direction:column;gap:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#6e6e6e;}
+  #overlay b{font-size:22px;color:#1a1a1a;font-weight:600;}
+  #overlay small{font-size:13px;line-height:1.6;max-width:300px;}
+  #card{display:none;font-family:'EngSerif','Noto Serif KR',Georgia,serif;font-size:34px;line-height:1.35;color:#1a1a1a;}
+  .hidden{display:none !important;}
+</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}">
+</head>
+<body>
+<iframe id="stage" src="about:blank" scrolling="no"></iframe>
+<div id="overlay">
+  <b>Tap to start</b>
+  <small>{{ cfg.names|length }} name{{ 's' if cfg.names|length != 1 else '' }} ·
+    {{ cfg.hold }}s front · {{ cfg.back }}s back{% if cfg.say %} · pronunciation on{% endif %}<br>
+    Start your screen recording first, then tap.</small>
+</div>
+<div id="card"></div>
+
+<script>
+(function(){
+  var CFG = {{ cfg_json|safe }};
+  var stage = document.getElementById('stage');
+  var overlay = document.getElementById('overlay');
+  var card = document.getElementById('card');
+  var sleep = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+
+  // iframe 의 다음 load 를 기다린다. 결과 페이지는 POST → 303 → GET 이라 load 가 두 번
+  // 올 수 있으므로, 주소가 /n/ 으로 바뀔 때까지 기다린다.
+  function waitLoad(pathPrefix){
+    return new Promise(function(resolve){
+      function on(){
+        var p = '';
+        try { p = stage.contentWindow.location.pathname; } catch(e){}
+        if(!pathPrefix || p.indexOf(pathPrefix) === 0){ stage.removeEventListener('load', on); resolve(); }
+      }
+      stage.addEventListener('load', on);
+    });
+  }
+
+  function showCard(text, sec, keep){
+    if(!text) return Promise.resolve();
+    card.textContent = text; card.style.display = 'flex';
+    if(keep) return Promise.resolve();                   // 마지막 문구는 그대로 둔다
+    return sleep(sec * 1000).then(function(){ card.style.display = 'none'; });
+  }
+
+  // 부모에서 소리를 낸다. 시작 탭이 이 문서에 떨어졌으므로 재생이 허용된다.
+  var unlocked = null;
+  function unlockAudio(){
+    try {
+      unlocked = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+      unlocked.play().catch(function(){});
+    } catch(e){}
+  }
+  function playPronunciation(doc){
+    var kr = Array.prototype.map.call(doc.querySelectorAll('.kr-name .kn-kr'), function(s){ return s.textContent.trim(); }).join('');
+    var pre = null;
+    try { pre = stage.contentWindow.AUDIO && stage.contentWindow.AUDIO.full; } catch(e){}
+    var getUrl = pre ? Promise.resolve(pre)
+      : fetch('/api/tts?name=' + encodeURIComponent(kr)).then(function(r){ return r.json(); }).then(function(d){ return d.url; });
+    return getUrl.then(function(url){
+      if(!url) return sleep(1200);
+      return new Promise(function(resolve){
+        var a = new Audio(url);
+        a.addEventListener('ended', resolve); a.addEventListener('error', resolve);
+        a.play().catch(function(){ resolve(); });
+        setTimeout(resolve, 6000);                       // 안전장치
+      });
+    }).catch(function(){ return sleep(1200); });
+  }
+
+  function runOne(item){
+    var p = waitLoad('/');
+    stage.src = '/?g=' + item.g;
+    return p.then(function(){
+      var doc = stage.contentDocument;
+      var input = doc.getElementById('first_name');
+      var radio = doc.getElementById('sex-' + item.g);
+      if(radio) radio.checked = true;
+      input.value = ''; input.focus();
+      // 입력 칸이 화면 가운데 오게 — 홈 상단의 긴 설명이 아니라 폼이 찍히도록
+      try { input.scrollIntoView({ block: 'center', behavior: 'instant' }); } catch(e){ input.scrollIntoView(); }
+      // 타이핑
+      var chain = sleep(500);
+      item.name.split('').forEach(function(ch){
+        chain = chain.then(function(){ input.value += ch; return sleep(CFG.type_ms); });
+      });
+      return chain;
+    }).then(function(){
+      var doc = stage.contentDocument;
+      var p2 = waitLoad('/n/');
+      return sleep(450).then(function(){
+        var form = doc.getElementById('nameForm');
+        if(form.requestSubmit) form.requestSubmit(); else form.submit();
+        return p2;
+      });
+    }).then(function(){
+      return sleep(CFG.hold * 1000);                    // 앞면
+    }).then(function(){
+      if(CFG.back <= 0) return;
+      var doc = stage.contentDocument, fl = doc.getElementById('flipper');
+      fl.click();                                        // 뒷면
+      return sleep(CFG.back * 1000).then(function(){ fl.click(); return sleep(900); });
+    }).then(function(){
+      if(!CFG.say) return;
+      var doc = stage.contentDocument, btn = doc.getElementById('ttsBtn');
+      if(btn){ btn.classList.remove('btn-ghost'); btn.classList.add('btn-primary'); }   // 눌린 것처럼 보이게
+      // 녹화 후 소리를 따로 입힐 때 쓰는 시각 표시(console). 제 환경처럼 TTS 가 없는
+      // 곳에서는 saydur(초) 만큼 머물러, 나중에 그 자리에 mp3 를 얹을 수 있게 한다.
+      console.log('KDEMO ' + JSON.stringify({ev: 'say', name: item.name, t: Date.now()}));
+      var dur = (CFG.saydur && CFG.saydur[item.idx]) || 0;
+      var p = dur > 0 ? sleep(dur * 1000) : playPronunciation(doc);
+      return p.then(function(){ if(btn){ btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost'); } });
+    }).then(function(){
+      return sleep(CFG.gap * 1000);
+    });
+  }
+
+  overlay.addEventListener('click', function(){
+    overlay.classList.add('hidden');
+    unlockAudio();
+    console.log('KDEMO ' + JSON.stringify({ev: 'start', t: Date.now()}));
+    CFG.names.forEach(function(item, i){ item.idx = i; });
+    var seq = sleep(1200);                               // 녹화 시작 직후 손이 화면에서 빠질 시간
+    seq = seq.then(function(){ return showCard(CFG.intro, CFG.card_s); });
+    CFG.names.forEach(function(item){ seq = seq.then(function(){ return runOne(item); }); });
+    seq = seq.then(function(){ return showCard(CFG.outro, 0, true); });
+    // 끝나면 아웃트로 문구(없으면 마지막 결과 카드)가 그대로 남는다 — 여기서 녹화를 끈다.
+  }, { once: true });
+})();
+</script>
+</body>
+</html>

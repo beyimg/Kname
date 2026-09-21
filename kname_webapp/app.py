@@ -1946,6 +1946,62 @@ def seo_name_page(first):
     return resp
 
 
+# ---------------------------------------------------------------- 영상 촬영용 자동 시연 /demo
+# 틱톡·릴스 영상을 찍을 때 앱을 **사람 대신 일정한 박자로** 조작한다. 폰에서 이 주소를
+# 열고 화면 녹화를 켠 뒤 화면을 한 번 누르면, 이름 입력(타이핑) → 카드 → 뒤집기 →
+# 앞면 → 발음 재생 → 다음 이름 … 을 정해진 시간 간격으로 진행한다. 결과는 진짜
+# 앱 화면(같은 origin 의 iframe)이라 폰트·카드·소리가 실제와 같다.
+#   /demo?names=Emma,Liam,Olivia          이름 세 개, 여자 이름 기본
+#   /demo?names=Emma:f,Liam:m,Olivia:f    이름별 성별
+#   &hold=3 &back=3 &type=90 &say=1       앞면 초 · 뒷면 초 · 글자당 ms · 발음 재생
+#   &intro=What's your name in Korean?    첫 장면 문구(2초) · &outro=... 마지막 문구
+# 사전 이름만 쓴다(GET 은 LLM 을 안 부르므로, 사전 밖 이름은 홈으로 튕겨 시연이 멈춘다).
+# 검색에 걸릴 이유가 없어 noindex + robots Disallow.
+@app.route('/demo')
+def demo_page():
+    raw = (request.args.get('names') or 'Emma,Liam,Olivia')[:400]
+    names = []
+    for part in raw.split(','):
+        part = part.strip()
+        if not part:
+            continue
+        name, _, g = part.partition(':')
+        name = re.sub(r"[^A-Za-z'\- ]", '', name).strip()[:40]
+        if not name:
+            continue
+        g = (g or request.args.get('g') or 'f').strip().lower()[:1]
+        if g not in ('f', 'm', 'x'):
+            g = 'f'
+        names.append({'name': name, 'g': g})
+    names = names[:10]
+
+    def _num(key, default, lo, hi):
+        try:
+            v = float(request.args.get(key, default))
+        except (TypeError, ValueError):
+            v = default
+        return max(lo, min(hi, v))
+
+    cfg = {
+        'names': names,
+        'hold': _num('hold', 3.0, 0.5, 15),        # 앞면을 보여주는 초
+        'back': _num('back', 3.0, 0, 15),          # 뒷면을 보여주는 초 (0 이면 안 뒤집음)
+        'type_ms': int(_num('type', 90, 20, 400)), # 글자당 타이핑 ms
+        'say': request.args.get('say', '1') != '0',
+        'gap': _num('gap', 0.6, 0, 5),             # 이름 사이 쉬는 초
+        'intro': (request.args.get('intro') or '')[:80],
+        'outro': (request.args.get('outro') or '')[:80],
+        'card_s': _num('card', 2.0, 0.5, 6),       # 인트로·아웃트로 문구 초
+        # 소리를 낼 수 없는 환경(자동 녹화기)에서 발음 자리를 비워 두는 초. 이름 순서대로
+        # 쉼표 목록. 나중에 그 자리에 mp3 를 얹는다(tools/make_demo_audio.py 참고).
+        'saydur': [max(0.0, min(8.0, float(x))) for x in
+                   (request.args.get('saydur') or '').split(',') if x.strip().replace('.', '', 1).isdigit()],
+    }
+    resp = make_response(render_template('demo.html', cfg=cfg, cfg_json=json.dumps(cfg, ensure_ascii=False)))
+    resp.headers['Cache-Control'] = 'no-store'
+    return resp
+
+
 # ---------------------------------------------------------------- OG 공유 카드 이미지
 # 링크를 카톡·트위터 등에 붙이면 그 앱이 og:image 를 받아 카드로 보여준다.
 # 규칙은 /n/ 과 같다 — 캐시로 만들 수 있는 이름만 그린다(LLM 비용 0), 모르는 이름은 404.
@@ -2231,6 +2287,7 @@ def robots():
             'Disallow: /status\n'
             'Disallow: /diag\n'
             'Disallow: /api/\n'
+            'Disallow: /demo\n'
             f'Sitemap: {_site_url()}/sitemap.xml\n')
     return make_response(body, 200, {'Content-Type': 'text/plain'})
 
