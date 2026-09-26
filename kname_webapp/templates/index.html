@@ -100,6 +100,7 @@
   <div class="alert" role="alert">{{ error }}</div>
   {% endif %}
 
+  <div class="form-stage">
   <form class="form" method="post" action="{{ url_for('result') }}" id="nameForm" novalidate>
     <div class="inset-border"></div>
     <div class="form-inner">
@@ -149,6 +150,7 @@
 
     </div>
   </form>
+  </div>
 
   <div class="examples">
     <span class="examples-label">Try one</span>
@@ -188,10 +190,20 @@
     });
   });
 
-  document.getElementById('nameForm').addEventListener('submit', function (e) {
+  // 제출하면 입력 카드가 옆으로 돌아 사라진 뒤 결과 페이지로 간다. 결과 페이지는
+  // sessionStorage 의 표시를 보고 카드를 -90° 에서 돌려 나타낸다(flip-in).
+  var form = document.getElementById('nameForm'), flipping = false;
+  form.addEventListener('submit', function (e) {
     var bad = null;
     if (!first.value.trim()) { first.classList.add('is-invalid'); bad = first; }
-    if (bad) { e.preventDefault(); bad.focus(); }
+    if (bad) { e.preventDefault(); bad.focus(); return; }
+    if (flipping) { e.preventDefault(); return; }
+    e.preventDefault(); flipping = true;
+    try { sessionStorage.setItem('kname_flip', '1'); } catch (err) {}
+    form.classList.add('flip-out');
+    var done = false, go = function () { if (done) return; done = true; form.submit(); };
+    form.addEventListener('transitionend', go, { once: true });
+    setTimeout(go, 450);                                   // transitionend 가 안 와도 간다
   });
   [first, last].forEach(function (el) {
     el.addEventListener('input', function () { el.classList.remove('is-invalid'); });

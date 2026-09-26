@@ -50,6 +50,15 @@
 
   <!-- ── 카드 ─────────────────────────────────────────── -->
   <div class="card-wrap"><div class="flipper" id="flipper">
+    <script>
+    (function(){
+      var f = document.getElementById('flipper'), on = false;
+      try { on = sessionStorage.getItem('kname_flip') === '1'; sessionStorage.removeItem('kname_flip'); } catch(e){}
+      if(!on) return;
+      f.classList.add('flip-in');                          /* 첫 프레임: 옆면(-90°) */
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ f.classList.remove('flip-in'); }); });
+    })();
+    </script>
 
     <div class="face face-front"><div id="shareCard">
       <div class="inset-border"></div>

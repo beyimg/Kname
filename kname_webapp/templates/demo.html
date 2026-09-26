@@ -16,10 +16,11 @@
   #stage{position:fixed;inset:0;border:0;width:100vw;height:100vh;height:100dvh;background:#f9f4e7;}
   #overlay,#card{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
     text-align:center;padding:32px;background:#f9f4e7;z-index:10;}
-  #overlay{flex-direction:column;gap:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#6e6e6e;}
-  #overlay b{font-size:22px;color:#1a1a1a;font-weight:600;}
-  #overlay small{font-size:13px;line-height:1.6;max-width:300px;}
-  #card{display:none;font-family:'EngSerif','Noto Serif KR',Georgia,serif;font-size:34px;line-height:1.35;color:#1a1a1a;}
+  /* 글자 크기는 vw — 폰(360px)에서나 녹화기(1080px)에서나 같은 비율 */
+  #overlay{flex-direction:column;gap:3.9vw;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#6e6e6e;}
+  #overlay b{font-size:6.1vw;color:#1a1a1a;font-weight:600;}
+  #overlay small{font-size:3.6vw;line-height:1.6;max-width:83vw;}
+  #card{display:none;font-family:'EngSerif','Noto Serif KR',Georgia,serif;font-size:9.4vw;line-height:1.35;color:#1a1a1a;padding:8vw;}
   .hidden{display:none !important;}
 </style>
 <link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}">
@@ -40,7 +41,37 @@
   var stage = document.getElementById('stage');
   var overlay = document.getElementById('overlay');
   var card = document.getElementById('card');
+
+  // 자동 녹화기용 확대(?zoom=3). 브라우저 녹화는 CSS 픽셀 크기로만 찍히므로, 폰 배치
+  // (360×640)를 3배로 확대해 1080×1920 으로 선명하게 만든다. 폰에서 직접 볼 때는 1.
+  // iframe 자체를 transform 으로 키운다 — 안쪽 문서는 그냥 360×640 폰 화면이라
+  // vh·미디어쿼리가 그대로 맞고, 페이지가 바뀔 때 확대 안 된 화면이 잠깐 비치지 않는다.
+  var Z = parseFloat(new URLSearchParams(location.search).get('zoom') || '1') || 1;
+  if(Z > 1){
+    stage.style.width = (window.innerWidth / Z) + 'px';
+    stage.style.height = (window.innerHeight / Z) + 'px';
+    stage.style.transformOrigin = '0 0';
+    stage.style.transform = 'scale(' + Z + ')';
+  }
+  // clean: 홈의 긴 설명·예시를 숨기고 입력 카드만 가운데 둔다(영상용).
+  // 문서가 생기자마자(load 전에) 넣어야 원래 화면이 한 프레임 비치지 않는다 → 짧게 폴링.
+  function styleFrame(doc){
+    if(!CFG.clean || !doc || !doc.head || doc.documentElement.hasAttribute('data-kdemo')) return;
+    doc.documentElement.setAttribute('data-kdemo', '1');
+    var st = doc.createElement('style');
+    st.textContent = '.hero,.intro,.alert,.examples,.privacy-note{display:none !important}' +
+      '.wrap{min-height:100vh;min-height:100dvh;justify-content:center;padding-top:0;padding-bottom:0}' +
+      /* 뒷면의 '성 추가' 권유는 영상에선 소음 — 뜻이 바로 보이게 */
+      '.back-section:has(.back-nudge),.back-section:has(.back-nudge)+.back-divider{display:none !important}' +
+      /* 결과 페이지는 위에서부터(카드가 화면에 꽉 차게) */
+      '.wrap:has(.card-wrap){justify-content:flex-start;padding-top:20px}';
+    doc.head.appendChild(st);
+  }
+  setInterval(function(){ try { styleFrame(stage.contentDocument); } catch(e){} }, 8);
+  stage.addEventListener('load', function(){ try { styleFrame(stage.contentDocument); } catch(e){} });
   var sleep = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+  // 박자 표시(console). 녹화기가 이 시각에 맞춰 자막·소리를 얹는다.
+  function mark(ev, name){ console.log('KDEMO ' + JSON.stringify({ev: ev, name: name || null, t: Date.now()})); }
 
   // iframe 의 다음 load 를 기다린다. 결과 페이지는 POST → 303 → GET 이라 load 가 두 번
   // 올 수 있으므로, 주소가 /n/ 으로 바뀔 때까지 기다린다.
@@ -91,15 +122,15 @@
     var p = waitLoad('/');
     stage.src = '/?g=' + item.g;
     return p.then(function(){
-      var doc = stage.contentDocument;
+      var doc = stage.contentDocument;      // 정리 스타일은 폴링/load 리스너가 이미 넣었다
       var input = doc.getElementById('first_name');
       var radio = doc.getElementById('sex-' + item.g);
       if(radio) radio.checked = true;
       input.value = ''; input.focus();
       // 입력 칸이 화면 가운데 오게 — 홈 상단의 긴 설명이 아니라 폼이 찍히도록
-      try { input.scrollIntoView({ block: 'center', behavior: 'instant' }); } catch(e){ input.scrollIntoView(); }
+      if(!CFG.clean){ try { input.scrollIntoView({ block: 'center', behavior: 'instant' }); } catch(e){ input.scrollIntoView(); } }
       // 타이핑
-      var chain = sleep(500);
+      var chain = sleep(500).then(function(){ mark('type', item.name); });
       item.name.split('').forEach(function(ch){
         chain = chain.then(function(){ input.value += ch; return sleep(CFG.type_ms); });
       });
@@ -109,27 +140,49 @@
       var p2 = waitLoad('/n/');
       return sleep(450).then(function(){
         var form = doc.getElementById('nameForm');
+        mark('submit', item.name);
         if(form.requestSubmit) form.requestSubmit(); else form.submit();
         return p2;
       });
     }).then(function(){
+      mark('result', item.name);
       return sleep(CFG.hold * 1000);                    // 앞면
-    }).then(function(){
-      if(CFG.back <= 0) return;
-      var doc = stage.contentDocument, fl = doc.getElementById('flipper');
-      fl.click();                                        // 뒷면
-      return sleep(CFG.back * 1000).then(function(){ fl.click(); return sleep(900); });
     }).then(function(){
       if(!CFG.say) return;
       var doc = stage.contentDocument, btn = doc.getElementById('ttsBtn');
       if(btn){ btn.classList.remove('btn-ghost'); btn.classList.add('btn-primary'); }   // 눌린 것처럼 보이게
       // 녹화 후 소리를 따로 입힐 때 쓰는 시각 표시(console). 제 환경처럼 TTS 가 없는
       // 곳에서는 saydur(초) 만큼 머물러, 나중에 그 자리에 mp3 를 얹을 수 있게 한다.
-      console.log('KDEMO ' + JSON.stringify({ev: 'say', name: item.name, t: Date.now()}));
+      mark('say', item.name);
       var dur = (CFG.saydur && CFG.saydur[item.idx]) || 0;
       var p = dur > 0 ? sleep(dur * 1000) : playPronunciation(doc);
       return p.then(function(){ if(btn){ btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost'); } });
     }).then(function(){
+      if(CFG.back <= 0) return;
+      var doc = stage.contentDocument, fl = doc.getElementById('flipper');
+      fl.click();                                        // 뒷면: 뜻
+      mark('back', item.name);
+      return sleep(CFG.back * 1000).then(function(){ fl.click(); mark('front', item.name); return sleep(900); });
+    }).then(function(){
+      if(CFG.reason <= 0) return;
+      // 변환 이유 카드로 내려간다 — 1) 소리 비교(1·2단계) 2) 어떻게 맞췄나(3단계)
+      var doc = stage.contentDocument, win = stage.contentWindow;
+      var sec = doc.querySelector('.reason-section');
+      if(!sec) return;
+      var top = sec.getBoundingClientRect().top + win.scrollY - 12;
+      win.scrollTo({ top: top, behavior: 'smooth' });
+      mark('reason1', item.name);
+      return sleep(CFG.reason * 1000 + 700).then(function(){
+        var steps = doc.querySelectorAll('.cr-step');
+        var st = steps[steps.length - 1];
+        if(!st) return;
+        var top2 = st.getBoundingClientRect().top + win.scrollY - 24;
+        win.scrollTo({ top: top2, behavior: 'smooth' });
+        mark('reason2', item.name);
+        return sleep(CFG.reason * 1000 + 700);
+      });
+    }).then(function(){
+      mark('done', item.name);
       return sleep(CFG.gap * 1000);
     });
   }
@@ -137,12 +190,12 @@
   overlay.addEventListener('click', function(){
     overlay.classList.add('hidden');
     unlockAudio();
-    console.log('KDEMO ' + JSON.stringify({ev: 'start', t: Date.now()}));
+    mark('start');
     CFG.names.forEach(function(item, i){ item.idx = i; });
     var seq = sleep(1200);                               // 녹화 시작 직후 손이 화면에서 빠질 시간
     seq = seq.then(function(){ return showCard(CFG.intro, CFG.card_s); });
     CFG.names.forEach(function(item){ seq = seq.then(function(){ return runOne(item); }); });
-    seq = seq.then(function(){ return showCard(CFG.outro, 0, true); });
+    seq = seq.then(function(){ mark('outro'); return showCard(CFG.outro, 0, true); });
     // 끝나면 아웃트로 문구(없으면 마지막 결과 카드)가 그대로 남는다 — 여기서 녹화를 끈다.
   }, { once: true });
 })();

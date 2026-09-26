@@ -44,21 +44,21 @@ function renderConversionReason(container, r) {
     '</b> (' + esc(r.translit.romanized) + ')</div>' +
     '</div>';
 
-  // 2단계 — 한국 이름 + 발음
+  // 2단계 — 한국 이름 + 발음 + 어떤 음절을 가져왔는지 한 문장
+  // 매칭이 하나면 단수 (conversion_reason.py 의 block3 과 같은 규칙)
+  var noun = r.matches.length === 1 ? 'syllable' : 'syllables';
   h += '<div class="cr-step">' +
     stepLabel(2, 'Your Korean name') +
     chips(r.korean.syllables, 'var(--ink)') +
     '<div class="cr-fullname">Your name: <b>' + esc(r.korean.hangul) +
     '</b> (' + esc(r.korean.romanized) + ')</div>' +
+    '<div class="cr-intro">We carried the most distinctive ' + noun + ' of &ldquo;' +
+    esc(r.english_name) + '&rdquo; (' + distinct + ') into a name that reads naturally in Korean.</div>' +
     '</div>';
 
-  // 3단계 — 음절 매칭 (색 구분)
-  // 매칭이 하나면 단수 (conversion_reason.py 의 block3 과 같은 규칙)
-  var noun = r.matches.length === 1 ? 'syllable' : 'syllables';
+  // 3단계 — 음절 매칭 (색 구분). 설명 문장은 2단계로 옮겼고 여기선 바로 매칭 상자.
   h += '<div class="cr-step">' +
-    stepLabel(3, 'How we matched the sounds') +
-    '<div class="cr-intro">We carried the most distinctive ' + noun + ' of &ldquo;' +
-    esc(r.english_name) + '&rdquo; (' + distinct + ') into a name that reads naturally in Korean:</div>';
+    stepLabel(3, 'How we matched the sounds');
 
   h += r.matches.map(function (m) {
     var st = m.style;

@@ -51,7 +51,7 @@ def fetch_prod(given):
             print(f'   운영 서버 응답에 url 없음: {d}')
             return None
         if url.startswith('/'):
-            url = PROD + url
+            url = PROD + urllib.parse.quote(url)      # 경로에 한글이 있다(…/예나.mp3)
         with urllib.request.urlopen(url, timeout=30) as r:
             return r.read()
     except Exception as e:

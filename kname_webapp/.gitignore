@@ -26,3 +26,6 @@ Thumbs.db
 
 # 영상용 발음 mp3 (tools/make_demo_audio.py 가 만든다 — 배포에 불필요)
 demo_audio/
+
+# 클로드가 노트북에서 앱을 가져갈 때 쓰는 임시 zip 폴더
+_claude_transfer/

@@ -1988,10 +1988,13 @@ def demo_page():
         'back': _num('back', 3.0, 0, 15),          # 뒷면을 보여주는 초 (0 이면 안 뒤집음)
         'type_ms': int(_num('type', 90, 20, 400)), # 글자당 타이핑 ms
         'say': request.args.get('say', '1') != '0',
-        'gap': _num('gap', 0.6, 0, 5),             # 이름 사이 쉬는 초
+        'gap': _num('gap', 0.6, 0, 20),            # 이름 사이 쉬는 초 (자막을 얹을 때는 길게)
+        'reason': _num('reason', 0, 0, 10),        # 변환 이유 카드를 보여주는 초(2단 각각). 0 이면 생략
         'intro': (request.args.get('intro') or '')[:80],
         'outro': (request.args.get('outro') or '')[:80],
         'card_s': _num('card', 2.0, 0.5, 6),       # 인트로·아웃트로 문구 초
+        # 입력 화면에서 상단 소개(hero·intro)를 숨기고 입력 카드만 가운데 보여준다.
+        'clean': request.args.get('clean', '1') != '0',
         # 소리를 낼 수 없는 환경(자동 녹화기)에서 발음 자리를 비워 두는 초. 이름 순서대로
         # 쉼표 목록. 나중에 그 자리에 mp3 를 얹는다(tools/make_demo_audio.py 참고).
         'saydur': [max(0.0, min(8.0, float(x))) for x in
