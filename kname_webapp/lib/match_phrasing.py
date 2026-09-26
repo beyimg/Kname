@@ -6,7 +6,7 @@ from syllable_match import onset_similar, vowel_similar
 def match_phrase(src, tgt, sim):
     """
     반환: (level, phrase)
-      level : near / close / related / soft / distant  (색·라벨 매핑용)
+      level : near / close / related / soft / distant / replaced  (색·라벨 매핑용)
       phrase: 'the X sound {phrase} Y' 형태에 들어갈 동사구
 
     유사도는 phonetics.py의 조음 자질 모델 값(0~1).
@@ -78,7 +78,9 @@ def match_phrase(src, tgt, sim):
         return ('distant', "leaves a trace of its consonant in")
     if sim_onset:
         return ('distant', "leaves a trace of a similar consonant in")
-    return ('distant', "loosely shapes")
+    # 자음도 모음도 공통점이 없다 — 소리를 살린 게 아니라 '대체'한 것이다. "loosely shapes"
+    # 라고 쓰면 관련이 있는 듯 들려서(스→현), 왜 바꿨는지를 문장에 담는다(2026-09-26).
+    return ('replaced', "has no close match in a natural Korean name, so it becomes")
 
 
 # 색 매핑: near/close = green, related = teal-ish green, loose/distant = amber
@@ -93,6 +95,8 @@ LEVEL_STYLE = {
     'related': {'bg':'#EAF3DE','tx':'#3B6D11','ar':'#639922','label':'partial'},
     'soft':    {'bg':'#FAEEDA','tx':'#854F0B','ar':'#BA7517','label':'soft'},
     'distant': {'bg':'#FAECE7','tx':'#993C1D','ar':'#D85A30','label':'loose'},
+    # 공통 소리가 전혀 없어 다른 음절로 바꾼 경우 — 색은 loose 와 같되 라벨을 따로 둔다
+    'replaced': {'bg':'#F1EDE6','tx':'#5C5245','ar':'#8A7E6E','label':'replaced'},
 }
 
 if __name__ == '__main__':

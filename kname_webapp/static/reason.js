@@ -78,6 +78,10 @@ function renderConversionReason(container, r) {
     '<span class="cr-legend-item"><span class="cr-dot" style="background:#639922"></span>partial &mdash; one sound in common</span>' +
     '<span class="cr-legend-item"><span class="cr-dot" style="background:#BA7517"></span>soft &mdash; only the consonant or vowel</span>' +
     '<span class="cr-legend-item"><span class="cr-dot" style="background:#D85A30"></span>loose &mdash; only a hint in common</span>' +
+    // 공통 소리가 전혀 없어 다른 음절로 바꾼 경우에만 한 줄 더 (match_phrasing.py 의 'replaced')
+    (r.matches.some(function (m) { return m.style.label === 'replaced'; })
+      ? '<span class="cr-legend-item"><span class="cr-dot" style="background:#8A7E6E"></span>replaced &mdash; no natural match, new syllable</span>'
+      : '') +
     '</div>';
 
   h += '</div>';
