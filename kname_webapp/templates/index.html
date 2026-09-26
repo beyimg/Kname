@@ -121,7 +121,7 @@
 
       <div class="field">
         <label for="country">Where are you from? <span class="opt">(optional)</span></label>
-        <select id="country" name="country" autocomplete="country">
+        <select id="country" name="country" autocomplete="off">
           <option value="">Optional</option>
           {% for code, name in (countries or []) %}
           <option value="{{ code }}" {% if country == code %}selected{% endif %}>{{ name }}</option>

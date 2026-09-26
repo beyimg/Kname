@@ -1787,12 +1787,13 @@ def _is_external_visit():
 
 @app.route('/')
 def index():
-    # 국적은 한 번 고르면 쿠키에 남겨 다음 방문에 기본값으로 쓴다.
+    # 국적 드롭박스는 늘 'Optional' 로 시작한다. 예전엔 마지막에 고른 나라를 쿠키로 기억해
+    # 기본값으로 넣었는데, 한 번 잘못 고르면 계속 그 나라가 먼저 떠서 뺐다.
     # ?first=&last=&g= 는 공유 링크(/n/...)가 아직 만들어진 적 없는 이름을 보낼 때
     # 입력란을 채워 두는 용도 — 사람이 Convert 를 눌러야 생성된다(GET 은 LLM 을 안 부른다).
     resp = make_response(render_template(
         'index.html', countries=_COUNTRIES,
-        country=_norm_country(request.cookies.get('country', '')),
+        country='',
         og_image=(_site_url() + url_for('og_default', v=_OG_VERSION)) if _OG_OK else None,
         first_name=request.args.get('first', '')[:40],
         last_name=request.args.get('last', '')[:40],
@@ -2133,10 +2134,9 @@ def result():
         resp = redirect(_share_path(first_en, last_en, sex), code=303)
     else:
         resp = make_response(_render_result(data, first_en, last_en, sex))
-    if _picked:
-        # 다음 방문에 기본값으로 쓴다. 국가 코드 2글자뿐이라 민감정보가 아니다.
-        resp.set_cookie('country', _picked, max_age=60 * 60 * 24 * 365,
-                        samesite='Lax')
+    if request.cookies.get('country'):
+        # 예전에 심어 둔 국적 쿠키는 더 쓰지 않으므로 지운다
+        resp.delete_cookie('country', samesite='Lax')
     return resp
 
 
