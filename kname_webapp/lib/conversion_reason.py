@@ -97,17 +97,23 @@ def build_reason(english_name, translit, korean_given, quality,
               f'Pronounce it like this: {b2_syls}.')
 
     # --- Block 3: 매칭 설명 (distinctive 음절 명시) ---
-    distinct = ", ".join(f"{m['src']} ({m['src_rom']})" for m in matches)
+    # 소리를 '가져온' 음절만 센다 — 공통점이 없어 다른 음절로 바꾼 것(replaced)은
+    # "carried" 라고 하면 3단계 설명과 어긋난다 (더스틴→덕현: 더 만 가져왔다).
+    carried = [m for m in matches if m['level'] != 'replaced']
+    distinct = ", ".join(f"{m['src']} ({m['src_rom']})" for m in carried)
     if matches:
         lines = [f"the {m['src']} ({m['src_rom']}) sound {m['phrase']} "
                  f"{m['tgt']} ({m['tgt_rom']})" for m in matches]
         joined = (lines[0] if len(lines) == 1
                   else ", ".join(lines[:-1]) + ", and " + lines[-1])
         # 매칭이 하나면 단수 — "the most distinctive syllables (아)" 는 문법 오류
-        noun = 'syllable' if len(matches) == 1 else 'syllables'
-        block3 = (f'We carried the most distinctive {noun} of "{english_name}" '
-                  f'({distinct}) into a name that reads naturally in Korean: '
-                  f'{joined[0].upper() + joined[1:]}.')
+        noun = 'syllable' if len(carried) == 1 else 'syllables'
+        lead = (f'We carried the most distinctive {noun} of "{english_name}" '
+                f'({distinct}) into a name that reads naturally in Korean'
+                if carried else
+                f'None of the sounds in "{english_name}" carry over cleanly, so we chose '
+                f'syllables that read naturally in Korean')
+        block3 = f'{lead}: {joined[0].upper() + joined[1:]}.'
     else:
         block3 = (f'We kept the overall feel of "{english_name}" while choosing '
                   f'syllables that flow naturally as a Korean name.')

@@ -63,8 +63,10 @@
       '.wrap{min-height:100vh;min-height:100dvh;justify-content:center;padding-top:0;padding-bottom:0}' +
       /* 뒷면의 '성 추가' 권유는 영상에선 소음 — 뜻이 바로 보이게 */
       '.back-section:has(.back-nudge),.back-section:has(.back-nudge)+.back-divider{display:none !important}' +
-      /* 결과 페이지는 위에서부터(카드가 화면에 꽉 차게) */
-      '.wrap:has(.card-wrap){justify-content:flex-start;padding-top:20px}';
+      /* 결과 페이지는 카드 내용만: 버튼 줄·안내문·링크는 숨기고 위에서부터 배치 */
+      /* 아래 여백: 변환 이유 카드의 마지막 단계도 화면 맨 위로 올라올 수 있게 */
+      '.wrap:has(.card-wrap){justify-content:flex-start;padding-top:20px;padding-bottom:45vh}' +
+      '.actions,.hint,.back-link,.seo-cta,.seo-more,.seo-intro{display:none !important}';
     doc.head.appendChild(st);
   }
   setInterval(function(){ try { styleFrame(stage.contentDocument); } catch(e){} }, 8);
@@ -124,21 +126,38 @@
     return p.then(function(){
       var doc = stage.contentDocument;      // 정리 스타일은 폴링/load 리스너가 이미 넣었다
       var input = doc.getElementById('first_name');
+      var lastIn = doc.getElementById('last_name');
       var radio = doc.getElementById('sex-' + item.g);
       if(radio) radio.checked = true;
-      input.value = ''; input.focus();
+      // "Dustin Johnson" 처럼 띄어쓰기가 있으면 뒤는 성(last name)
+      var parts = item.name.split(' '), first = parts[0], last = parts.slice(1).join(' ');
+      input.value = ''; if(lastIn) lastIn.value = '';
+      input.focus();
       // 입력 칸이 화면 가운데 오게 — 홈 상단의 긴 설명이 아니라 폼이 찍히도록
       if(!CFG.clean){ try { input.scrollIntoView({ block: 'center', behavior: 'instant' }); } catch(e){ input.scrollIntoView(); } }
-      // 타이핑
-      var chain = sleep(500).then(function(){ mark('type', item.name); });
-      item.name.split('').forEach(function(ch){
-        chain = chain.then(function(){ input.value += ch; return sleep(CFG.type_ms); });
+      // 타이핑 — 이름, 그리고 성이 있으면 잠깐 쉬고 성.
+      // typesec 이 있으면 입력 장면 전체(카드 등장 → 결과 카드 등장)가 그 초가 되도록 글자 속도를
+      // 맞춘다. 제출 뒤 결과가 뜨기까지(뒤집기 + 서버) 약 0.9초가 들어 있다.
+      var nChars = first.length + (last ? last.length : 0);
+      var PRE = 250, PAUSE = 200, PRESUBMIT = 250, LOAD = 900;
+      var fixed = PRE + (last && lastIn ? PAUSE : 0) + PRESUBMIT + LOAD;
+      var typeMs = CFG.typesec > 0 ? Math.max(15, (CFG.typesec * 1000 - fixed) / nChars) : CFG.type_ms;
+      item.preSubmit = CFG.typesec > 0 ? PRESUBMIT : 450;
+      var chain = sleep(CFG.typesec > 0 ? PRE : 500).then(function(){ mark('type', item.name); });
+      first.split('').forEach(function(ch){
+        chain = chain.then(function(){ input.value += ch; return sleep(typeMs); });
       });
+      if(last && lastIn){
+        chain = chain.then(function(){ lastIn.focus(); return sleep(CFG.typesec > 0 ? PAUSE : 350); });
+        last.split('').forEach(function(ch){
+          chain = chain.then(function(){ lastIn.value += ch; return sleep(typeMs); });
+        });
+      }
       return chain;
     }).then(function(){
       var doc = stage.contentDocument;
       var p2 = waitLoad('/n/');
-      return sleep(450).then(function(){
+      return sleep(item.preSubmit || 450).then(function(){
         var form = doc.getElementById('nameForm');
         mark('submit', item.name);
         if(form.requestSubmit) form.requestSubmit(); else form.submit();
@@ -146,17 +165,25 @@
       });
     }).then(function(){
       mark('result', item.name);
-      return sleep(CFG.hold * 1000);                    // 앞면
-    }).then(function(){
-      if(!CFG.say) return;
+      // 앞면: sayat 초 뒤에 발음하고, 앞면 전체가 hold 초가 되게 나머지를 기다린다.
+      // sayat 가 없으면(-1) 앞면 hold 초 뒤에 발음한다.
+      var sayAt = (CFG.sayat >= 0 && CFG.say) ? Math.min(CFG.sayat, CFG.hold) : CFG.hold;
+      return sleep(sayAt * 1000).then(function(){ return sayAt; });
+    }).then(function(sayAt){
+      if(!CFG.say) return sleep((CFG.hold - sayAt) * 1000);
       var doc = stage.contentDocument, btn = doc.getElementById('ttsBtn');
       if(btn){ btn.classList.remove('btn-ghost'); btn.classList.add('btn-primary'); }   // 눌린 것처럼 보이게
       // 녹화 후 소리를 따로 입힐 때 쓰는 시각 표시(console). 제 환경처럼 TTS 가 없는
       // 곳에서는 saydur(초) 만큼 머물러, 나중에 그 자리에 mp3 를 얹을 수 있게 한다.
       mark('say', item.name);
+      var t0 = Date.now();
       var dur = (CFG.saydur && CFG.saydur[item.idx]) || 0;
       var p = dur > 0 ? sleep(dur * 1000) : playPronunciation(doc);
-      return p.then(function(){ if(btn){ btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost'); } });
+      return p.then(function(){
+        if(btn){ btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost'); }
+        var left = (CFG.hold - sayAt) * 1000 - (Date.now() - t0);   // 앞면 남은 시간
+        return left > 0 ? sleep(left) : null;
+      });
     }).then(function(){
       if(CFG.back <= 0) return;
       var doc = stage.contentDocument, fl = doc.getElementById('flipper');
@@ -165,22 +192,31 @@
       return sleep(CFG.back * 1000).then(function(){ fl.click(); mark('front', item.name); return sleep(900); });
     }).then(function(){
       if(CFG.reason <= 0) return;
-      // 변환 이유 카드로 내려간다 — 1) 소리 비교(1·2단계) 2) 어떻게 맞췄나(3단계)
+      // 변환 이유 카드로 내려간다 — 두 화면: ① 제목부터 2단계 'We carried…' 문장까지,
+      // ② 3단계부터 범례 끝까지. ①이 화면보다 길면 카드를 살짝 줄여(zoom) 한 화면에 담는다.
       var doc = stage.contentDocument, win = stage.contentWindow;
       var sec = doc.querySelector('.reason-section');
       if(!sec) return;
-      var top = sec.getBoundingClientRect().top + win.scrollY - 12;
-      win.scrollTo({ top: top, behavior: 'smooth' });
-      mark('reason1', item.name);
-      return sleep(CFG.reason * 1000 + 700).then(function(){
-        var steps = doc.querySelectorAll('.cr-step');
-        var st = steps[steps.length - 1];
-        if(!st) return;
-        var top2 = st.getBoundingClientRect().top + win.scrollY - 24;
-        win.scrollTo({ top: top2, behavior: 'smooth' });
-        mark('reason2', item.name);
-        return sleep(CFG.reason * 1000 + 700);
+      var steps = doc.querySelectorAll('.cr-step');
+      var s2 = steps[1] || steps[steps.length - 1];
+      var want = win.innerHeight - 24;
+      var h1 = s2.getBoundingClientRect().bottom - sec.getBoundingClientRect().top;
+      var scale = Math.min(1, want / h1);
+      if(scale < 1){                                    // transform 은 배치를 안 바꿔 계산이 정확하다
+        sec.style.transformOrigin = '50% 0';
+        sec.style.transform = 'scale(' + scale.toFixed(3) + ')';
+      }
+      var targets = [[sec, 12]].concat(steps.length > 2 ? [[steps[2], 12]] : []);
+      var chain = Promise.resolve();
+      targets.forEach(function(tg, i){
+        chain = chain.then(function(){
+          var top = tg[0].getBoundingClientRect().top + win.scrollY - tg[1];
+          win.scrollTo({ top: top, behavior: 'smooth' });
+          mark('reason' + (i + 1), item.name);
+          return sleep(CFG.reason * 1000 + 700);
+        });
       });
+      return chain;
     }).then(function(){
       mark('done', item.name);
       return sleep(CFG.gap * 1000);

@@ -32,8 +32,9 @@
   .cap{position:absolute;left:110px;right:110px;top:1135px;height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
   .w{display:inline-block;will-change:transform,opacity;}
   /* 발음 */
-  .say{display:flex;align-items:center;gap:26px;}
+  .say{display:flex;align-items:center;gap:26px;white-space:nowrap;}
   .say .rom{font-family:var(--serif);font-size:88px;letter-spacing:.02em;}
+  .say .rom.long{font-size:64px;}
   .bars{display:flex;align-items:center;gap:9px;height:70px;}
   .bars i{display:block;width:9px;border-radius:5px;background:var(--ink);height:14px;}
   /* 트리비아 카드 */
@@ -98,9 +99,11 @@
     $('hookSub').innerHTML = wrapWords(S.hook.sub || '');
     $('epTx').textContent = S.ep || '';
     $('sayRom').textContent = '🔊 ' + S.rom;
+    if(S.rom.length > 9) $('sayRom').classList.add('long');
     $('bars').innerHTML = '<i></i><i></i><i></i><i></i><i></i><i></i>';
-    $('trivLab').textContent = S.trivia.label || 'Did you know';
-    $('trivTx').innerHTML = S.trivia.html;
+    if(S.trivia){ $('trivLab').textContent = S.trivia.label || 'Did you know'; $('trivTx').innerHTML = S.trivia.html; }
+    // 긴 이름(성 포함)은 훅 글자를 줄인다
+    if(S.hook.big.length > 9) $('hookBig').style.fontSize = (S.hook.big.length > 14 ? 130 : 160) + 'px';
     $('outBig').innerHTML = '<span class="w">' + S.outro.big + '</span>';
     $('outSub').innerHTML = wrapWords(S.outro.sub || '');
     $('outHand').innerHTML = '<span class="w">' + (S.outro.hand || '') + '</span>';
@@ -109,12 +112,12 @@
 
   window.render = function(t){
     // ── 훅: 시작 ~ 타이핑 직전
-    var hookEnd = T.type - .15;
+    var hookEnd = T.type - .2;                    // 입력 카드는 type 보다 0.25s 먼저 떠 있다
     var v = vis(t, T.start - 1, hookEnd, .01, .35);
     setLayer($('hook'), v);
     if(v > 0){ words($('hookEye'), t, T.start + .05, .05, 14); words($('hookBig'), t, T.start + .25, 0, 40); words($('hookSub'), t, T.start + .7, .06, 18); }
     // ── 회차 표시: 타이핑 ~ 결과 직전
-    v = vis(t, T.type - .15, T.submit + .35, .3, .25);
+    v = vis(t, T.type - .2, T.submit + .35, .3, .25);
     setLayer($('ep'), v, -16);
     // ── 발음: say ~ say+dur
     var sayEnd = T.say + (T.saydur || 1.2) + .35;
@@ -129,7 +132,7 @@
     }
     // ── 트리비아 카드: 그 다음 ~ 아웃트로 직전
     var trStart = T.done + .15, trEnd = T.outro - .1;
-    v = vis(t, trStart, trEnd, .45, .3);
+    v = S.trivia ? vis(t, trStart, trEnd, .45, .3) : 0;
     setLayer($('triv'), v, 60);
     // ── 아웃트로
     v = vis(t, T.outro, T.outro + 60, .35, 1);

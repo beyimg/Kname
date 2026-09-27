@@ -47,7 +47,8 @@ def fetch_tts(given, out_dir='demo_audio'):
 def build_script(name, sex, args):
     """앱의 변환 결과로 자막 대본을 만든다. 훅·트리비아·아웃트로만 사람이 준다."""
     import app as A
-    d = A.convert_name(name, '', sex, allow_llm=False)
+    first, _, last = name.partition(' ')                  # "Dustin Johnson" → 성은 뒤
+    d = A.convert_name(first, last.strip(), sex, allow_llm=False)
     if 'error' in d:
         sys.exit(f'변환 실패: {d["error"]} — 사전에 있는 이름만 된다')
     chars = [{'ch': h['syl'], 'hanja': h['hanja'], 'gloss': h['gloss']} for h in d['hanja_lines']]
@@ -57,12 +58,12 @@ def build_script(name, sex, args):
                  'big': f'{name}?',
                  'sub': args.hook_sub or 'Here’s your Korean name.'},
         'chars': chars,
-        'rom': d['given_rom'],
-        'trivia': {'label': 'Did you know', 'html': args.trivia},
+        'rom': d['full_rom'],
+        'trivia': {'label': 'Did you know', 'html': args.trivia} if args.trivia else None,
         'outro': {'big': args.outro_big or 'What’s your name?',
                   'sub': args.outro_sub or 'Comment it — I’ll make yours.',
                   'hand': '\U0001F447'},
-        'given': d['given'], 'hanja': d['hanja'],
+        'given': d['given'], 'hanja': d['hanja'], 'full': d['full_hangul'],
     }, d
 
 
@@ -70,7 +71,8 @@ async def record(name, sex_key, saydur, gap, args, workdir):
     """/demo 를 돌리며 렌더러가 그리는 프레임을 그대로 받는다(CDP screencast, JPEG q92).
     브라우저의 자체 녹화(VP8)는 카드가 크게 움직인 뒤 색이 한동안 초록빛으로 틀어져서 쓰지 않는다.
     화면이 바뀔 때만 프레임이 오므로(움직일 때 25~35fps) 뒤에서 30fps 로 고르게 편다."""
-    q = {'names': f'{name}:{sex_key}', 'hold': args.hold, 'back': args.back, 'reason': args.reason, 'type': args.type, 'say': 1, 'gap': gap,
+    q = {'names': f'{name}:{sex_key}', 'hold': args.hold, 'back': args.back, 'reason': args.reason, 'type': args.type,
+         'typesec': args.typesec, 'sayat': args.sayat, 'say': 1, 'gap': gap,
          'saydur': f'{saydur:.2f}', 'intro': f'{name}?', 'card': 1.6, 'outro': 'What\u2019s your name?', 'zoom': 3}
     url = f'{BASE_URL}/demo?' + urllib.parse.urlencode(q)
     events, frames = [], []          # frames: (epoch 초, jpeg 경로)
@@ -95,7 +97,7 @@ async def record(name, sex_key, saydur, gap, args, workdir):
         await cdp.send('Page.startScreencast', {'format': 'jpeg', 'quality': 92, 'maxWidth': 1080, 'maxHeight': 1920, 'everyNthFrame': 1})
         await asyncio.sleep(0.5)
         await pg.click('#overlay')
-        est = 1.2 + 1.6 + 0.5 + len(name) * args.type / 1000 + 1.5 + args.hold + saydur + args.back + 1.6 + 2 * (args.reason + 0.7) + gap + 3
+        est = 1.2 + 1.6 + max(args.typesec, 0.5 + len(name) * args.type / 1000 + 1) + 2 + args.hold + saydur + args.back + 1.6 + 2 * (args.reason + 0.7) + gap + 3
         try:
             await pg.wait_for_function("document.getElementById('card').style.display==='flex' && "
                                        "document.getElementById('card').textContent.indexOf('What')===0",
@@ -151,14 +153,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--name', required=True, help='Emily 또는 Liam:m')
     ap.add_argument('--out', required=True)
-    ap.add_argument('--trivia', required=True, help='트리비아 HTML 한 문단 (<span class=kr>한글</span> 가능)')
+    ap.add_argument('--trivia', default='', help='트리비아 HTML 한 문단 (<span class=kr>한글</span> 가능). 비우면 생략')
     ap.add_argument('--ep', default='')
     ap.add_argument('--hook-eyebrow', default=''); ap.add_argument('--hook-sub', default='')
     ap.add_argument('--trivia-secs', type=float, default=4.6)
     ap.add_argument('--outro-big', default=''); ap.add_argument('--outro-sub', default='')
-    ap.add_argument('--hold', type=float, default=2.4, help='결과 카드 앞면 초')
-    ap.add_argument('--back', type=float, default=4.2, help='뒷면(뜻) 초')
-    ap.add_argument('--reason', type=float, default=2.8, help='변환 이유 카드 초(2단 각각)')
+    ap.add_argument('--hold', type=float, default=3.0, help='결과 카드 앞면 초')
+    ap.add_argument('--sayat', type=float, default=1.0, help='앞면이 뜬 뒤 몇 초에 발음할지')
+    ap.add_argument('--typesec', type=float, default=2.0, help='입력 장면(카드 등장→제출) 초')
+    ap.add_argument('--back', type=float, default=4.5, help='뒷면(뜻) 초')
+    ap.add_argument('--reason', type=float, default=3.2, help='변환 이유 카드 초(두 화면 각각)')
     ap.add_argument('--type', type=int, default=70)
     ap.add_argument('--tail', type=float, default=2.6)
     ap.add_argument('--keep', action='store_true', help='작업 폴더를 남긴다')
@@ -167,12 +171,12 @@ def main():
     name, _, g = args.name.partition(':')
     sex_key = (g or 'f').strip().lower()[:1] or 'f'
     script, d = build_script(name, SEX.get(sex_key, '여'), args)
-    print(f'{name} → {script["given"]} ({script["hanja"]}, {script["rom"]})')
+    print(f'{name} → {script["full"]} ({script["hanja"]}, {script["rom"]})')
 
-    mp3 = fetch_tts(script['given'])
+    mp3 = fetch_tts(script['full'])
     saydur = dur(mp3) + 0.3 if mp3 else 1.2
     print(f'발음 mp3: {mp3} ({saydur - 0.3:.2f}s)' if mp3 else '발음 mp3 없음')
-    gap = args.trivia_secs + 0.6                        # 마지막 화면 위에 트리비아 카드를 얹을 시간
+    gap = (args.trivia_secs + 0.6) if args.trivia else 0.4   # 마지막 화면 위에 트리비아 카드를 얹을 시간
 
     workdir = os.path.join(os.path.dirname(os.path.abspath(args.out)) or '.', '_rec'); os.makedirs(workdir, exist_ok=True)
     frames, events = asyncio.run(record(name, sex_key, saydur, gap, args, workdir))

@@ -1988,6 +1988,8 @@ def demo_page():
         'hold': _num('hold', 3.0, 0.5, 15),        # 앞면을 보여주는 초
         'back': _num('back', 3.0, 0, 15),          # 뒷면을 보여주는 초 (0 이면 안 뒤집음)
         'type_ms': int(_num('type', 90, 20, 400)), # 글자당 타이핑 ms
+        'typesec': _num('typesec', 0, 0, 10),      # 입력 장면 전체 초(0 이면 type_ms 로 계산)
+        'sayat': _num('sayat', -1, -1, 15),        # 앞면이 뜬 뒤 몇 초에 발음할지(-1 이면 앞면 다음에)
         'say': request.args.get('say', '1') != '0',
         'gap': _num('gap', 0.6, 0, 20),            # 이름 사이 쉬는 초 (자막을 얹을 때는 길게)
         'reason': _num('reason', 0, 0, 10),        # 변환 이유 카드를 보여주는 초(2단 각각). 0 이면 생략
