@@ -73,7 +73,15 @@
   stage.addEventListener('load', function(){ try { styleFrame(stage.contentDocument); } catch(e){} });
   var sleep = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
   // 박자 표시(console). 녹화기가 이 시각에 맞춰 자막·소리를 얹는다.
-  function mark(ev, name){ console.log('KDEMO ' + JSON.stringify({ev: ev, name: name || null, t: Date.now()})); }
+  function mark(ev, name, data){ console.log('KDEMO ' + JSON.stringify({ev: ev, name: name || null, t: Date.now(), data: data || null})); }
+  // 결과 카드 앞면의 글자 위치(iframe CSS px) — 오버레이가 음절 밑줄·성/이름 표시를 그 자리에 그린다
+  function layoutOf(doc){
+    var r = function(el){ if(!el) return null; var b = el.getBoundingClientRect(); return [b.left, b.top, b.width, b.height]; };
+    return { kr: Array.prototype.map.call(doc.querySelectorAll('.face-front .kn-kr'), r),
+             rom: r(doc.querySelector('.face-front .romanized')),
+             meaning: r(doc.querySelector('.face-front .meaning')),
+             card: r(doc.querySelector('#shareCard')) };
+  }
 
   // iframe 의 다음 load 를 기다린다. 결과 페이지는 POST → 303 → GET 이라 load 가 두 번
   // 올 수 있으므로, 주소가 /n/ 으로 바뀔 때까지 기다린다.
@@ -157,7 +165,8 @@
     }).then(function(){
       var doc = stage.contentDocument;
       var p2 = waitLoad('/n/');
-      return sleep(item.preSubmit || 450).then(function(){
+      // 다 입력된 화면을 filled 초 동안 보여준 뒤 제출한다
+      return sleep(CFG.filled > 0 ? CFG.filled * 1000 : (item.preSubmit || 450)).then(function(){
         var form = doc.getElementById('nameForm');
         mark('submit', item.name);
         if(form.requestSubmit) form.requestSubmit(); else form.submit();
@@ -165,6 +174,8 @@
       });
     }).then(function(){
       mark('result', item.name);
+      // 뒤집혀 들어오는 0.7s 가 끝난 뒤 글자 위치를 잰다(오버레이용)
+      setTimeout(function(){ try { mark('layout', item.name, layoutOf(stage.contentDocument)); } catch(e){} }, 850);
       // 앞면: sayat 초 뒤에 발음하고, 앞면 전체가 hold 초가 되게 나머지를 기다린다.
       // sayat 가 없으면(-1) 앞면 hold 초 뒤에 발음한다.
       var sayAt = (CFG.sayat >= 0 && CFG.say) ? Math.min(CFG.sayat, CFG.hold) : CFG.hold;
@@ -207,13 +218,14 @@
         sec.style.transform = 'scale(' + scale.toFixed(3) + ')';
       }
       var targets = [[sec, 12]].concat(steps.length > 2 ? [[steps[2], 12]] : []);
+      var secs = [CFG.reason, CFG.reason2 > 0 ? CFG.reason2 : CFG.reason];
       var chain = Promise.resolve();
       targets.forEach(function(tg, i){
         chain = chain.then(function(){
           var top = tg[0].getBoundingClientRect().top + win.scrollY - tg[1];
           win.scrollTo({ top: top, behavior: 'smooth' });
           mark('reason' + (i + 1), item.name);
-          return sleep(CFG.reason * 1000 + 700);
+          return sleep(secs[i] * 1000 + 700);
         });
       });
       return chain;

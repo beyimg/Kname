@@ -3,20 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <title>overlay</title>
-<!-- 영상 자막 레이어. tools/video/record.py 가 이 페이지를 1080×1920 투명 배경으로 띄우고,
+<!-- 영상 오버레이 레이어. tools/video/record.py 가 이 페이지를 1080×1920 투명 배경으로 띄우고,
      매 프레임 window.render(t) 를 불러 PNG 로 찍은 뒤 앱 화면 녹화 위에 얹는다.
      같은 origin(127.0.0.1:5078)에서 route 로 서빙되므로 /static 의 서체를 그대로 쓴다.
-     디자인 원칙: 앱 카드와 같은 두 색(먹·종이)만, 세리프 제목 + 산세리프 본문, 틱톡 UI 가
-     가리는 위 180px·아래 420px·오른쪽 150px 은 비운다. -->
+     그리는 것: 훅(유명인 사진 + 캡션), 회차 필, 결과 카드의 음절 밑줄(발음에 맞춰)·성/이름 표시
+     (화이트보드 느낌)·한 줄 뜻 형광펜, 아웃트로. 결과·뜻·이유 본문은 전부 앱 화면이다.
+     틱톡 UI 가 가리는 위 180px·아래 420px·오른쪽 150px 은 비운다. -->
 <link rel="stylesheet" href="/static/fonts.css">
 <link rel="stylesheet" href="/static/notoserifkr.css">
 <style>
   :root{
     --ink:#1a1a1a; --ink-soft:#6e6e6e; --ink-faint:#a8a8a8; --paper:#f9f4e7; --card:#fdfbf5;
-    --green:#0F6E56; --green-bg:#E1F5EE;
+    --marker:#b8432f; --hl:rgba(255,214,80,.42);
     --serif:'EngSerif','Noto Serif KR',Georgia,serif;
     --kr:'Noto Serif KR',serif;
     --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    --hand:'Caveat','Patrick Hand','Segoe Print','Comic Sans MS',var(--serif);
   }
   html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:transparent;}
   body{font-family:var(--sans);color:var(--ink);}
@@ -26,24 +28,24 @@
   .full .big{font-family:var(--serif);font-style:italic;font-size:210px;line-height:1;letter-spacing:-.01em;}
   .full .sub{font-family:var(--serif);font-size:66px;line-height:1.25;margin-top:52px;max-width:900px;}
   .full .hand{font-size:96px;margin-top:40px;}
-  .rule{width:120px;height:2px;background:var(--ink);margin:56px auto 0;}
+  /* 훅: 사진 전면 + 캡션 */
+  #hookMedia{background:#111;overflow:hidden;}
+  #hookMedia .media{position:absolute;inset:0;background-size:cover;background-position:center 30%;transform-origin:50% 40%;}
+  #hookMedia video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  #hookMedia .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 55%,rgba(0,0,0,.72) 100%);}
+  #hookMedia .cap{position:absolute;left:80px;right:80px;top:1180px;text-align:center;color:#fff;font-family:var(--serif);font-size:96px;line-height:1.18;text-shadow:0 4px 30px rgba(0,0,0,.55);}
+  #hookMedia .cap .w{display:inline-block;}
+  #hookMedia .credit{position:absolute;left:0;right:0;top:1470px;text-align:center;color:rgba(255,255,255,.72);font-size:24px;letter-spacing:.06em;}
   .pill{position:absolute;top:186px;left:50%;transform:translateX(-50%);font-size:30px;letter-spacing:.3em;text-transform:uppercase;
         color:var(--ink-soft);background:rgba(249,244,231,.92);border:1.5px solid rgba(26,26,26,.18);border-radius:999px;padding:16px 34px;white-space:nowrap;}
-  .cap{position:absolute;left:110px;right:110px;top:1135px;height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
   .w{display:inline-block;will-change:transform,opacity;}
-  /* 발음 */
-  .say{display:flex;align-items:center;gap:26px;white-space:nowrap;}
-  .say .rom{font-family:var(--serif);font-size:88px;letter-spacing:.02em;}
-  .say .rom.long{font-size:64px;}
-  .bars{display:flex;align-items:center;gap:9px;height:70px;}
-  .bars i{display:block;width:9px;border-radius:5px;background:var(--ink);height:14px;}
-  /* 트리비아 카드 */
-  .triv{position:absolute;left:80px;right:80px;top:1010px;background:var(--card);border:1.5px solid rgba(26,26,26,.22);border-radius:8px;
-        box-shadow:0 30px 80px rgba(60,50,30,.18);padding:56px 64px 60px;box-sizing:border-box;text-align:left;}
-  .triv .lab{font-size:28px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:26px;}
-  .triv .tx{font-family:var(--serif);font-size:50px;line-height:1.38;color:var(--ink);}
-  .triv .tx .kr{font-family:var(--kr);font-weight:600;}
-  .triv .tx b{font-weight:600;}
+  /* 카드 위 그림(밑줄·성/이름·형광펜) */
+  #draw{position:absolute;inset:0;}
+  #draw svg{position:absolute;inset:0;width:1080px;height:1920px;}
+  .ul{stroke:var(--marker);stroke-width:8;stroke-linecap:round;fill:none;}
+  .brace{stroke:var(--marker);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;fill:none;}
+  .lab{font-family:var(--hand);font-size:40px;fill:var(--marker);font-style:italic;}
+  .hl{fill:var(--hl);}
 </style>
 </head>
 <body>
@@ -52,9 +54,9 @@
   <div class="big" id="hookBig"></div>
   <div class="sub" id="hookSub"></div>
 </div>
+<div class="layer" id="hookMedia"><div class="media" id="hmImg"></div><div class="shade"></div><div class="cap" id="hmCap"></div><div class="credit" id="hmCredit"></div></div>
 <div class="layer" id="ep"><div class="pill" id="epTx"></div></div>
-<div class="layer" id="say"><div class="cap"><div class="say"><span class="rom" id="sayRom"></span><span class="bars" id="bars"></span></div></div></div>
-<div class="layer" id="triv"><div class="triv"><div class="lab" id="trivLab"></div><div class="tx" id="trivTx"></div></div></div>
+<div class="layer" id="draw"><svg id="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"></svg></div>
 <div class="layer full" id="outro">
   <div class="big" id="outBig" style="font-style:normal;font-size:150px;"></div>
   <div class="sub" id="outSub"></div>
@@ -63,12 +65,10 @@
 
 <script>
 (function(){
-  var S = null, T = null;   // script, timeline(초)
+  var S = null, T = null, C = null, L = null, hookVideo = null;   // script, 박자, 나레이션 큐, 카드 글자 위치
   var $ = function(id){ return document.getElementById(id); };
   var clamp = function(x){ return x < 0 ? 0 : x > 1 ? 1 : x; };
   var easeOut = function(p){ p = clamp(p); return 1 - Math.pow(1 - p, 3); };
-  var easeIO = function(p){ p = clamp(p); return p < .5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2; };
-  // t 가 [t0, t1) 안에 있으면 들어오고(dIn) 나갈 때(dOut) 사라진다. 반환: 0..1 표시 정도(음수면 숨김)
   function vis(t, t0, t1, dIn, dOut){
     if(t < t0 || t >= t1) return 0;
     var a = easeOut((t - t0) / (dIn || .35));
@@ -80,7 +80,6 @@
     el.style.display = v > 0 ? 'block' : 'none';
     if(rise !== undefined) el.style.transform = 'translateY(' + ((1 - v) * rise) + 'px)';
   }
-  // 낱말 단위 등장: 각 .w 가 순서대로 떠오른다
   function words(container, t, t0, step, rise){
     var ws = container.querySelectorAll('.w');
     for(var i = 0; i < ws.length; i++){
@@ -91,49 +90,137 @@
   function wrapWords(text){
     return text.split(' ').map(function(w){ return '<span class="w">' + w + '</span>'; }).join(' ');
   }
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs){ var e = document.createElementNS(NS, tag); for(var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+  // 손으로 그은 듯한 선: 두 점 사이를 살짝 흔들리는 경로로
+  function handLine(x1, y1, x2, y2, wob){
+    var n = 6, d = 'M' + x1 + ' ' + y1;
+    for(var i = 1; i <= n; i++){
+      var p = i / n, x = x1 + (x2 - x1) * p, y = y1 + (y2 - y1) * p + Math.sin(p * 9.3 + x1) * (wob || 2.2);
+      d += ' L' + x.toFixed(1) + ' ' + y.toFixed(1);
+    }
+    return d;
+  }
+  // 글자 위에 얹는 중괄호(∩ 모양): 양끝이 살짝 내려오고 가운데 꼭지가 위로
+  function brace(x1, x2, y){
+    var m = (x1 + x2) / 2, dn = 16;
+    return 'M' + x1 + ' ' + (y + dn) + ' Q' + x1 + ' ' + y + ' ' + (x1 + 22) + ' ' + y +
+           ' L' + (m - 14) + ' ' + y + ' L' + m + ' ' + (y - 14) + ' L' + (m + 14) + ' ' + y +
+           ' L' + (x2 - 22) + ' ' + y + ' Q' + x2 + ' ' + y + ' ' + x2 + ' ' + (y + dn);
+  }
+  var draw = { ul: [], braces: [], labels: [], hl: null };
 
-  window.setup = function(script, timeline){
-    S = script; T = timeline;
+  window.setup = function(script, timeline, cues, layout){
+    S = script; T = timeline; C = cues || {}; L = layout || null;
     $('hookEye').innerHTML = wrapWords(S.hook.eyebrow || '');
     $('hookBig').innerHTML = '<span class="w">' + S.hook.big + '</span>';
     $('hookSub').innerHTML = wrapWords(S.hook.sub || '');
-    $('epTx').textContent = S.ep || '';
-    $('sayRom').textContent = '🔊 ' + S.rom;
-    if(S.rom.length > 9) $('sayRom').classList.add('long');
-    $('bars').innerHTML = '<i></i><i></i><i></i><i></i><i></i><i></i>';
-    if(S.trivia){ $('trivLab').textContent = S.trivia.label || 'Did you know'; $('trivTx').innerHTML = S.trivia.html; }
-    // 긴 이름(성 포함)은 훅 글자를 줄인다
     if(S.hook.big.length > 9) $('hookBig').style.fontSize = (S.hook.big.length > 14 ? 130 : 160) + 'px';
+    if(S.hook.media){
+      if(S.hook.media.kind === 'video'){
+        hookVideo = document.createElement('video'); hookVideo.src = S.hook.media.url; hookVideo.muted = true; hookVideo.preload = 'auto';
+        $('hookMedia').insertBefore(hookVideo, $('hmImg'));
+        $('hmImg').style.display = 'none';
+      } else {
+        $('hmImg').style.backgroundImage = 'url("' + S.hook.media.url + '")';
+      }
+      $('hmCap').innerHTML = wrapWords(S.hook.media.caption || '');
+      $('hmCredit').textContent = S.hook.media.credit || '';
+    }
+    $('epTx').textContent = S.ep || '';
     $('outBig').innerHTML = '<span class="w">' + S.outro.big + '</span>';
     $('outSub').innerHTML = wrapWords(S.outro.sub || '');
     $('outHand').innerHTML = '<span class="w">' + (S.outro.hand || '') + '</span>';
-    return document.fonts.ready.then(function(){ return true; });
+
+    // 카드 위 그림 준비 — 글자 위치는 iframe CSS px 이므로 3배(Z)
+    var svg = $('svg'); while(svg.firstChild) svg.removeChild(svg.firstChild);
+    if(L && L.kr && L.kr.length){
+      var Z = L.zoom || 3, boxes = L.kr.map(function(r){ return r.map(function(v){ return v * Z; }); });
+      draw.ul = boxes.map(function(b){
+        var y = b[1] + b[3] + 3, path = el('path', { d: handLine(b[0] + 4, y, b[0] + b[2] - 4, y, 2.5), 'class': 'ul' });
+        var len = (b[2] + 8) * 1.05; path.setAttribute('stroke-dasharray', len); path.setAttribute('stroke-dashoffset', len); path.style.opacity = 0;
+        svg.appendChild(path); return { el: path, len: len };
+      });
+      // 성/이름 묶음 — 성이 있으면 앞 n 음절이 성
+      var nS = S.nSurname || 0, groups = [];
+      if(nS > 0) groups.push({ from: 0, to: nS - 1, label: 'family name' });
+      groups.push({ from: nS, to: boxes.length - 1, label: nS > 0 ? 'given name' : 'given name' });
+      var yB = Math.min.apply(null, boxes.map(function(b){ return b[1]; })) - 22;   // 글자 위
+      draw.braces = []; draw.labels = [];
+      groups.forEach(function(g, i){
+        var x1 = boxes[g.from][0] - 6, x2 = boxes[g.to][0] + boxes[g.to][2] + 6;
+        var p = el('path', { d: brace(x1, x2, yB), 'class': 'brace' });
+        var len = (x2 - x1) * 1.3 + 80; p.setAttribute('stroke-dasharray', len); p.setAttribute('stroke-dashoffset', len); p.style.opacity = 0;
+        svg.appendChild(p);
+        var tx = el('text', { x: (x1 + x2) / 2, y: yB - 26, 'text-anchor': 'middle', 'class': 'lab',
+                              transform: 'rotate(' + (i ? 1.5 : -1.5) + ' ' + (x1 + x2) / 2 + ' ' + (yB - 26) + ')' });
+        tx.textContent = g.label; tx.style.opacity = 0; svg.appendChild(tx);
+        draw.braces.push({ el: p, len: len }); draw.labels.push(tx);
+      });
+      if(L.meaning){
+        var m = L.meaning.map(function(v){ return v * Z; });
+        var hl = el('rect', { x: m[0] - 10, y: m[1] + 4, width: 0, height: m[3] - 8, rx: 10, 'class': 'hl' });
+        svg.insertBefore(hl, svg.firstChild); draw.hl = { el: hl, x: m[0] - 10, w: m[2] + 20 };
+      }
+    }
+    var ready = [document.fonts.ready];
+    if(hookVideo) ready.push(new Promise(function(r){ hookVideo.addEventListener('loadeddata', r, { once: true }); setTimeout(r, 4000); }));
+    return Promise.all(ready).then(function(){ return true; });
+  };
+
+  // 훅 영상은 프레임마다 그 시각으로 맞춘다(재생이 아니라 탐색)
+  window.seekHook = function(t){
+    if(!hookVideo) return Promise.resolve();
+    var tt = Math.max(0, Math.min(hookVideo.duration || 0, t - 0));
+    return new Promise(function(r){ var done = false; var f = function(){ if(!done){ done = true; r(); } };
+      hookVideo.addEventListener('seeked', f, { once: true }); hookVideo.currentTime = tt; setTimeout(f, 800); });
   };
 
   window.render = function(t){
-    // ── 훅: 시작 ~ 타이핑 직전
-    var hookEnd = T.type - .2;                    // 입력 카드는 type 보다 0.25s 먼저 떠 있다
-    var v = vis(t, T.start - 1, hookEnd, .01, .35);
-    setLayer($('hook'), v);
-    if(v > 0){ words($('hookEye'), t, T.start + .05, .05, 14); words($('hookBig'), t, T.start + .25, 0, 40); words($('hookSub'), t, T.start + .7, .06, 18); }
-    // ── 회차 표시: 타이핑 ~ 결과 직전
+    var v;
+    // ── 훅: 시작 ~ 입력 카드 등장
+    var hookEnd = T.type - .2;
+    if(S.hook.media){
+      v = vis(t, T.start - 1, hookEnd, .01, .4);
+      setLayer($('hookMedia'), v); setLayer($('hook'), 0);
+      if(v > 0){
+        var p = clamp((t + 1) / (hookEnd + 1));          // 켄 번스: 천천히 확대
+        $('hmImg').style.transform = 'scale(' + (1 + .09 * p) + ')';
+        words($('hmCap'), t, (C.hook ? C.hook.t : .2) - .05, .07, 26);
+      }
+    } else {
+      v = vis(t, T.start - 1, hookEnd, .01, .35);
+      setLayer($('hook'), v); setLayer($('hookMedia'), 0);
+      if(v > 0){ words($('hookEye'), t, .05, .05, 14); words($('hookBig'), t, .25, 0, 40); words($('hookSub'), t, .7, .06, 18); }
+    }
+    // ── 회차 표시: 입력 ~ 결과 직전
     v = vis(t, T.type - .2, T.submit + .35, .3, .25);
     setLayer($('ep'), v, -16);
-    // ── 발음: say ~ say+dur
-    var sayEnd = T.say + (T.saydur || 1.2) + .35;
-    v = vis(t, T.say, sayEnd, .2, .25);
-    setLayer($('say'), v);
+    // ── 카드 위 그림: 결과 카드 앞면 동안만
+    var frontEnd = (T.back || (T.result + 60)) - .05;
+    v = vis(t, T.result + .8, frontEnd, .01, .2);
+    setLayer($('draw'), v);
     if(v > 0){
-      var bs = $('bars').children, tt = t - T.say, on = tt < (T.saydur || 1.2);
-      for(var j = 0; j < bs.length; j++){
-        var h = on ? 18 + 44 * Math.abs(Math.sin(tt * 11 + j * 1.7)) * (0.5 + 0.5 * Math.abs(Math.sin(tt * 3.1 + j))) : 14;
-        bs[j].style.height = h + 'px';
+      // 음절 밑줄: 발음의 유성 구간을 음절 수로 나눠 차례로
+      var say = C.say || { t: T.say, dur: 1.2, v0: 0, v1: 1.2 };
+      var s0 = say.t + (say.v0 || 0), s1 = say.t + (say.v1 || say.dur), n = draw.ul.length, slot = n ? (s1 - s0) / n : 1;
+      draw.ul.forEach(function(u, i){
+        var a = s0 + i * slot, p = easeOut((t - a) / Math.max(.12, slot * .9));
+        u.el.style.opacity = t >= a ? 1 : 0; u.el.setAttribute('stroke-dashoffset', u.len * (1 - p));
+      });
+      // 성/이름 표시: 이름 설명 나레이션과 함께 그려진다
+      var nb = C.names ? C.names.t : (s1 + .3);
+      draw.braces.forEach(function(b, i){
+        var a = nb + i * .55, p = easeOut((t - a) / .5);
+        b.el.style.opacity = t >= a ? 1 : 0; b.el.setAttribute('stroke-dashoffset', b.len * (1 - p));
+        draw.labels[i].style.opacity = easeOut((t - a - .35) / .3);
+      });
+      // 한 줄 뜻 형광펜: 뜻 나레이션 길이에 맞춰 쓸어 간다
+      if(draw.hl && C.meaning){
+        var mp = clamp((t - C.meaning.t) / Math.max(.6, C.meaning.dur * .85));
+        draw.hl.el.setAttribute('width', Math.max(0, draw.hl.w * mp));
       }
     }
-    // ── 트리비아 카드: 그 다음 ~ 아웃트로 직전
-    var trStart = T.done + .15, trEnd = T.outro - .1;
-    v = S.trivia ? vis(t, trStart, trEnd, .45, .3) : 0;
-    setLayer($('triv'), v, 60);
     // ── 아웃트로
     v = vis(t, T.outro, T.outro + 60, .35, 1);
     setLayer($('outro'), v);

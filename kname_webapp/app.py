@@ -281,6 +281,13 @@ except Exception:
 # 음성 파일도 캐시다. 영속 디스크가 있으면 그쪽에 두는 편이 낫지만,
 # 정적 서빙 경로여야 하므로 기본은 static 아래에 둔다.
 TTS_FULL = FullNameTTS(os.path.join(BASE, 'static', 'audio', 'full'))
+# 영상 나레이션(영어) — tools/video 가 ADMIN_TOKEN 으로 /api/narrate 를 부른다
+try:
+    from narrate import Narrator
+    NARRATOR = Narrator(os.path.join(BASE, 'static', 'audio', 'narr'))
+except Exception as _ne:
+    print(f'[narrate] 사용 불가: {_ne}', file=sys.stderr)
+    NARRATOR = None
 
 
 # 영어 전용 의미 생성기 — meaning.py 대비 토큰을 크게 줄인다
@@ -1985,17 +1992,19 @@ def demo_page():
 
     cfg = {
         'names': names,
-        'hold': _num('hold', 3.0, 0.5, 15),        # 앞면을 보여주는 초
-        'back': _num('back', 3.0, 0, 15),          # 뒷면을 보여주는 초 (0 이면 안 뒤집음)
+        'hold': _num('hold', 3.0, 0.5, 40),        # 앞면을 보여주는 초
+        'back': _num('back', 3.0, 0, 40),          # 뒷면을 보여주는 초 (0 이면 안 뒤집음)
         'type_ms': int(_num('type', 90, 20, 400)), # 글자당 타이핑 ms
         'typesec': _num('typesec', 0, 0, 10),      # 입력 장면 전체 초(0 이면 type_ms 로 계산)
-        'sayat': _num('sayat', -1, -1, 15),        # 앞면이 뜬 뒤 몇 초에 발음할지(-1 이면 앞면 다음에)
+        'filled': _num('filled', 0, 0, 10),        # 다 입력된 화면을 제출 전에 보여주는 초
+        'sayat': _num('sayat', -1, -1, 40),        # 앞면이 뜬 뒤 몇 초에 발음할지(-1 이면 앞면 다음에)
         'say': request.args.get('say', '1') != '0',
         'gap': _num('gap', 0.6, 0, 20),            # 이름 사이 쉬는 초 (자막을 얹을 때는 길게)
-        'reason': _num('reason', 0, 0, 10),        # 변환 이유 카드를 보여주는 초(2단 각각). 0 이면 생략
+        'reason': _num('reason', 0, 0, 30),        # 변환 이유 첫 화면 초. 0 이면 생략
+        'reason2': _num('reason2', 0, 0, 30),      # 변환 이유 둘째 화면 초(0 이면 reason 과 같게)
         'intro': (request.args.get('intro') or '')[:80],
         'outro': (request.args.get('outro') or '')[:80],
-        'card_s': _num('card', 2.0, 0.5, 6),       # 인트로·아웃트로 문구 초
+        'card_s': _num('card', 2.0, 0.5, 12),       # 인트로·아웃트로 문구 초
         # 입력 화면에서 상단 소개(hero·intro)를 숨기고 입력 카드만 가운데 보여준다.
         'clean': request.args.get('clean', '1') != '0',
         # 소리를 낼 수 없는 환경(자동 녹화기)에서 발음 자리를 비워 두는 초. 이름 순서대로
@@ -2223,6 +2232,50 @@ def diag():
         audio_json=json.dumps(audio, ensure_ascii=False),
         files_json=json.dumps(files, ensure_ascii=False),
     )
+
+
+@app.route('/api/narrate', methods=['POST'])
+def api_narrate():
+    """영상 나레이션 문장들을 mp3 로 만든다(관리자 전용, tools/video/record.py 가 부른다).
+    본문: {"lines": ["...", ...]} → {"items": [{"text","url"}...]}. 같은 문장은 캐시."""
+    if not _video_authed():
+        abort(404)
+    if NARRATOR is None or not NARRATOR.available:
+        return jsonify({'error': 'narration not configured'}), 503
+    body = request.get_json(silent=True) or {}
+    lines = [str(x) for x in (body.get('lines') or [])][:40]
+    items = []
+    for line in lines:
+        url = NARRATOR.url_for(line)
+        items.append({'text': line, 'url': url, 'error': None if url else NARRATOR.last_error})
+    return jsonify({'items': items, 'mode': NARRATOR.last_mode, 'tag': NARRATOR.tag})
+
+
+@app.route('/api/export')
+def api_export():
+    """이름 하나의 변환 결과와 그 캐시 항목을 내보낸다(관리자 전용).
+    영상 파이프라인이 LLM 키 없는 환경에서 같은 결과를 재현하려고 쓴다 —
+    운영에서 한 번 변환해 두고(캐시 생성) 그 캐시 항목을 로컬 캐시에 넣는다."""
+    if not _video_authed():
+        abort(404)
+    first = (request.args.get('first') or '').strip()[:40]
+    last = (request.args.get('last') or '').strip()[:40]
+    sex = _G_TO_SEX.get(request.args.get('g', 'f'), '여')
+    if not first:
+        return jsonify({'error': 'first is required'}), 400
+    data = convert_name(first, last, sex, allow_llm=True)
+    if 'error' in data:
+        return jsonify({'error': data['error']}), 400
+    fk, lk = first.lower(), last.lower()
+    translit = {}
+    for kind, key in (('male', fk), ('female', fk), ('surname', lk)):
+        if key and f'{kind}:{key}' in TRANSLIT._cache:
+            translit[f'{kind}:{key}'] = TRANSLIT._cache[f'{kind}:{key}']
+    meaning = {}
+    if MEANING_EN is not None:
+        pre = f"{data['given']}:"
+        meaning = {k: v for k, v in MEANING_EN._cache.items() if k.startswith(pre)}
+    return jsonify({'result': data, 'translit_cache': translit, 'meaning_en_cache': meaning})
 
 
 @app.route('/api/tts')
@@ -2678,6 +2731,13 @@ def _admin_authed():
     want = os.environ.get('ADMIN_TOKEN')
     tok = request.args.get('token', '') or request.cookies.get('admin_auth', '')
     return bool(want and tok == want)
+
+
+def _video_authed():
+    """영상 파이프라인용 — VIDEO_TOKEN(나레이션·결과 내보내기만 가능한 낮은 권한) 또는 관리자 토큰."""
+    want = os.environ.get('VIDEO_TOKEN')
+    tok = request.args.get('token', '') or request.headers.get('X-Video-Token', '')
+    return bool(want and tok == want) or _admin_authed()
 
 
 @app.route('/admin/reviews')
