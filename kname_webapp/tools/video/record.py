@@ -75,30 +75,48 @@ def fetch_tts(given):
 
 
 def fetch_narration(lines):
-    """{id: text} → {id: (path, 초)}. 토큰이 없거나 실패하면 글자 수로 어림한 무음 mp3."""
-    ndir = os.path.join(AUDIO_DIR, 'narr'); os.makedirs(ndir, exist_ok=True)
+    """{id: text | {text,lang,prompt}} → {id: (path, 초)}. 토큰이 없거나 실패하면 글자 수로 어림한 무음 mp3."""
+    # 서버의 목소리 설정(tag)별로 캐시를 나눈다 — 목소리를 바꾸면 새로 받는다
+    tag, ver = 'local', 1
+    if TOKEN:
+        try:
+            probe = http_json(f'{PROD}/api/narrate', {'lines': []}, timeout=60)
+            tag, ver = probe.get('tag', 'local'), probe.get('v', 1)
+        except Exception as e:
+            print(f'  나레이션 서버 확인 실패: {type(e).__name__}: {e}')
+    ndir = os.path.join(AUDIO_DIR, 'narr', tag); os.makedirs(ndir, exist_ok=True)
     out, missing = {}, {}
-    for k, text in lines.items():
-        h = hashlib.sha1(text.encode('utf-8')).hexdigest()[:16]
+    for k, spec in lines.items():
+        spec = spec if isinstance(spec, dict) else {'text': spec}
+        text = spec['text']
+        extra = '' if not (spec.get('lang') or spec.get('prompt')) else f"|{spec.get('lang','')}|{spec.get('prompt','')}"
+        h = hashlib.sha1((text + extra).encode('utf-8')).hexdigest()[:16]
         p = os.path.join(ndir, f'{h}.mp3')
         if os.path.exists(p):
             out[k] = (p, dur(p))
         else:
-            missing[k] = (text, p)
+            missing[k] = (spec, p)
     if missing and TOKEN:
         try:
-            res = http_json(f'{PROD}/api/narrate', {'lines': [v[0] for v in missing.values()]}, timeout=180)
-            for (k, (text, p)), item in zip(missing.items(), res.get('items', [])):
+            v = ver
+            send = {k: v_ for k, v_ in missing.items() if v >= 2 or not v_[0].get('lang')}
+            if len(send) < len(missing):
+                print('  (운영 서버가 아직 구버전 — 한국어 문장은 무음으로 대체. 배포 후 다시 만들면 붙습니다)')
+            res = http_json(f'{PROD}/api/narrate', {'lines': [v_[0] if v >= 2 else v_[0]['text'] for v_ in send.values()]}, timeout=240)
+            for (k, (spec, p)), item in zip(send.items(), res.get('items', [])):
                 if item.get('url'):
                     download(item['url'], p); out[k] = (p, dur(p))
                 else:
                     print(f'  나레이션 실패 [{k}]: {item.get("error")}')
         except Exception as e:
             print(f'  나레이션 서버 오류: {type(e).__name__}: {e}')
-    for k, (text, p) in missing.items():
+    for k, (spec, p) in missing.items():
         if k in out:
             continue
+        text = spec['text']
         est = 0.35 + 0.062 * len(text)                    # 대략 160 wpm
+        if spec.get('lang', '').startswith('ko'):
+            est = 0.5 + 0.7 * len(re.findall(r'[가-힣]', text))
         sp = os.path.join(ndir, f'silent_{h_of(text)}.mp3')
         if not os.path.exists(sp):
             subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
@@ -106,6 +124,25 @@ def fetch_narration(lines):
         out[k] = (sp, est)
         print(f'  (무음 대체 {est:.1f}s) [{k}] {text[:60]}')
     return out
+
+
+def voiced_segments(path, min_gap=0.12):
+    """소리 구간 목록 [(시작, 끝)] — 천천히 읽은 음절들을 나눈다."""
+    out = subprocess.run(['ffmpeg', '-v', 'info', '-i', path, '-af', f'silencedetect=n=-36dB:d={min_gap}', '-f', 'null', '-'],
+                         capture_output=True, text=True).stderr
+    total = dur(path)
+    starts = [float(x) for x in re.findall(r'silence_start: ([0-9.]+)', out)]
+    ends = [float(x) for x in re.findall(r'silence_end: ([0-9.]+)', out)]
+    # 무음 구간들 사이가 소리 구간
+    sil = sorted(zip(starts, ends + [total] * (len(starts) - len(ends))))
+    segs, cur = [], 0.0
+    for a, b in sil:
+        if a - cur > 0.08:
+            segs.append((cur, a))
+        cur = b
+    if total - cur > 0.08:
+        segs.append((cur, total))
+    return segs
 
 
 def h_of(s):
@@ -131,38 +168,41 @@ def romanize_text(text, d):
 
 
 def sentences(text):
-    return [s.strip() for s in re.split(r'(?<=[.!?])\s+', text or '') if s.strip()]
+    # 문장 끝의 따옴표("…glass.")도 문장 경계로 본다
+    return [s.strip() for s in re.findall(r'[^.!?]*[.!?]+["\u201d\u2019]?', text or '') if s.strip()]
 
 
 def build_lines(d, first, last, args):
-    """장면별 나레이션 문장(영어). 훅만 사람이 바꿀 수 있다."""
+    """장면별 나레이션(영어). 한국어 이름·음절은 한국어 목소리가 읽는다(lang=ko-KR)."""
     full_en = f'{first} {last}'.strip()
-    rom_full = d['full_rom']
     given_rom = d['given_rom']
+    syls = d['syllables']                                  # 카드 앞면 음절(성 포함)
+    n_s = len(d['surname'] or '') if d.get('surname') else 0
     lines = {}
     lines['hook'] = args.hook_caption or f"What's {first}'s Korean name?"
-    lines['input'] = f"Let's type it in."
-    lines['result'] = f"{full_en} becomes {rom_full}."
-    if d.get('surname'):
-        lines['names'] = f"{d['surname_rom']} is the family name, and {given_rom} is the given name."
+    lines['input'] = "Let's type it in."
+    lines['result'] = f"{full_en} becomes"
+    lines['written'] = "In Korean, it's written like this."
+    lines['slow'] = {'text': ', '.join(s['ch'] for s in syls) + '.', 'lang': 'ko-KR',
+                     'prompt': 'Read these Korean syllables one at a time, slowly and clearly, with a clear pause after each one.'}
+    if n_s:
+        lines['names'] = f"{d['surname_rom']} is the last name, {given_rom} is the first name."
     else:
-        lines['names'] = f"Korean names put the family name first — {given_rom} is the given name."
+        lines['names'] = f"Koreans put the family name first — {given_rom} is the first name."
     if d.get('meaning_short'):
         lines['meaning'] = f"It means: {d['meaning_short']}."
-    glosses = [f"{h['rom'].capitalize()} means {h['gloss']}" for h in d['hanja_lines']]
-    core = [romanize_text(s, d) for s in sentences(d.get('meaning_en') or '')[1:3]]
-    lines['back'] = '. '.join(glosses) + '. ' + ' '.join(core)
+    lines['next'] = "Next, what the name means."
+    for i, h in enumerate(d['hanja_lines']):
+        lead = 'And ' if i else ''
+        lines[f'back{i}'] = f"{lead}{h['rom'].capitalize()} means {h['gloss']}."
+    if d.get('meaning_short'):
+        lines['backall'] = f"So together, it means {d['meaning_short'][0].lower() + d['meaning_short'][1:]}."
+    lines['why'] = "Now, let me show you why this name."
     r = d['reason']
-    carried = [m for m in r['matches'] if m['level'] != 'replaced']
     tr_rom = r['translit']['romanized']
-    if carried:
-        syl = ' and '.join(m['src_rom'] for m in carried)
-        noun = 'syllable' if len(carried) == 1 else 'syllables'
-        lines['reason1'] = (f"So why {given_rom}? In Korean letters, {first} sounds like {tr_rom}. "
-                            f"We kept its most distinctive {noun}, {syl}, and built a name that reads naturally in Korean.")
-    else:
-        lines['reason1'] = (f"So why {given_rom}? In Korean letters, {first} sounds like {tr_rom}, "
-                            f"but none of those sounds carry over cleanly, so we chose syllables that read naturally in Korean.")
+    lines['reason1a'] = f"Read the Korean way, {first} sounds like {tr_rom}."
+    chosen = ' and '.join(s['rom'] for s in r['korean']['syllables'])
+    lines['reason1b'] = f"And for a natural Korean name, we chose these syllables: {chosen}."
     parts = [f"the {m['src_rom']} sound {m['phrase']} {m['tgt_rom']}" for m in r['matches']]
     joined = parts[0] if len(parts) == 1 else ', '.join(parts[:-1]) + ', and ' + parts[-1]
     lines['reason2'] = joined[0].upper() + joined[1:] + '.'
@@ -242,7 +282,7 @@ async def record(name, sex_key, P, workdir):
         await cdp.send('Page.startScreencast', {'format': 'jpeg', 'quality': 92, 'maxWidth': 1080, 'maxHeight': 1920, 'everyNthFrame': 1})
         await asyncio.sleep(0.5)
         await pg.click('#overlay')
-        est = 1.2 + P['hook'] + 0.5 + len(name) * P['type'] / 1000 + P['filled'] + 2 + P['hold'] + P['back'] + 1.6 + P['reason'] + P['reason2'] + 1.4 + 0.4 + 3
+        est = 1.2 + P['hook'] + 0.5 + len(name) * P['type'] / 1000 + P['filled'] + 2 + P['hold'] + P['back'] + 1.6 + P['reason'] + P['reason2'] + 1.4 + 0.4 + 3 + P['tail']
         try:
             await pg.wait_for_function("document.getElementById('card').style.display==='flex' && "
                                        "document.getElementById('card').textContent.indexOf('What')===0",
@@ -291,14 +331,20 @@ async def render_overlay(script, T, cues, layout, n_frames, workdir, hook_media)
         await pg.evaluate('([s, t, c, l]) => window.setup(s, t, c, l)', [script, T, cues, layout])
         await asyncio.sleep(0.3)
         hook_end = T['type'] - 0.2
+        prev_sig, prev_path, shots = None, None, 0
         for i in range(n_frames):
             t = i / FPS
             if hook_media and script['hook']['media']['kind'] == 'video' and t < hook_end + 0.5:
                 await pg.evaluate('t => window.seekHook(t)', t)
-            await pg.evaluate('t => window.render(t)', t)
-            await pg.screenshot(path=os.path.join(out, f'{i:05d}.png'), omit_background=True)
-            if i % 150 == 0:
-                print(f'  오버레이 프레임 {i}/{n_frames}')
+            sig = await pg.evaluate('t => window.render(t)', t)
+            path = os.path.join(out, f'{i:05d}.png')
+            if sig == prev_sig and prev_path:
+                os.link(prev_path, path)                 # 화면이 그대로면 찍지 않는다(뒷면·이유 화면은 오버레이가 비어 있다)
+            else:
+                await pg.screenshot(path=path, omit_background=True); shots += 1
+            prev_sig, prev_path = sig, path
+            if i % 300 == 0:
+                print(f'  오버레이 프레임 {i}/{n_frames} (찍은 것 {shots})')
         await b.close()
     return out
 
@@ -336,16 +382,32 @@ def main():
     print('소리 준비…' + ('' if TOKEN else ' (KNAME_VIDEO_TOKEN 없음 → 나레이션은 무음으로 대체)'))
     tts = fetch_tts(script['full'])
     saydur = dur(tts) if tts else 1.2
-    v0, v1 = voiced_span(tts) if tts else (0.0, saydur)
     N = fetch_narration(lines)
     nd = {k: v[1] for k, v in N.items()}
+    slow_segs = voiced_segments(N['slow'][0])
+    n_syl = len(d['syllables'])
+    if len(slow_segs) != n_syl:                         # 못 나누면 균등 분할
+        v0, v1 = (slow_segs[0][0], slow_segs[-1][1]) if slow_segs else (0.0, nd['slow'])
+        slow_segs = [(v0 + (v1 - v0) * i / n_syl, v0 + (v1 - v0) * (i + 1) / n_syl) for i in range(n_syl)]
+    backs = [k for k in lines if k.startswith('back') and k != 'backall']
 
-    # 장면 길이 = 나레이션 길이
+    # 장면 길이 = 나레이션 길이 (앞면: becomes → 발음 → written → 천천히 → 성/이름 → 뜻 → "Next…" 도중에 뒤집힘)
     hook = max(args.hook_secs, nd['hook'] + 0.6)
-    sayat = 0.4 + nd['result'] + 0.25                       # 앞면: "X becomes Y." → 발음
-    hold = sayat + saydur + 0.35 + nd['names'] + 0.25 + nd.get('meaning', 0) + 0.6
-    back = 0.8 + nd['back'] + 0.7
-    reason = 0.6 + nd['reason1'] + 0.3
+    sayat = 0.4 + nd['result'] + 0.15
+    t_written = sayat + saydur + 0.35
+    t_slow = t_written + nd['written'] + 0.25
+    t_names = t_slow + nd['slow'] + 0.35
+    t_meaning = t_names + nd['names'] + 0.3
+    t_next = t_meaning + nd.get('meaning', 0) + 0.35
+    hold = t_next + nd['next'] * 0.55
+    t_back0 = 0.9
+    back_cues, tb = [], t_back0
+    for k in backs:
+        back_cues.append((k, tb)); tb += nd[k] + 0.25
+    t_backall = tb + 0.1
+    t_why = t_backall + nd.get('backall', 0) + 0.45
+    back = t_why + nd['why'] * 0.5
+    reason = 0.75 + nd['reason1a'] + 0.25 + nd['reason1b'] + 0.4
     reason2 = 0.6 + nd['reason2'] + 0.5
     P = {'hook': hook, 'sayat': sayat, 'saydur': saydur, 'hold': hold, 'back': back, 'reason': reason, 'reason2': reason2,
          'type': args.type, 'filled': args.filled, 'tail': nd['outro'] + args.tail}
@@ -353,28 +415,37 @@ def main():
     workdir = os.path.join(os.path.dirname(os.path.abspath(args.out)) or '.', '_rec'); os.makedirs(workdir, exist_ok=True)
     frames, events = asyncio.run(record(name, sex_key, P, workdir))
     ev = {e['ev']: e['t'] / 1000 for e in events}
-    layout = next((e['data'] for e in events if e['ev'] == 'layout'), None)
+    layout = {k: next((e['data'] for e in events if e['ev'] == k), None) for k in ('layout', 'layout_back', 'layout_reason')}
     t_zero = ev['start'] + 0.9
     T = {k: v - t_zero for k, v in ev.items()}
     T['saydur'] = saydur
     total = max(frames[-1][0], ev.get('outro', frames[-1][0]) + P['tail']) - t_zero
-    print(f'프레임 {len(frames)}개, 박자(초): ' + ', '.join(f'{k}={v:.2f}' for k, v in T.items() if k != 'layout') + f'  길이 {total:.1f}s')
+    print(f'프레임 {len(frames)}개, 박자(초): ' + ', '.join(f'{k}={v:.2f}' for k, v in T.items() if not k.startswith('layout')) + f'  길이 {total:.1f}s')
 
-    # 소리 큐(영상 기준 초)
-    cues = {}
-    cues['hook'] = {'t': 0.15, 'dur': nd['hook'], 'file': N['hook'][0]}
-    cues['input'] = {'t': T['type'] - 0.15, 'dur': nd['input'], 'file': N['input'][0]}
-    cues['result'] = {'t': T['result'] + 0.4, 'dur': nd['result'], 'file': N['result'][0]}
+    # 소리 큐(영상 기준 초) — 앞면은 result 기준, 뒷면은 back 기준, 이유는 reason1/2 기준
+    def cue(k, t, **kw):
+        c = {'t': t, 'dur': nd[k], 'file': N[k][0]}; c.update(kw); return c
+    R = T['result']
+    cues = {'hook': cue('hook', 0.15), 'input': cue('input', T['type'] + 0.05), 'result': cue('result', R + 0.4)}
     if tts:
-        cues['say'] = {'t': T['say'], 'dur': saydur, 'file': tts, 'v0': v0, 'v1': v1}
-    t_names = T['say'] + saydur + 0.35
-    cues['names'] = {'t': t_names, 'dur': nd['names'], 'file': N['names'][0]}
+        cues['say'] = {'t': T['say'], 'dur': saydur, 'file': tts}
+    cues['written'] = cue('written', R + t_written)
+    cues['slow'] = cue('slow', R + t_slow, segs=slow_segs)
+    cues['names'] = cue('names', R + t_names)
     if 'meaning' in N:
-        cues['meaning'] = {'t': t_names + nd['names'] + 0.25, 'dur': nd['meaning'], 'file': N['meaning'][0]}
-    cues['back'] = {'t': T['back'] + 0.8, 'dur': nd['back'], 'file': N['back'][0]}
-    cues['reason1'] = {'t': T['reason1'] + 0.6, 'dur': nd['reason1'], 'file': N['reason1'][0]}
-    cues['reason2'] = {'t': T['reason2'] + 0.6, 'dur': nd['reason2'], 'file': N['reason2'][0]}
-    cues['outro'] = {'t': T['outro'] + 0.25, 'dur': nd['outro'], 'file': N['outro'][0]}
+        cues['meaning'] = cue('meaning', R + t_meaning)
+    cues['next'] = cue('next', R + t_next)
+    B = T['back']
+    for k, t in back_cues:
+        cues[k] = cue(k, B + t)
+    if 'backall' in N:
+        cues['backall'] = cue('backall', B + t_backall)
+    cues['why'] = cue('why', B + t_why)
+    cues['reason1a'] = cue('reason1a', T['reason1'] + 0.75)
+    cues['reason1b'] = cue('reason1b', T['reason1'] + 0.75 + nd['reason1a'] + 0.25)
+    cues['reason2'] = cue('reason2', T['reason2'] + 0.6)
+    cues['outro'] = cue('outro', T['outro'] + 0.25)
+    script['backKeys'] = backs
 
     seq, n = lay_out_frames(frames, t_zero, total, workdir)
     ov = asyncio.run(render_overlay(script, T, cues, layout, n, workdir, args.hook_media))

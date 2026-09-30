@@ -2243,12 +2243,19 @@ def api_narrate():
     if NARRATOR is None or not NARRATOR.available:
         return jsonify({'error': 'narration not configured'}), 503
     body = request.get_json(silent=True) or {}
-    lines = [str(x) for x in (body.get('lines') or [])][:40]
     items = []
-    for line in lines:
-        url = NARRATOR.url_for(line)
-        items.append({'text': line, 'url': url, 'error': None if url else NARRATOR.last_error})
-    return jsonify({'items': items, 'mode': NARRATOR.last_mode, 'tag': NARRATOR.tag})
+    for x in (body.get('lines') or [])[:40]:
+        # 문자열이면 영어 나레이션. 객체면 {text, lang, voice, prompt} — 예: 한국어 음절을 천천히 읽기
+        if isinstance(x, dict):
+            text = str(x.get('text') or ''); lang = str(x.get('lang') or 'en-US')[:10]
+            voice = (str(x.get('voice')) if x.get('voice') else None); prompt = (str(x.get('prompt'))[:400] if x.get('prompt') else None)
+            if lang.startswith('ko') and not voice:
+                voice = TTS_FULL.voice                     # 이름 발음과 같은 한국어 목소리
+        else:
+            text, lang, voice, prompt = str(x), 'en-US', None, None
+        url = NARRATOR.url_for(text, lang, voice, prompt)
+        items.append({'text': text, 'url': url, 'error': None if url else NARRATOR.last_error})
+    return jsonify({'items': items, 'mode': NARRATOR.last_mode, 'tag': NARRATOR.tag, 'v': 2})
 
 
 @app.route('/api/export')

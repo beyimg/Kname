@@ -40,12 +40,13 @@
         color:var(--ink-soft);background:rgba(249,244,231,.92);border:1.5px solid rgba(26,26,26,.18);border-radius:999px;padding:16px 34px;white-space:nowrap;}
   .w{display:inline-block;will-change:transform,opacity;}
   /* 카드 위 그림(밑줄·성/이름·형광펜) */
-  #draw{position:absolute;inset:0;}
-  #draw svg{position:absolute;inset:0;width:1080px;height:1920px;}
+  .draw{position:absolute;inset:0;}
+  .draw svg{position:absolute;inset:0;width:1080px;height:1920px;}
   .ul{stroke:var(--marker);stroke-width:8;stroke-linecap:round;fill:none;}
   .brace{stroke:var(--marker);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;fill:none;}
   .lab{font-family:var(--hand);font-size:40px;fill:var(--marker);font-style:italic;}
-  .hl{fill:var(--hl);}
+  /* 형광펜: 줄 위로 굵고 반투명하게 긋는다 — 끝이 둥글고 살짝 흔들려 손으로 그은 느낌 */
+  .hl{stroke:var(--hl);stroke-linecap:round;fill:none;}
 </style>
 </head>
 <body>
@@ -56,7 +57,9 @@
 </div>
 <div class="layer" id="hookMedia"><div class="media" id="hmImg"></div><div class="shade"></div><div class="cap" id="hmCap"></div><div class="credit" id="hmCredit"></div></div>
 <div class="layer" id="ep"><div class="pill" id="epTx"></div></div>
-<div class="layer" id="draw"><svg id="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"></svg></div>
+<div class="layer draw" id="drawF"><svg id="svgF" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"></svg></div>
+<div class="layer draw" id="drawB"><svg id="svgB" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"></svg></div>
+<div class="layer draw" id="drawR"><svg id="svgR" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"></svg></div>
 <div class="layer full" id="outro">
   <div class="big" id="outBig" style="font-style:normal;font-size:150px;"></div>
   <div class="sub" id="outSub"></div>
@@ -65,10 +68,12 @@
 
 <script>
 (function(){
-  var S = null, T = null, C = null, L = null, hookVideo = null;   // script, 박자, 나레이션 큐, 카드 글자 위치
+  var S = null, T = null, C = null, L = null, hookVideo = null;   // script, 박자, 나레이션 큐, 화면별 글자 위치
+  var Z = 3;
   var $ = function(id){ return document.getElementById(id); };
   var clamp = function(x){ return x < 0 ? 0 : x > 1 ? 1 : x; };
   var easeOut = function(p){ p = clamp(p); return 1 - Math.pow(1 - p, 3); };
+  var q = function(x){ return Math.round(x * 100); };
   function vis(t, t0, t1, dIn, dOut){
     if(t < t0 || t >= t1) return 0;
     var a = easeOut((t - t0) / (dIn || .35));
@@ -92,26 +97,47 @@
   }
   var NS = 'http://www.w3.org/2000/svg';
   function el(tag, attrs){ var e = document.createElementNS(NS, tag); for(var k in attrs) e.setAttribute(k, attrs[k]); return e; }
-  // 손으로 그은 듯한 선: 두 점 사이를 살짝 흔들리는 경로로
+  function scaled(r){ return r ? r.map(function(v){ return v * Z; }) : null; }
+  // 손으로 그은 듯한 선
   function handLine(x1, y1, x2, y2, wob){
-    var n = 6, d = 'M' + x1 + ' ' + y1;
+    var n = 7, d = 'M' + x1 + ' ' + y1;
     for(var i = 1; i <= n; i++){
-      var p = i / n, x = x1 + (x2 - x1) * p, y = y1 + (y2 - y1) * p + Math.sin(p * 9.3 + x1) * (wob || 2.2);
+      var p = i / n, x = x1 + (x2 - x1) * p, y = y1 + (y2 - y1) * p + Math.sin(p * 9.3 + x1 * .01) * (wob || 2.2);
       d += ' L' + x.toFixed(1) + ' ' + y.toFixed(1);
     }
     return d;
   }
-  // 글자 위에 얹는 중괄호(∩ 모양): 양끝이 살짝 내려오고 가운데 꼭지가 위로
-  function brace(x1, x2, y){
+  function brace(x1, x2, y){                       // 글자 위 ∩ 브레이스
     var m = (x1 + x2) / 2, dn = 16;
     return 'M' + x1 + ' ' + (y + dn) + ' Q' + x1 + ' ' + y + ' ' + (x1 + 22) + ' ' + y +
            ' L' + (m - 14) + ' ' + y + ' L' + m + ' ' + (y - 14) + ' L' + (m + 14) + ' ' + y +
            ' L' + (x2 - 22) + ' ' + y + ' Q' + x2 + ' ' + y + ' ' + x2 + ' ' + (y + dn);
   }
-  var draw = { ul: [], braces: [], labels: [], hl: null };
+  // 그리기 요소를 만든다: 밑줄 / 형광펜(줄 상자 위로 굵게 긋는 선)
+  function mkStroke(svg, x1, y1, x2, y2, cls, width, wob){
+    var path = el('path', { d: handLine(x1, y1, x2, y2, wob), 'class': cls });
+    if(width) path.setAttribute('stroke-width', width);
+    var len = Math.hypot(x2 - x1, y2 - y1) * 1.06 + 6;
+    path.setAttribute('stroke-dasharray', len); path.setAttribute('stroke-dashoffset', len); path.style.opacity = 0;
+    svg.appendChild(path); return { el: path, len: len };
+  }
+  function underline(svg, r, pad){ r = scaled(r); var y = r[1] + r[3] + (pad === undefined ? 3 : pad); return mkStroke(svg, r[0] + 4, y, r[0] + r[2] - 4, y, 'ul', null, 2.5); }
+  function highlight(svg, r){ r = scaled(r); var y = r[1] + r[3] * .55; return mkStroke(svg, r[0] - 8, y, r[0] + r[2] + 8, y, 'hl', Math.max(24, r[3] * .92), 1.6); }
+  // 진행도 p(0..1)에 맞춰 그린다. 시작 전이면 숨김
+  function drawTo(item, p, sigArr){ if(!item) return; item.el.style.opacity = p > 0 ? 1 : 0; item.el.setAttribute('stroke-dashoffset', item.len * (1 - clamp(p))); if(sigArr) sigArr.push(p > 0 ? q(clamp(p)) : -1); }
+  // 여러 줄을 차례로 긋는다: 전체 [t0, t0+dur] 을 줄 길이 비례로 나눈다
+  function sweep(items, t, t0, dur, sigArr){
+    var total = items.reduce(function(a, it){ return a + it.len; }, 0) || 1, acc = 0;
+    items.forEach(function(it){
+      var a = t0 + dur * acc / total, d = Math.max(.15, dur * it.len / total); acc += it.len;
+      drawTo(it, (t - a) / d, sigArr);
+    });
+  }
+
+  var F = { ul: [], braces: [], labels: [], hl: [] }, B = { rows: [] }, Rn = { hangul: null, chips: [], intro: [] };
 
   window.setup = function(script, timeline, cues, layout){
-    S = script; T = timeline; C = cues || {}; L = layout || null;
+    S = script; T = timeline; C = cues || {}; L = layout || {};
     $('hookEye').innerHTML = wrapWords(S.hook.eyebrow || '');
     $('hookBig').innerHTML = '<span class="w">' + S.hook.big + '</span>';
     $('hookSub').innerHTML = wrapWords(S.hook.sub || '');
@@ -132,21 +158,16 @@
     $('outSub').innerHTML = wrapWords(S.outro.sub || '');
     $('outHand').innerHTML = '<span class="w">' + (S.outro.hand || '') + '</span>';
 
-    // 카드 위 그림 준비 — 글자 위치는 iframe CSS px 이므로 3배(Z)
-    var svg = $('svg'); while(svg.firstChild) svg.removeChild(svg.firstChild);
-    if(L && L.kr && L.kr.length){
-      var Z = L.zoom || 3, boxes = L.kr.map(function(r){ return r.map(function(v){ return v * Z; }); });
-      draw.ul = boxes.map(function(b){
-        var y = b[1] + b[3] + 3, path = el('path', { d: handLine(b[0] + 4, y, b[0] + b[2] - 4, y, 2.5), 'class': 'ul' });
-        var len = (b[2] + 8) * 1.05; path.setAttribute('stroke-dasharray', len); path.setAttribute('stroke-dashoffset', len); path.style.opacity = 0;
-        svg.appendChild(path); return { el: path, len: len };
-      });
-      // 성/이름 묶음 — 성이 있으면 앞 n 음절이 성
-      var nS = S.nSurname || 0, groups = [];
-      if(nS > 0) groups.push({ from: 0, to: nS - 1, label: 'family name' });
-      groups.push({ from: nS, to: boxes.length - 1, label: nS > 0 ? 'given name' : 'given name' });
-      var yB = Math.min.apply(null, boxes.map(function(b){ return b[1]; })) - 22;   // 글자 위
-      draw.braces = []; draw.labels = [];
+    // ── 앞면: 음절 밑줄, 성/이름 브레이스, 한 줄 뜻 형광펜
+    var svg = $('svgF'); while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var lf = L.layout;
+    if(lf && lf.kr && lf.kr.length){
+      (lf.meaningLines && lf.meaningLines.length ? lf.meaningLines : (lf.meaning ? [lf.meaning] : [])).forEach(function(r){ F.hl.push(highlight(svg, r)); });
+      F.ul = lf.kr.map(function(r){ return underline(svg, r, 3); });
+      var boxes = lf.kr.map(scaled), nS = S.nSurname || 0, groups = [];
+      if(nS > 0) groups.push({ from: 0, to: nS - 1, label: 'last name' });
+      groups.push({ from: nS, to: boxes.length - 1, label: 'first name' });
+      var yB = Math.min.apply(null, boxes.map(function(b){ return b[1]; })) - 22;
       groups.forEach(function(g, i){
         var x1 = boxes[g.from][0] - 6, x2 = boxes[g.to][0] + boxes[g.to][2] + 6;
         var p = el('path', { d: brace(x1, x2, yB), 'class': 'brace' });
@@ -155,77 +176,102 @@
         var tx = el('text', { x: (x1 + x2) / 2, y: yB - 26, 'text-anchor': 'middle', 'class': 'lab',
                               transform: 'rotate(' + (i ? 1.5 : -1.5) + ' ' + (x1 + x2) / 2 + ' ' + (yB - 26) + ')' });
         tx.textContent = g.label; tx.style.opacity = 0; svg.appendChild(tx);
-        draw.braces.push({ el: p, len: len }); draw.labels.push(tx);
+        F.braces.push({ el: p, len: len }); F.labels.push(tx);
       });
-      if(L.meaning){
-        var m = L.meaning.map(function(v){ return v * Z; });
-        var hl = el('rect', { x: m[0] - 10, y: m[1] + 4, width: 0, height: m[3] - 8, rx: 10, 'class': 'hl' });
-        svg.insertBefore(hl, svg.firstChild); draw.hl = { el: hl, x: m[0] - 10, w: m[2] + 20 };
-      }
+    }
+    // ── 뒷면: 글자별 뜻 행 형광펜
+    svg = $('svgB'); while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var lb = L.layout_back;
+    if(lb && lb.rows) B.rows = lb.rows.map(function(r){ return highlight(svg, r); });
+    // ── 이유 화면: 테일러 밑줄, 고른 음절 밑줄, 'We carried…' 형광펜
+    svg = $('svgR'); while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var lr = L.layout_reason;
+    if(lr){
+      if(lr.introLines) Rn.intro = lr.introLines.map(function(r){ return highlight(svg, r); });
+      if(lr.hangul) Rn.hangul = underline(svg, lr.hangul, 2);
+      if(lr.chips) Rn.chips = lr.chips.map(function(r){ return underline(svg, r, 2); });
     }
     var ready = [document.fonts.ready];
     if(hookVideo) ready.push(new Promise(function(r){ hookVideo.addEventListener('loadeddata', r, { once: true }); setTimeout(r, 4000); }));
     return Promise.all(ready).then(function(){ return true; });
   };
 
-  // 훅 영상은 프레임마다 그 시각으로 맞춘다(재생이 아니라 탐색)
   window.seekHook = function(t){
     if(!hookVideo) return Promise.resolve();
-    var tt = Math.max(0, Math.min(hookVideo.duration || 0, t - 0));
+    var tt = Math.max(0, Math.min(hookVideo.duration || 0, t));
     return new Promise(function(r){ var done = false; var f = function(){ if(!done){ done = true; r(); } };
       hookVideo.addEventListener('seeked', f, { once: true }); hookVideo.currentTime = tt; setTimeout(f, 800); });
   };
 
   window.render = function(t){
-    var v;
-    // ── 훅: 시작 ~ 입력 카드 등장
+    var v, sig = [];
+    // ── 훅
     var hookEnd = T.type - .2;
     if(S.hook.media){
       v = vis(t, T.start - 1, hookEnd, .01, .4);
       setLayer($('hookMedia'), v); setLayer($('hook'), 0);
       if(v > 0){
-        var p = clamp((t + 1) / (hookEnd + 1));          // 켄 번스: 천천히 확대
+        var p = clamp((t + 1) / (hookEnd + 1));
         $('hmImg').style.transform = 'scale(' + (1 + .09 * p) + ')';
         words($('hmCap'), t, (C.hook ? C.hook.t : .2) - .05, .07, 26);
+        sig.push('hm', q(v), q(p), q(t));
       }
     } else {
       v = vis(t, T.start - 1, hookEnd, .01, .35);
       setLayer($('hook'), v); setLayer($('hookMedia'), 0);
-      if(v > 0){ words($('hookEye'), t, .05, .05, 14); words($('hookBig'), t, .25, 0, 40); words($('hookSub'), t, .7, .06, 18); }
+      if(v > 0){ words($('hookEye'), t, .05, .05, 14); words($('hookBig'), t, .25, 0, 40); words($('hookSub'), t, .7, .06, 18); sig.push('hk', q(v), q(Math.min(t, 2))); }
     }
-    // ── 회차 표시: 입력 ~ 결과 직전
+    // ── 회차 표시
     v = vis(t, T.type - .2, T.submit + .35, .3, .25);
-    setLayer($('ep'), v, -16);
-    // ── 카드 위 그림: 결과 카드 앞면 동안만
+    setLayer($('ep'), v, -16); if(v > 0) sig.push('ep', q(v));
+    // ── 앞면 그림
     var frontEnd = (T.back || (T.result + 60)) - .05;
     v = vis(t, T.result + .8, frontEnd, .01, .2);
-    setLayer($('draw'), v);
+    setLayer($('drawF'), v);
     if(v > 0){
-      // 음절 밑줄: 발음의 유성 구간을 음절 수로 나눠 차례로
-      var say = C.say || { t: T.say, dur: 1.2, v0: 0, v1: 1.2 };
-      var s0 = say.t + (say.v0 || 0), s1 = say.t + (say.v1 || say.dur), n = draw.ul.length, slot = n ? (s1 - s0) / n : 1;
-      draw.ul.forEach(function(u, i){
-        var a = s0 + i * slot, p = easeOut((t - a) / Math.max(.12, slot * .9));
-        u.el.style.opacity = t >= a ? 1 : 0; u.el.setAttribute('stroke-dashoffset', u.len * (1 - p));
+      sig.push('F', q(v));
+      var sl = C.slow;                                             // 천천히 읽기: 음절마다 소리 구간에 밑줄
+      F.ul.forEach(function(u, i){
+        var seg = sl && sl.segs && sl.segs[i], a = sl ? sl.t + (seg ? seg[0] : i * .8) : T.say + i * .5, d = seg ? Math.max(.2, (seg[1] - seg[0]) * .9) : .4;
+        drawTo(u, (t - a) / d, sig);
       });
-      // 성/이름 표시: 이름 설명 나레이션과 함께 그려진다
-      var nb = C.names ? C.names.t : (s1 + .3);
-      draw.braces.forEach(function(b, i){
-        var a = nb + i * .55, p = easeOut((t - a) / .5);
-        b.el.style.opacity = t >= a ? 1 : 0; b.el.setAttribute('stroke-dashoffset', b.len * (1 - p));
-        draw.labels[i].style.opacity = easeOut((t - a - .35) / .3);
+      var nm = C.names ? C.names.t : (T.say + 2), nd = C.names ? C.names.dur : 3;
+      F.braces.forEach(function(b, i){                             // "Seo is the last name(0), Tae-i is the first name(1)"
+        var a = nm + (i ? nd * .5 : .05), p = (t - a) / .5, lp = easeOut((t - a - .3) / .3);
+        drawTo(b, p, sig); F.labels[i].style.opacity = lp; sig.push(q(lp));
       });
-      // 한 줄 뜻 형광펜: 뜻 나레이션 길이에 맞춰 쓸어 간다
-      if(draw.hl && C.meaning){
-        var mp = clamp((t - C.meaning.t) / Math.max(.6, C.meaning.dur * .85));
-        draw.hl.el.setAttribute('width', Math.max(0, draw.hl.w * mp));
+      if(C.meaning) sweep(F.hl, t, C.meaning.t + .15, Math.max(.8, C.meaning.dur * .9), sig);
+    }
+    // ── 뒷면 그림: "Tae means a star." 때 태 행, "And I means…" 때 이 행
+    var backEnd = (T.front || (T.back + 60)) - .05;
+    v = vis(t, T.back + .9, backEnd, .01, .2);
+    setLayer($('drawB'), v);
+    if(v > 0){
+      sig.push('B', q(v));
+      (S.backKeys || []).forEach(function(k, i){
+        var c = C[k]; if(!c || !B.rows[i]) return;
+        drawTo(B.rows[i], (t - c.t - .1) / Math.max(.5, c.dur * .7), sig);
+      });
+    }
+    // ── 이유 화면 그림
+    var rEnd = (T.reason2 || (T.reason1 + 60)) - .05;
+    v = vis(t, T.reason1 + .75, rEnd, .01, .2);
+    setLayer($('drawR'), v);
+    if(v > 0){
+      sig.push('R', q(v));
+      var a1 = C.reason1a, b1 = C.reason1b;
+      if(a1) drawTo(Rn.hangul, (t - (a1.t + a1.dur * .5)) / .45, sig);   // "…sounds like Te-il-reo" 대목에 테일러 밑줄
+      if(b1){
+        var tc = b1.t + b1.dur * .45;                                      // "we chose these syllables: Tae and I"
+        Rn.chips.forEach(function(u, i){ drawTo(u, (t - tc - i * .3) / .35, sig); });
+        sweep(Rn.intro, t, b1.t + .1, Math.max(.8, b1.dur * .8), sig);
       }
     }
     // ── 아웃트로
     v = vis(t, T.outro, T.outro + 60, .35, 1);
     setLayer($('outro'), v);
-    if(v > 0){ words($('outBig'), t, T.outro + .1, 0, 34); words($('outSub'), t, T.outro + .55, .06, 18); words($('outHand'), t, T.outro + 1.1, 0, 30); }
-    return true;
+    if(v > 0){ words($('outBig'), t, T.outro + .1, 0, 34); words($('outSub'), t, T.outro + .55, .06, 18); words($('outHand'), t, T.outro + 1.1, 0, 30); sig.push('ot', q(v), q(Math.min(t - T.outro, 2))); }
+    return sig.join(',');
   };
 })();
 </script>
