@@ -235,12 +235,16 @@
         var seg = sl && sl.segs && sl.segs[i], a = sl ? sl.t + (seg ? seg[0] : i * .8) : T.say + i * .5, d = seg ? Math.max(.2, (seg[1] - seg[0]) * .9) : .4;
         drawTo(u, (t - a) / d, sig);
       });
-      var nm = C.names ? C.names.t : (T.say + 2), nd = C.names ? C.names.dur : 3;
-      F.braces.forEach(function(b, i){                             // "Seo is the last name(0), Tae-i is the first name(1)"
-        var a = nm + (i ? nd * .5 : .05), p = (t - a) / .5, lp = easeOut((t - a - .3) / .3);
+      // 성/이름 브레이스: 한국어 세그먼트("서.", "태이.")를 말하는 순간에 그린다
+      var koParts = C.names ? C.names.parts.filter(function(p){ return /[가-힣]/.test(p.file || '') || p.ko; }) : [];
+      var starts = (C.names && C.names.koStarts) ? C.names.koStarts : [];
+      F.braces.forEach(function(b, i){
+        var a = starts[i] !== undefined ? starts[i] : (C.names ? C.names.t + i * 1.5 : T.say + 2 + i);
+        var p = (t - a) / .45, lp = easeOut((t - a - .25) / .3);
         drawTo(b, p, sig); F.labels[i].style.opacity = lp; sig.push(q(lp));
       });
-      if(C.meaning) sweep(F.hl, t, C.meaning.t + .15, Math.max(.8, C.meaning.dur * .9), sig);
+      // 한 줄 뜻 형광펜: 목소리가 실제로 시작되는 순간부터 문장 길이에 맞춰
+      if(C.meaning){ var m0 = C.meaning.t + (C.meaning.v0 || 0); sweep(F.hl, t, m0, Math.max(.8, (C.meaning.dur - (C.meaning.v0 || 0)) * .92), sig); }
     }
     // ── 뒷면 그림: "Tae means a star." 때 태 행, "And I means…" 때 이 행
     var backEnd = (T.front || (T.back + 60)) - .05;
@@ -250,7 +254,8 @@
       sig.push('B', q(v));
       (S.backKeys || []).forEach(function(k, i){
         var c = C[k]; if(!c || !B.rows[i]) return;
-        drawTo(B.rows[i], (t - c.t - .1) / Math.max(.5, c.dur * .7), sig);
+        var a = c.t + (c.v0 || 0);                                   // "태." 를 말하는 순간부터
+        drawTo(B.rows[i], (t - a) / Math.max(.5, (c.dur - (c.v0 || 0)) * .75), sig);
       });
     }
     // ── 이유 화면 그림

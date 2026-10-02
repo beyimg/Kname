@@ -74,9 +74,18 @@ def fetch_tts(given):
     return download(d['url'], dst) if d.get('url') else None
 
 
-def fetch_narration(lines):
-    """{id: text | {text,lang,prompt}} → {id: (path, 초)}. 토큰이 없거나 실패하면 글자 수로 어림한 무음 mp3."""
-    # 서버의 목소리 설정(tag)별로 캐시를 나눈다 — 목소리를 바꾸면 새로 받는다
+KO_VOICE = os.environ.get('KNAME_KO_VOICE', 'ko-KR-Chirp3-HD-Aoede')   # 나레이션(en-US Aoede)과 같은 목소리
+GAP = 0.12                                                            # 세그먼트 사이 쉼(초)
+
+
+def ko(text):
+    """한국어 목소리로 읽을 세그먼트(같은 목소리 페르소나)."""
+    return {'text': text, 'lang': 'ko-KR', 'voice': KO_VOICE}
+
+
+def fetch_narration(lines, tempo=1.0):
+    """{id: 문장 | {text,lang,voice} | [세그먼트, …]} → {id: {'parts': [(path, 초, v0, v1)…], 'dur': 초}}.
+    토큰이 없거나 실패하면 글자 수로 어림한 무음 mp3. 영어 클립은 tempo 배로 빠르게(음높이 유지)."""
     tag, ver = 'local', 1
     if TOKEN:
         try:
@@ -85,44 +94,57 @@ def fetch_narration(lines):
         except Exception as e:
             print(f'  나레이션 서버 확인 실패: {type(e).__name__}: {e}')
     ndir = os.path.join(AUDIO_DIR, 'narr', tag); os.makedirs(ndir, exist_ok=True)
-    out, missing = {}, {}
+
+    segs = []                                     # (id, idx, spec, path)
     for k, spec in lines.items():
-        spec = spec if isinstance(spec, dict) else {'text': spec}
-        text = spec['text']
-        extra = '' if not (spec.get('lang') or spec.get('prompt')) else f"|{spec.get('lang','')}|{spec.get('prompt','')}"
-        h = hashlib.sha1((text + extra).encode('utf-8')).hexdigest()[:16]
-        p = os.path.join(ndir, f'{h}.mp3')
-        if os.path.exists(p):
-            out[k] = (p, dur(p))
-        else:
-            missing[k] = (spec, p)
+        parts = spec if isinstance(spec, list) else [spec]
+        for i, sp in enumerate(parts):
+            sp = sp if isinstance(sp, dict) else {'text': sp}
+            if sp.get('audio'):
+                # 대본에 소리 파일을 직접 지정한 줄(다른 TTS 나 녹음) — 44.1kHz mp3 로 맞춰 둔다
+                src = sp['audio']
+                conv = os.path.join(ndir, 'ext_' + hashlib.sha1((src + str(os.path.getmtime(src))).encode()).hexdigest()[:12] + '.mp3')
+                if not os.path.exists(conv):
+                    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', src, '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '128k', conv], check=True)
+                segs.append((k, i, dict(sp, text=sp.get('text', '')), conv)); continue
+            extra = '' if not (sp.get('lang') or sp.get('prompt') or sp.get('voice')) else f"|{sp.get('lang','')}|{sp.get('voice','')}|{sp.get('prompt','')}"
+            h = hashlib.sha1((sp['text'] + extra).encode('utf-8')).hexdigest()[:16]
+            segs.append((k, i, sp, os.path.join(ndir, f'{h}.mp3')))
+    missing = [x for x in segs if not os.path.exists(x[3])]
     if missing and TOKEN:
-        try:
-            v = ver
-            send = {k: v_ for k, v_ in missing.items() if v >= 2 or not v_[0].get('lang')}
-            if len(send) < len(missing):
-                print('  (운영 서버가 아직 구버전 — 한국어 문장은 무음으로 대체. 배포 후 다시 만들면 붙습니다)')
-            res = http_json(f'{PROD}/api/narrate', {'lines': [v_[0] if v >= 2 else v_[0]['text'] for v_ in send.values()]}, timeout=240)
-            for (k, (spec, p)), item in zip(send.items(), res.get('items', [])):
-                if item.get('url'):
-                    download(item['url'], p); out[k] = (p, dur(p))
-                else:
-                    print(f'  나레이션 실패 [{k}]: {item.get("error")}')
-        except Exception as e:
-            print(f'  나레이션 서버 오류: {type(e).__name__}: {e}')
-    for k, (spec, p) in missing.items():
-        if k in out:
-            continue
-        text = spec['text']
-        est = 0.35 + 0.062 * len(text)                    # 대략 160 wpm
-        if spec.get('lang', '').startswith('ko'):
-            est = 0.5 + 0.7 * len(re.findall(r'[가-힣]', text))
-        sp = os.path.join(ndir, f'silent_{h_of(text)}.mp3')
-        if not os.path.exists(sp):
-            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
-                            '-t', f'{est:.2f}', '-c:a', 'libmp3lame', '-b:a', '64k', sp], check=True)
-        out[k] = (sp, est)
-        print(f'  (무음 대체 {est:.1f}s) [{k}] {text[:60]}')
+        send = [x for x in missing if ver >= 2 or not x[2].get('lang')]
+        if len(send) < len(missing):
+            print('  (운영 서버가 아직 구버전 — 한국어 문장은 무음으로 대체)')
+        for chunk in [send[i:i + 30] for i in range(0, len(send), 30)]:
+            try:
+                res = http_json(f'{PROD}/api/narrate', {'lines': [x[2] if ver >= 2 else x[2]['text'] for x in chunk]}, timeout=240)
+                for x, item in zip(chunk, res.get('items', [])):
+                    if item.get('url'):
+                        download(item['url'], x[3])
+                    else:
+                        print(f'  나레이션 실패 [{x[0]}]: {item.get("error")}')
+            except Exception as e:
+                print(f'  나레이션 서버 오류: {type(e).__name__}: {e}')
+    out = {}
+    for k, i, sp, path in segs:
+        if not os.path.exists(path):
+            text = sp['text']
+            est = 0.5 + 0.7 * len(re.findall(r'[가-힣]', text)) if sp.get('lang', '').startswith('ko') else 0.35 + 0.062 * len(text)
+            path = os.path.join(ndir, f'silent_{h_of(text)}.mp3')
+            if not os.path.exists(path):
+                subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
+                                '-t', f'{est:.2f}', '-c:a', 'libmp3lame', '-b:a', '64k', path], check=True)
+            print(f'  (무음 대체 {est:.1f}s) [{k}] {text[:60]}')
+        elif tempo != 1.0 and not sp.get('lang', '').startswith('ko'):
+            fast = path[:-4] + f'_x{int(tempo * 100)}.mp3'
+            if not os.path.exists(fast):
+                subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', path, '-af', f'atempo={tempo:.3f}', '-c:a', 'libmp3lame', '-b:a', '96k', fast], check=True)
+            path = fast
+        v0, v1 = voiced_span(path)
+        out.setdefault(k, {'parts': []})['parts'].append((path, dur(path), v0, v1))
+    for k, v in out.items():
+        v['dur'] = sum(p[1] for p in v['parts']) + GAP * (len(v['parts']) - 1)
+        v['v0'] = v['parts'][0][2]
     return out
 
 
@@ -143,6 +165,37 @@ def voiced_segments(path, min_gap=0.12):
     if total - cur > 0.08:
         segs.append((cur, total))
     return segs
+
+
+def respace(path, segs, gap=0.42, lead=0.25, pad=0.06):
+    """소리 구간들만 잘라 일정한 쉼으로 다시 이어 붙인 mp3 와 새 구간 목록을 돌려준다."""
+    out = path[:-4] + f'_sp{int(gap * 100)}.mp3'
+    parts, filt, t = [], [], lead
+    new_segs = []
+    for i, (a, b) in enumerate(segs):
+        a2, b2 = max(0, a - pad), b + pad
+        filt.append(f'[0:a]atrim={a2:.3f}:{b2:.3f},asetpts=PTS-STARTPTS[s{i}]')
+        filt.append(f'aevalsrc=0:d={(lead if i == 0 else gap):.3f}:s=44100[g{i}]')
+        parts += [f'[g{i}]', f'[s{i}]']
+        new_segs.append((t + pad, t + pad + (b - a))); t += (b2 - a2) + (0 if i else 0)
+        t += gap if i < len(segs) - 1 else 0
+    filt.append(f'aevalsrc=0:d=0.3:s=44100[tail]'); parts.append('[tail]')
+    filt.append(''.join(parts) + f'concat=n={len(parts)}:v=0:a=1[out]')
+    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', path, '-filter_complex', ';'.join(filt), '-map', '[out]',
+                    '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '96k', out], check=True)
+    # 실제로 다시 재서 정확한 구간을 쓴다
+    segs2 = voiced_segments(out)
+    return out, (segs2 if len(segs2) == len(segs) else new_segs)
+
+
+def cut_clip(path, a, b, pre=0.05, post=0.12):
+    """클립에서 [a,b] 소리 구간만 잘라 짧은 mp3 로(앞뒤 여유 포함)."""
+    out = path[:-4] + f'_cut{int(a * 100):04d}.mp3'
+    if not os.path.exists(out):
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', path, '-af',
+                        f'atrim={max(0, a - pre):.3f}:{b + post:.3f},asetpts=PTS-STARTPTS,afade=t=out:st={(b - max(0, a - pre)) + post - 0.06:.3f}:d=0.06',
+                        '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '96k', out], check=True)
+    return out
 
 
 def h_of(s):
@@ -173,39 +226,30 @@ def sentences(text):
 
 
 def build_lines(d, first, last, args):
-    """장면별 나레이션(영어). 한국어 이름·음절은 한국어 목소리가 읽는다(lang=ko-KR)."""
+    """장면별 나레이션. 한국어 글자는 같은 목소리의 한국어판(ko)이 읽는다 — 영어 목소리는 'Seo' 를 철자로 읽는다."""
     full_en = f'{first} {last}'.strip()
-    given_rom = d['given_rom']
-    syls = d['syllables']                                  # 카드 앞면 음절(성 포함)
+    syls = d['syllables']
     n_s = len(d['surname'] or '') if d.get('surname') else 0
+    given_ko = d['given']
     lines = {}
-    lines['hook'] = args.hook_caption or f"What's {first}'s Korean name?"
+    lines['hook'] = args.hook_caption or f"What would {full_en}'s Korean name be?"
     lines['input'] = "Let's type it in."
     lines['result'] = f"{full_en} becomes"
+    lines['say'] = ko(d['full_hangul'] + '.')                           # 이름 발음(같은 목소리)
     lines['written'] = "In Korean, it's written like this."
-    lines['slow'] = {'text': ', '.join(s['ch'] for s in syls) + '.', 'lang': 'ko-KR',
-                     'prompt': 'Read these Korean syllables one at a time, slowly and clearly, with a clear pause after each one.'}
+    lines['slow'] = ko(' '.join(x['ch'] + '.' for x in syls))             # "서. 태. 이." — 마침표로 끊어 읽는다
     if n_s:
-        lines['names'] = f"{d['surname_rom']} is the last name, {given_rom} is the first name."
+        lines['names'] = [ko(d['surname'] + '.'), 'is the last name, and', ko(given_ko + '.'), 'is the first name.']
     else:
-        lines['names'] = f"Koreans put the family name first — {given_rom} is the first name."
+        lines['names'] = ['Koreans put the family name first —', ko(given_ko + '.'), 'is the first name.']
     if d.get('meaning_short'):
         lines['meaning'] = f"It means: {d['meaning_short']}."
     lines['next'] = "Next, what the name means."
     for i, h in enumerate(d['hanja_lines']):
-        lead = 'And ' if i else ''
-        lines[f'back{i}'] = f"{lead}{h['rom'].capitalize()} means {h['gloss']}."
+        lines[f'back{i}'] = [ko(h['syl'] + '.'), f"means {h['gloss']}."]
     if d.get('meaning_short'):
         lines['backall'] = f"So together, it means {d['meaning_short'][0].lower() + d['meaning_short'][1:]}."
-    lines['why'] = "Now, let me show you why this name."
-    r = d['reason']
-    tr_rom = r['translit']['romanized']
-    lines['reason1a'] = f"Read the Korean way, {first} sounds like {tr_rom}."
-    chosen = ' and '.join(s['rom'] for s in r['korean']['syllables'])
-    lines['reason1b'] = f"And for a natural Korean name, we chose these syllables: {chosen}."
-    parts = [f"the {m['src_rom']} sound {m['phrase']} {m['tgt_rom']}" for m in r['matches']]
-    joined = parts[0] if len(parts) == 1 else ', '.join(parts[:-1]) + ', and ' + parts[-1]
-    lines['reason2'] = joined[0].upper() + joined[1:] + '.'
+    lines['why'] = "Curious why this name? The full breakdown is on the web app."
     lines['outro'] = args.outro_line or "What's your name? Drop it in the comments."
     return lines
 
@@ -220,7 +264,7 @@ def build_script(name, sex, args):
     if args.hook_media:
         ext = os.path.splitext(args.hook_media)[1].lower()
         media = {'kind': 'video' if ext in ('.mp4', '.webm', '.mov') else 'image', 'ext': ext,
-                 'caption': args.hook_caption or f"What's {first}'s Korean name?", 'credit': args.hook_credit}
+                 'caption': args.hook_caption or f"What would {first} {last.strip()}'s Korean name be?".replace("  ", " "), 'credit': args.hook_credit}
     script = {
         'ep': f'Korean name · {name}',
         'hook': {'eyebrow': 'Your name is', 'big': f'{name}?', 'sub': 'Here’s your Korean name.', 'media': media},
@@ -257,7 +301,8 @@ def pull(name, sex_key):
 # ───────────────────────────── 녹화
 async def record(name, sex_key, P, workdir):
     q = {'names': f'{name}:{sex_key}', 'hold': P['hold'], 'sayat': P['sayat'], 'saydur': f'{P["saydur"]:.2f}',
-         'back': P['back'], 'reason': P['reason'], 'reason2': P['reason2'], 'type': P['type'], 'filled': P['filled'],
+         'back': P['back'], 'reason': P['reason'], 'reason2': P['reason2'], 'rviews': P['rviews'], 'type': P['type'],
+         'filled': P['filled'], 'typesec': P['typesec'], 'typepre': P['typepre'],
          'say': 1, 'gap': 0.4, 'intro': f'{name}?', 'card': P['hook'], 'outro': 'What’s your name?', 'zoom': 3}
     url = f'{BASE_URL}/demo?' + urllib.parse.urlencode(q)
     events, frames = [], []
@@ -282,7 +327,7 @@ async def record(name, sex_key, P, workdir):
         await cdp.send('Page.startScreencast', {'format': 'jpeg', 'quality': 92, 'maxWidth': 1080, 'maxHeight': 1920, 'everyNthFrame': 1})
         await asyncio.sleep(0.5)
         await pg.click('#overlay')
-        est = 1.2 + P['hook'] + 0.5 + len(name) * P['type'] / 1000 + P['filled'] + 2 + P['hold'] + P['back'] + 1.6 + P['reason'] + P['reason2'] + 1.4 + 0.4 + 3 + P['tail']
+        est = 1.2 + P['hook'] + P['typepre'] / 1000 + max(P['typesec'], len(name) * P['type'] / 1000 + P['filled']) + 2 + P['hold'] + P['back'] + 1.6 + P['reason'] + P['reason2'] + 1.4 + 0.4 + 3 + P['tail']
         try:
             await pg.wait_for_function("document.getElementById('card').style.display==='flex' && "
                                        "document.getElementById('card').textContent.indexOf('What')===0",
@@ -353,14 +398,18 @@ async def render_overlay(script, T, cues, layout, n_frames, workdir, hook_media)
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--name', required=True, help='"Taylor Swift" 또는 "Liam:m"')
+    ap.add_argument('--script', default='', help='대본 JSON. 없으면 자동 대본을 이 파일로 내보내고 멈춤, 있으면 그 대본으로 만든다')
     ap.add_argument('--out', default='')
     ap.add_argument('--pull', action='store_true', help='운영 서버에서 변환 결과·캐시를 받아 온다(사전 밖 이름). 영상은 안 만든다')
     ap.add_argument('--hook-media', default='', help='훅 장면 사진/영상 파일(9:16 으로 크롭)')
     ap.add_argument('--hook-caption', default='', help='훅 캡션 = 첫 나레이션 (기본: What\'s X\'s Korean name?)')
     ap.add_argument('--hook-credit', default='', help='사진 출처 한 줄 (CC 표기)')
-    ap.add_argument('--hook-secs', type=float, default=3.5)
+    ap.add_argument('--hook-secs', type=float, default=1.3, help='훅 화면 초(나레이션은 입력 장면으로 이어진다)')
+    ap.add_argument('--typesec', type=float, default=1.5, help='타이핑 시작→제출 초')
+    ap.add_argument('--reason-secs', type=float, default=3.0, help='Why this name 화면 초')
+    ap.add_argument('--tempo', type=float, default=1.1, help='영어 나레이션 배속(음높이 유지)')
     ap.add_argument('--outro-line', default=''); ap.add_argument('--outro-big', default=''); ap.add_argument('--outro-sub', default='')
-    ap.add_argument('--filled', type=float, default=2.0, help='이름을 다 입력한 화면을 제출 전에 보여주는 초')
+    ap.add_argument('--filled', type=float, default=0.35, help='이름을 다 입력한 화면을 제출 전에 보여주는 초')
     ap.add_argument('--type', type=int, default=70)
     ap.add_argument('--tail', type=float, default=1.2)
     ap.add_argument('--keep', action='store_true')
@@ -376,41 +425,88 @@ def main():
     script, d, first, last = build_script(name, SEX.get(sex_key, '여'), args)
     print(f'{name} → {script["full"]} ({script["hanja"]}, {script["rom"]})')
     lines = build_lines(d, first, last, args)
+    if args.script:
+        if not os.path.exists(args.script):
+            # 자동 대본을 파일로 내보내고 멈춘다 — 사람이 고친 뒤 같은 명령으로 다시 돌리면 그 대본으로 만든다
+            doc = {'_설명': ['키(hook, input, result …)는 장면과 효과의 자리입니다. 키는 두고 문장만 고치세요.',
+                           '목록([…])은 한 문장을 여러 소리로 나눈 것 — 한국어 글자는 {"text","lang":"ko-KR"} 로 한국어 목소리가 읽습니다.',
+                           '줄을 지우면 그 장면은 나레이션 없이 짧게 지나갑니다. "audio": "파일경로" 를 주면 TTS 대신 그 소리를 씁니다.',
+                           '장면 순서: hook → input → result+say → written → slow(음절 밑줄) → names(성/이름) → meaning(형광펜) → next → back0..(글자별 뜻) → backall → why → outro'],
+                   'name': args.name, 'hook_media': args.hook_media, 'hook_credit': args.hook_credit, 'lines': lines}
+            json.dump(doc, open(args.script, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+            print(f'대본을 썼습니다: {args.script} — 고친 뒤 같은 명령을 다시 실행하면 그 대본으로 영상을 만듭니다.')
+            return
+        doc = json.load(open(args.script, encoding='utf-8'))
+        if doc.get('lines'):
+            keep = {k: v for k, v in doc['lines'].items() if v not in (None, '', [])}
+            for k in ('say', 'slow'):                      # 발음·천천히 읽기는 효과와 묶여 있어 항상 둔다
+                keep.setdefault(k, lines[k])
+            lines = keep
+        args.hook_media = doc.get('hook_media') or args.hook_media
+        args.hook_credit = doc.get('hook_credit') or args.hook_credit
+        if script['hook'].get('media') is None and args.hook_media:
+            ext = os.path.splitext(args.hook_media)[1].lower()
+            script['hook']['media'] = {'kind': 'video' if ext in ('.mp4', '.webm', '.mov') else 'image', 'ext': ext,
+                                       'caption': (lines.get('hook') if isinstance(lines.get('hook'), str) else None) or script['hook']['big'],
+                                       'credit': args.hook_credit}
+        elif script['hook'].get('media') and isinstance(lines.get('hook'), str):
+            script['hook']['media']['caption'] = lines['hook']
+        print(f'대본 파일 사용: {args.script}')
     for k, v in lines.items():
         print(f'  [{k}] {v}')
 
     print('소리 준비…' + ('' if TOKEN else ' (KNAME_VIDEO_TOKEN 없음 → 나레이션은 무음으로 대체)'))
-    tts = fetch_tts(script['full'])
-    saydur = dur(tts) if tts else 1.2
-    N = fetch_narration(lines)
-    nd = {k: v[1] for k, v in N.items()}
-    slow_segs = voiced_segments(N['slow'][0])
+    N = fetch_narration(lines, tempo=args.tempo)
+    nd = {k: v['dur'] for k, v in N.items()}
+    say_path, saydur = N['say']['parts'][0][0], N['say']['parts'][0][1]
+    slow_path = N['slow']['parts'][0][0]
+    slow_segs = voiced_segments(slow_path)
     n_syl = len(d['syllables'])
-    if len(slow_segs) != n_syl:                         # 못 나누면 균등 분할
+    if len(slow_segs) == n_syl:
+        # 음절 사이 쉼을 고르게(0.42s) 다시 배치한다 — TTS 가 어떤 음절 앞에서 1초 넘게 쉬기도 한다
+        slow_path, slow_segs = respace(slow_path, slow_segs, gap=0.42, lead=0.25)
+        N['slow']['parts'][0] = (slow_path, dur(slow_path), slow_segs[0][0], slow_segs[-1][1])
+        nd['slow'] = N['slow']['dur'] = dur(slow_path)
+        # 한 글자짜리 한국어 클립("태.", "이.")은 TTS 가 무음으로 만들기도 한다 →
+        # 천천히 읽은 클립에서 그 음절 소리를 잘라 대신 쓴다(성 한 글자, 뒷면 글자별 뜻)
+        syl_clips = [cut_clip(slow_path, a, b) for a, b in slow_segs]
+        n_s = len(d['surname'] or '') if d.get('surname') else 0
+
+        def swap(key, idx, syl_i):
+            if key in N and idx < len(N[key]['parts']) and 0 <= syl_i < len(syl_clips):
+                c = syl_clips[syl_i]
+                N[key]['parts'][idx] = (c, dur(c), 0.04, dur(c) - 0.04)
+                N[key]['dur'] = sum(x[1] for x in N[key]['parts']) + GAP * (len(N[key]['parts']) - 1)
+                N[key]['v0'] = N[key]['parts'][0][2]; nd[key] = N[key]['dur']
+        if n_s == 1:
+            swap('names', 0, 0)
+        for i in range(len(d['hanja_lines'])):
+            swap(f'back{i}', 0, n_s + i)
+    else:
         v0, v1 = (slow_segs[0][0], slow_segs[-1][1]) if slow_segs else (0.0, nd['slow'])
         slow_segs = [(v0 + (v1 - v0) * i / n_syl, v0 + (v1 - v0) * (i + 1) / n_syl) for i in range(n_syl)]
     backs = [k for k in lines if k.startswith('back') and k != 'backall']
 
-    # 장면 길이 = 나레이션 길이 (앞면: becomes → 발음 → written → 천천히 → 성/이름 → 뜻 → "Next…" 도중에 뒤집힘)
-    hook = max(args.hook_secs, nd['hook'] + 0.6)
-    sayat = 0.4 + nd['result'] + 0.15
-    t_written = sayat + saydur + 0.35
-    t_slow = t_written + nd['written'] + 0.25
-    t_names = t_slow + nd['slow'] + 0.35
-    t_meaning = t_names + nd['names'] + 0.3
-    t_next = t_meaning + nd.get('meaning', 0) + 0.35
-    hold = t_next + nd['next'] * 0.55
-    t_back0 = 0.9
-    back_cues, tb = [], t_back0
+    # 장면 길이 = 나레이션 길이
+    hook = args.hook_secs                                            # 훅 화면(1.3s). 훅 나레이션은 입력 장면으로 이어진다
+    typepre = max(0.3, nd.get('hook', 0) + 0.15 - hook)                     # 훅 나레이션이 끝나면 타이핑 시작(= "Let's type it in")
+    sayat = 0.05 + nd.get('result', 0) + 0.12                               # 카드가 뜨는 순간 "X becomes" → 발음
+    t_written = sayat + saydur + 0.3
+    t_slow = t_written + nd.get('written', 0) + 0.2
+    t_names = t_slow + nd['slow'] + 0.3
+    t_meaning = t_names + nd.get('names', 0) + 0.3
+    t_next = t_meaning + nd.get('meaning', 0) + 0.3
+    hold = t_next + nd.get('next', 0.6) * 0.55
+    back_cues, tb = [], 0.9
     for k in backs:
         back_cues.append((k, tb)); tb += nd[k] + 0.25
     t_backall = tb + 0.1
     t_why = t_backall + nd.get('backall', 0) + 0.45
-    back = t_why + nd['why'] * 0.5
-    reason = 0.75 + nd['reason1a'] + 0.25 + nd['reason1b'] + 0.4
-    reason2 = 0.6 + nd['reason2'] + 0.5
-    P = {'hook': hook, 'sayat': sayat, 'saydur': saydur, 'hold': hold, 'back': back, 'reason': reason, 'reason2': reason2,
-         'type': args.type, 'filled': args.filled, 'tail': nd['outro'] + args.tail}
+    back = t_why + nd.get('why', 0.6) * 0.5
+    reason = args.reason_secs
+    P = {'hook': hook, 'typepre': int(typepre * 1000), 'typesec': args.typesec, 'sayat': sayat, 'saydur': saydur,
+         'hold': hold, 'back': back, 'reason': reason, 'reason2': 0, 'rviews': 1,
+         'type': args.type, 'filled': args.filled, 'tail': nd.get('outro', 0) + args.tail}
 
     workdir = os.path.join(os.path.dirname(os.path.abspath(args.out)) or '.', '_rec'); os.makedirs(workdir, exist_ok=True)
     frames, events = asyncio.run(record(name, sex_key, P, workdir))
@@ -422,52 +518,63 @@ def main():
     total = max(frames[-1][0], ev.get('outro', frames[-1][0]) + P['tail']) - t_zero
     print(f'프레임 {len(frames)}개, 박자(초): ' + ', '.join(f'{k}={v:.2f}' for k, v in T.items() if not k.startswith('layout')) + f'  길이 {total:.1f}s')
 
-    # 소리 큐(영상 기준 초) — 앞면은 result 기준, 뒷면은 back 기준, 이유는 reason1/2 기준
+    # 소리 큐(영상 기준 초). 세그먼트가 여럿이면 GAP 을 두고 이어 붙인다. v0 = 그 클립 안에서 소리가 시작되는 초
     def cue(k, t, **kw):
-        c = {'t': t, 'dur': nd[k], 'file': N[k][0]}; c.update(kw); return c
+        parts, tt = [], t
+        for path, dd, v0, v1 in N[k]['parts']:
+            parts.append({'t': tt, 'dur': dd, 'file': path, 'v0': v0, 'v1': v1}); tt += dd + GAP
+        c = {'t': t, 'dur': nd[k], 'v0': N[k]['v0'], 'parts': parts}; c.update(kw); return c
     R = T['result']
-    cues = {'hook': cue('hook', 0.15), 'input': cue('input', T['type'] + 0.05), 'result': cue('result', R + 0.4)}
-    if tts:
-        cues['say'] = {'t': T['say'], 'dur': saydur, 'file': tts}
-    cues['written'] = cue('written', R + t_written)
-    cues['slow'] = cue('slow', R + t_slow, segs=slow_segs)
-    cues['names'] = cue('names', R + t_names)
-    if 'meaning' in N:
-        cues['meaning'] = cue('meaning', R + t_meaning)
-    cues['next'] = cue('next', R + t_next)
+    cues = {}
+    def put(k, t, **kw):
+        if k in N: cues[k] = cue(k, t, **kw)
+    put('hook', 0.1); put('input', T['type'] - 0.05); put('result', R + 0.05); put('say', T['say'])
+    put('written', R + t_written); put('slow', R + t_slow, segs=slow_segs); put('names', R + t_names)
+    if 'names' in cues:
+        # 브레이스 시각: names 의 한국어 세그먼트가 실제로 소리 나는 순간(세그먼트가 없으면 앞·중간)
+        spec = lines['names'] if isinstance(lines['names'], list) else [lines['names']]
+        ks = [p['t'] + p['v0'] for p, sp in zip(cues['names']['parts'], spec) if isinstance(sp, dict) and sp.get('lang')]
+        cues['names']['koStarts'] = ks if ks else [cues['names']['t'] + cues['names']['v0'], cues['names']['t'] + cues['names']['dur'] * 0.5]
+    put('meaning', R + t_meaning); put('next', R + t_next)
     B = T['back']
     for k, t in back_cues:
-        cues[k] = cue(k, B + t)
-    if 'backall' in N:
-        cues['backall'] = cue('backall', B + t_backall)
-    cues['why'] = cue('why', B + t_why)
-    cues['reason1a'] = cue('reason1a', T['reason1'] + 0.75)
-    cues['reason1b'] = cue('reason1b', T['reason1'] + 0.75 + nd['reason1a'] + 0.25)
-    cues['reason2'] = cue('reason2', T['reason2'] + 0.6)
-    cues['outro'] = cue('outro', T['outro'] + 0.25)
+        put(k, B + t)
+    put('backall', B + t_backall); put('why', B + t_why); put('outro', T['outro'] + 0.25)
     script['backKeys'] = backs
 
     seq, n = lay_out_frames(frames, t_zero, total, workdir)
     ov = asyncio.run(render_overlay(script, T, cues, layout, n, workdir, args.hook_media))
 
-    cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-framerate', str(FPS), '-i', os.path.join(seq, '%05d.jpg'),
-           '-framerate', str(FPS), '-i', os.path.join(ov, '%05d.png')]
-    fc = '[0:v]format=rgba[base];[base][1:v]overlay=0:0:format=auto:eof_action=endall,format=yuv420p[v]'
-    k, mix = 1, []
+    # ① 소리 먼저 — 큐마다 adelay 로 제자리에 놓고 섞는다. (영상 인코딩과 한 번에 하면 amix 뒤의
+    #    오디오 타임스탬프가 깨져 소리가 몇 초 만에 끊기는 일이 있었다 → 두 단계로 나눈다)
+    mix_path = os.path.join(workdir, 'mix.m4a')
+    cmd = ['ffmpeg', '-y', '-loglevel', 'error']
+    fc, k, mix = '', -1, []
     for key, c in cues.items():
-        k += 1
-        cmd += ['-i', c['file']]
-        at = int(max(0, c['t']) * 1000)
-        fc += f';[{k}:a]aformat=sample_rates=44100:channel_layouts=stereo,adelay={at}|{at}[a{k}]'
-        mix.append(f'[a{k}]')
-    fc += f';{"".join(mix)}amix=inputs={len(mix)}:normalize=0:dropout_transition=0,apad[a]'
-    cmd += ['-filter_complex', fc, '-map', '[v]', '-map', '[a]', '-c:a', 'aac', '-b:a', '160k', '-ar', '44100',
-            '-t', f'{n / FPS:.3f}', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-r', str(FPS),
-            '-g', str(FPS), '-keyint_min', str(FPS), '-sc_threshold', '0', '-bf', '0', '-profile:v', 'main', '-level', '4.0',
-            '-movflags', '+faststart', args.out]
+        for part in c['parts']:
+            k += 1
+            cmd += ['-i', part['file']]
+            at = int(max(0, part['t']) * 1000)
+            fc += f'[{k}:a]aformat=sample_rates=44100:channel_layouts=stereo,adelay={at}|{at}[a{k}];'
+            mix.append(f'[a{k}]')
+    fc += f'{"".join(mix)}amix=inputs={len(mix)}:normalize=0:dropout_transition=0,apad[a]'
+    cmd += ['-filter_complex', fc, '-map', '[a]', '-t', f'{n / FPS:.3f}', '-c:a', 'aac', '-b:a', '160k', '-ar', '44100', mix_path]
     subprocess.run(cmd, check=True)
+    # ② 영상(앱 화면 + 오버레이) + 소리
+    cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-framerate', str(FPS), '-i', os.path.join(seq, '%05d.jpg'),
+           '-framerate', str(FPS), '-i', os.path.join(ov, '%05d.png'), '-i', mix_path,
+           '-filter_complex', '[0:v]format=rgba[base];[base][1:v]overlay=0:0:format=auto:eof_action=endall,format=yuv420p[v]',
+           '-map', '[v]', '-map', '2:a', '-c:a', 'copy',
+           '-t', f'{n / FPS:.3f}', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-r', str(FPS),
+           '-g', str(FPS), '-keyint_min', str(FPS), '-sc_threshold', '0', '-bf', '0', '-profile:v', 'main', '-level', '4.0',
+           '-movflags', '+faststart', args.out]
+    subprocess.run(cmd, check=True)
+    a_dur = float(subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=duration', '-of', 'csv=p=0', args.out],
+                                 capture_output=True, text=True).stdout.strip() or 0)
+    if a_dur < n / FPS - 1:
+        print(f'  경고: 오디오 길이 {a_dur:.1f}s < 영상 {n / FPS:.1f}s')
     print(f'완성: {args.out}  ({dur(args.out):.1f}s)')
-    json.dump({'lines': lines, 'cues': {k: {kk: vv for kk, vv in v.items() if kk != 'file'} for k, v in cues.items()}, 'T': T},
+    json.dump({'lines': lines, 'cues': {k: {kk: vv for kk, vv in v.items() if kk != 'parts'} for k, v in cues.items()}, 'T': T},
               open(os.path.splitext(args.out)[0] + '.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     if not args.keep:
         shutil.rmtree(workdir, ignore_errors=True)

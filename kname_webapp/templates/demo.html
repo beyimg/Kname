@@ -174,11 +174,14 @@
       // typesec 이 있으면 입력 장면 전체(카드 등장 → 결과 카드 등장)가 그 초가 되도록 글자 속도를
       // 맞춘다. 제출 뒤 결과가 뜨기까지(뒤집기 + 서버) 약 0.9초가 들어 있다.
       var nChars = first.length + (last ? last.length : 0);
-      var PRE = 250, PAUSE = 200, PRESUBMIT = 250, LOAD = 900;
-      var fixed = PRE + (last && lastIn ? PAUSE : 0) + PRESUBMIT + LOAD;
+      // typesec: 타이핑 시작 → 제출까지의 초(성 입력 전 쉼과 다 입력된 화면(filled)까지 포함)
+      var PAUSE = 200, PRESUBMIT = 250;
+      var hold = CFG.filled > 0 ? CFG.filled * 1000 : PRESUBMIT;
+      var fixed = (last && lastIn ? PAUSE : 0) + hold;
       var typeMs = CFG.typesec > 0 ? Math.max(15, (CFG.typesec * 1000 - fixed) / nChars) : CFG.type_ms;
-      item.preSubmit = CFG.typesec > 0 ? PRESUBMIT : 450;
-      var chain = sleep(CFG.typesec > 0 ? PRE : 500).then(function(){ mark('type', item.name); });
+      item.preSubmit = PRESUBMIT;
+      // typepre: 카드가 뜬 뒤 타이핑을 시작하기까지 기다리는 ms(나레이션과 맞추기용)
+      var chain = sleep(CFG.typepre > 0 ? CFG.typepre : 500).then(function(){ mark('type', item.name); });
       first.split('').forEach(function(ch){
         chain = chain.then(function(){ input.value += ch; return sleep(typeMs); });
       });
@@ -245,7 +248,7 @@
         sec.style.transformOrigin = '50% 0';
         sec.style.transform = 'scale(' + scale.toFixed(3) + ')';
       }
-      var targets = [[sec, 12]].concat(steps.length > 2 ? [[steps[2], 12]] : []);
+      var targets = [[sec, 12]].concat((steps.length > 2 && CFG.rviews !== 1) ? [[steps[2], 12]] : []);
       var secs = [CFG.reason, CFG.reason2 > 0 ? CFG.reason2 : CFG.reason];
       var chain = Promise.resolve();
       targets.forEach(function(tg, i){
