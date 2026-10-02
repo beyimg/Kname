@@ -42,13 +42,19 @@ ELEVEN_STABILITY = float(os.environ.get('ELEVEN_STABILITY', 0.45))
 ELEVEN_STYLE = float(os.environ.get('ELEVEN_STYLE', 0.35))
 
 
-def _eleven_synthesize(text: str, lang: str, voice_id: str | None = None) -> bytes:
+def _eleven_synthesize(text: str, lang: str, voice_id: str | None = None,
+                       prev: str | None = None, nxt: str | None = None) -> bytes:
     import json
     import urllib.request
     vid = voice_id or ELEVEN_VOICE
     body = {'text': text, 'model_id': ELEVEN_MODEL,
             'voice_settings': {'stability': ELEVEN_STABILITY, 'similarity_boost': 0.8,
                                'style': ELEVEN_STYLE, 'use_speaker_boost': True}}
+    # 앞뒤 문맥(말하지 않음) — 한 글자만 합성해도 문장 가운데처럼 자연스러운 높낮이가 된다
+    if prev:
+        body['previous_text'] = prev[:300]
+    if nxt:
+        body['next_text'] = nxt[:300]
     # 언어 힌트는 flash/turbo 모델만 받는다. 다국어 v2/v3 는 글자를 보고 스스로 고른다.
     if 'flash' in ELEVEN_MODEL or 'turbo' in ELEVEN_MODEL:
         body['language_code'] = (lang or 'en-US').split('-')[0]
@@ -92,12 +98,14 @@ class Narrator:
     def _norm(text: str) -> str:
         return re.sub(r'\s+', ' ', (text or '')).strip()[:MAX_CHARS]
 
-    def _key(self, text, lang, voice, prompt):
-        # 같은 문장이라도 언어·목소리·어조가 다르면 다른 파일 (ElevenLabs 는 한 목소리라 언어·어조만)
+    def _key(self, text, lang, voice, prompt, prev=None, nxt=None):
+        # 같은 문장이라도 언어·목소리·어조·문맥이 다르면 다른 파일 (ElevenLabs 는 한 목소리라 언어·문맥만)
         if self.eleven:
             voice = voice if (voice and re.fullmatch(r'[A-Za-z0-9]{15,30}', voice)) else ''
             prompt = ''
         extra = '' if (lang == 'en-US' and not voice and not prompt) else f'|{lang}|{voice or ""}|{prompt or ""}'
+        if prev or nxt:
+            extra += f'|{prev or ""}|{nxt or ""}'
         return hashlib.sha1((text + extra).encode('utf-8')).hexdigest()[:16]
 
     def _path(self, key: str) -> str:
@@ -106,11 +114,12 @@ class Narrator:
     def _url(self, key: str) -> str:
         return f'/static/audio/narr/{self.tag}/{key}.mp3'
 
-    def _synthesize(self, text: str, lang: str = 'en-US', voice: str | None = None, prompt: str | None = None) -> bytes:
+    def _synthesize(self, text: str, lang: str = 'en-US', voice: str | None = None, prompt: str | None = None,
+                    prev: str | None = None, nxt: str | None = None) -> bytes:
         if self.eleven:
             # voice 가 ElevenLabs 목소리 ID 꼴(영숫자 20자)이면 그걸, 아니면(구글 이름이면) 기본 목소리
             vid = voice if (voice and re.fullmatch(r'[A-Za-z0-9]{15,30}', voice)) else None
-            out = _eleven_synthesize(text, lang, vid)
+            out = _eleven_synthesize(text, lang, vid, prev, nxt)
             self.last_mode = f'ElevenLabs {ELEVEN_MODEL}'
             return out
         client, tts = self._get_client()
@@ -141,11 +150,12 @@ class Narrator:
         self.last_mode = 'Chirp 3: HD'
         return resp.audio_content
 
-    def url_for(self, text: str, lang: str = 'en-US', voice: str | None = None, prompt: str | None = None) -> str | None:
+    def url_for(self, text: str, lang: str = 'en-US', voice: str | None = None, prompt: str | None = None,
+                prev: str | None = None, nxt: str | None = None) -> str | None:
         text = self._norm(text)
         if not text:
             return None
-        key = self._key(text, lang, voice, prompt)
+        key = self._key(text, lang, voice, prompt, prev, nxt)
         path = self._path(key)
         if os.path.exists(path) and os.path.getsize(path) > 500:
             return self._url(key)
@@ -156,7 +166,7 @@ class Narrator:
                 return self._url(key)
             os.makedirs(os.path.dirname(path), exist_ok=True)
             try:
-                audio = self._synthesize(text, lang, voice, prompt)
+                audio = self._synthesize(text, lang, voice, prompt, prev, nxt)
             except Exception as e:
                 self.last_error = f'{type(e).__name__}: {str(e)[:160]}'
                 print(f'[narrate] 합성 실패: {self.last_error}')

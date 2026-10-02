@@ -84,6 +84,21 @@ def ko(text):
     return {'text': text, 'lang': 'ko-KR', 'voice': KO_VOICE}
 
 
+SERVER_V = 1
+
+
+def probe_engine():
+    """서버의 나레이션 엔진(google | elevenlabs)과 API 버전을 미리 알아 둔다 — 대본 문구가 엔진에 따라 다르다."""
+    global ENGINE, SERVER_V
+    if TOKEN:
+        try:
+            r = http_json(f'{PROD}/api/narrate', {'lines': []}, timeout=60)
+            ENGINE, SERVER_V = r.get('engine', 'google'), r.get('v', 1)
+        except Exception:
+            pass
+    return ENGINE
+
+
 def fetch_narration(lines, tempo=1.0):
     """{id: 문장 | {text,lang,voice} | [세그먼트, …]} → {id: {'parts': [(path, 초, v0, v1)…], 'dur': 초}}.
     토큰이 없거나 실패하면 글자 수로 어림한 무음 mp3. 영어 클립은 tempo 배로 빠르게(음높이 유지)."""
@@ -111,6 +126,8 @@ def fetch_narration(lines, tempo=1.0):
                     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', src, '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '128k', conv], check=True)
                 segs.append((k, i, dict(sp, text=sp.get('text', '')), conv)); continue
             extra = '' if not (sp.get('lang') or sp.get('prompt') or sp.get('voice')) else f"|{sp.get('lang','')}|{sp.get('voice','')}|{sp.get('prompt','')}"
+            if sp.get('prev') or sp.get('next'):
+                extra += f"|{sp.get('prev','')}|{sp.get('next','')}"
             h = hashlib.sha1((sp['text'] + extra).encode('utf-8')).hexdigest()[:16]
             segs.append((k, i, sp, os.path.join(ndir, f'{h}.mp3')))
     missing = [x for x in segs if not os.path.exists(x[3])]
@@ -262,9 +279,20 @@ def build_lines(d, first, last, args):
     lines['result'] = f"{full_en} becomes"
     lines['say'] = ko(d['full_hangul'] + '.')                           # 이름 발음(같은 목소리)
     lines['written'] = "In Korean, it's written like this."
-    lines['slow'] = ko(' '.join(x['ch'] + '.' for x in syls))             # "서. 태. 이." — 마침표로 끊어 읽는다
-    for i, x in enumerate(syls):                                            # 음절 하나짜리 클립(ElevenLabs 는 잘 읽는다)
-        lines[f'syl{i}'] = ko(x['ch'] + '.')
+    if ENGINE == 'elevenlabs' and SERVER_V >= 3:
+        # 음절을 하나씩 합성하되 앞뒤 문맥(말하지 않음)을 줘서 문장 가운데처럼 높낮이가 평평하게 —
+        # 쉼 태그로 끊어 읽히면 글자마다 톤이 올라가고 끝 글자가 뭉개졌다(Danbi, 2026-10-02)
+        lines['slow'] = ko(' <break time="0.7s" /> '.join(x['ch'] for x in syls))   # 예비(구간 못 나눌 때)
+        for i, x in enumerate(syls):
+            before = '이름을 한 글자씩 읽으면, ' + ', '.join(y['ch'] for y in syls[:i]) + (', ' if i else '')
+            after = (', ' + ', '.join(y['ch'] for y in syls[i + 1:]) if i < len(syls) - 1 else '') + ', 이렇게 읽어요.'
+            lines[f'syl{i}'] = dict(ko(x['ch']), prev=before.strip(), next=after.strip())
+    elif ENGINE == 'elevenlabs':
+        lines['slow'] = ko(' <break time="0.7s" /> '.join(x['ch'] for x in syls))
+    else:
+        lines['slow'] = ko(' '.join(x['ch'] + '.' for x in syls))         # "서. 태. 이." — 마침표로 끊어 읽는다
+    if ENGINE == 'elevenlabs' and SERVER_V >= 3:
+        lines['say'] = dict(ko(d['full_hangul'] + '.'), prev=f'{full_en} becomes')   # 앞 문장에 이어지는 억양
     if n_s:
         lines['names'] = [ko(d['surname'] + '.'), 'is the last name, and', ko(given_ko + '.'), 'is the first name.']
     else:
@@ -449,6 +477,7 @@ def main():
     if not args.out:
         sys.exit('--out 이 필요합니다')
 
+    probe_engine()
     script, d, first, last = build_script(name, SEX.get(sex_key, '여'), args)
     print(f'{name} → {script["full"]} ({script["hanja"]}, {script["rom"]})')
     lines = build_lines(d, first, last, args)
@@ -467,8 +496,8 @@ def main():
         doc = json.load(open(args.script, encoding='utf-8'))
         if doc.get('lines'):
             keep = {k: v for k, v in doc['lines'].items() if v not in (None, '', [])}
-            for k in [x for x in lines if x in ('say', 'slow') or x.startswith('syl')]:   # 발음·천천히 읽기 재료는 항상 둔다
-                keep.setdefault(k, lines[k])
+            for k in [x for x in lines if x in ('say', 'slow') or x.startswith('syl')]:   # 발음·음절 읽기는 엔진에 맞는 자동 문구
+                keep[k] = lines[k]
             lines = keep
         args.hook_media = doc.get('hook_media') or args.hook_media
         args.hook_credit = doc.get('hook_credit') or args.hook_credit
@@ -489,15 +518,16 @@ def main():
     say_path, saydur = N['say']['parts'][0][0], N['say']['parts'][0][1]
     slow_path = N['slow']['parts'][0][0]
     n_syl = len(d['syllables'])
-    if ENGINE == 'elevenlabs':
-        # 한 글자 클립을 잘 읽으므로 음절 클립들을 0.42s 쉼으로 이어 붙여 '천천히 읽기'를 만든다 — 구간이 정확하다
-        syl_paths = [N[f'syl{i}']['parts'][0][0] for i in range(n_syl)]
-        slow_path, slow_segs = join_clips(syl_paths, gap=0.42, lead=0.25)
+    if all(f'syl{i}' in N for i in range(n_syl)):
+        # 문맥 붙여 하나씩 만든 음절 클립을 0.42s 쉼으로 이어 '천천히 읽기'를 조립 — 구간이 정확하다
+        slow_path, slow_segs = join_clips([N[f'syl{i}']['parts'][0][0] for i in range(n_syl)], gap=0.42, lead=0.25)
         N['slow']['parts'][0] = (slow_path, dur(slow_path), slow_segs[0][0], slow_segs[-1][1])
         nd['slow'] = N['slow']['dur'] = dur(slow_path); N['slow']['v0'] = slow_segs[0][0]
+        for i in range(n_syl):
+            N.pop(f'syl{i}', None); nd.pop(f'syl{i}', None)
     else:
         slow_segs = voiced_segments(slow_path)
-    if ENGINE != 'elevenlabs' and len(slow_segs) == n_syl:
+    if len(slow_segs) == n_syl:
         # 음절 사이 쉼을 고르게(0.42s) 다시 배치한다 — TTS 가 어떤 음절 앞에서 1초 넘게 쉬기도 한다
         slow_path, slow_segs = respace(slow_path, slow_segs, gap=0.42, lead=0.25)
         N['slow']['parts'][0] = (slow_path, dur(slow_path), slow_segs[0][0], slow_segs[-1][1])
@@ -517,11 +547,10 @@ def main():
             swap('names', 0, 0)
         for i in range(len(d['hanja_lines'])):
             swap(f'back{i}', 0, n_s + i)
-    elif ENGINE != 'elevenlabs':
+    else:
+        print(f'  (음절 구간을 못 나눴습니다: {len(slow_segs)}개 ≠ {n_syl}음절 → 균등 분할)')
         v0, v1 = (slow_segs[0][0], slow_segs[-1][1]) if slow_segs else (0.0, nd['slow'])
         slow_segs = [(v0 + (v1 - v0) * i / n_syl, v0 + (v1 - v0) * (i + 1) / n_syl) for i in range(n_syl)]
-    for i in range(n_syl):                              # 재료 클립은 큐에 넣지 않는다
-        N.pop(f'syl{i}', None); nd.pop(f'syl{i}', None)
     backs = [k for k in lines if k.startswith('back') and k != 'backall']
 
     # 장면 길이 = 나레이션 길이

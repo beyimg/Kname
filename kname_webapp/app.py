@@ -2253,11 +2253,12 @@ def api_narrate():
             voice = (str(x.get('voice')) if x.get('voice') else None); prompt = (str(x.get('prompt'))[:400] if x.get('prompt') else None)
             if lang.startswith('ko') and not voice:
                 voice = TTS_FULL.voice                     # 이름 발음과 같은 한국어 목소리
+            prev, nxt = (str(x.get('prev'))[:300] if x.get('prev') else None), (str(x.get('next'))[:300] if x.get('next') else None)
         else:
-            text, lang, voice, prompt = str(x), 'en-US', None, None
-        url = NARRATOR.url_for(text, lang, voice, prompt)
+            text, lang, voice, prompt, prev, nxt = str(x), 'en-US', None, None, None, None
+        url = NARRATOR.url_for(text, lang, voice, prompt, prev, nxt)
         items.append({'text': text, 'url': url, 'error': None if url else NARRATOR.last_error})
-    return jsonify({'items': items, 'mode': NARRATOR.last_mode, 'tag': NARRATOR.tag, 'v': 2,
+    return jsonify({'items': items, 'mode': NARRATOR.last_mode, 'tag': NARRATOR.tag, 'v': 3,
                     'engine': 'elevenlabs' if getattr(NARRATOR, 'eleven', False) else 'google'})
 
 
