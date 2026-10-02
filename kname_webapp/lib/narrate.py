@@ -30,6 +30,35 @@ STYLE_PROMPT = os.environ.get('NARR_STYLE_PROMPT') or (
 )
 MAX_CHARS = 400
 
+# ElevenLabs — 키가 있으면 Google 대신 쓴다. 한 목소리가 영어·한국어를 다 읽는다(다국어 모델).
+#   ELEVEN_API_KEY   : elevenlabs.io → Developers → API Keys
+#   ELEVEN_VOICE_ID  : Voices 에서 고른 목소리의 ID (예: 'cgSgspJ2msm6clMCkdW9' = Jessica)
+#   ELEVEN_MODEL     : 기본 eleven_multilingual_v2. 감정 태그([excited] 등)를 쓰려면 eleven_v3
+#   ELEVEN_STABILITY / ELEVEN_STYLE : 0~1. 낮은 stability = 더 표정 있게(0.4 권장), style 은 과장 정도
+ELEVEN_KEY = os.environ.get('ELEVEN_API_KEY', '')
+ELEVEN_VOICE = os.environ.get('ELEVEN_VOICE_ID', '')
+ELEVEN_MODEL = os.environ.get('ELEVEN_MODEL', 'eleven_multilingual_v2')
+ELEVEN_STABILITY = float(os.environ.get('ELEVEN_STABILITY', 0.45))
+ELEVEN_STYLE = float(os.environ.get('ELEVEN_STYLE', 0.35))
+
+
+def _eleven_synthesize(text: str, lang: str, voice_id: str | None = None) -> bytes:
+    import json
+    import urllib.request
+    vid = voice_id or ELEVEN_VOICE
+    body = {'text': text, 'model_id': ELEVEN_MODEL,
+            'voice_settings': {'stability': ELEVEN_STABILITY, 'similarity_boost': 0.8,
+                               'style': ELEVEN_STYLE, 'use_speaker_boost': True}}
+    # 언어 힌트는 flash/turbo 모델만 받는다. 다국어 v2/v3 는 글자를 보고 스스로 고른다.
+    if 'flash' in ELEVEN_MODEL or 'turbo' in ELEVEN_MODEL:
+        body['language_code'] = (lang or 'en-US').split('-')[0]
+    req = urllib.request.Request(
+        f'https://api.elevenlabs.io/v1/text-to-speech/{vid}?output_format=mp3_44100_128',
+        data=json.dumps(body).encode('utf-8'),
+        headers={'xi-api-key': ELEVEN_KEY, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg'})
+    with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT * 2) as r:
+        return r.read()
+
 
 class Narrator:
     def __init__(self, out_dir: str, voice: str = DEFAULT_VOICE,
@@ -43,13 +72,15 @@ class Narrator:
         self._warned = False
         self.last_error = None
         self.last_mode = None
-        sig = f'{voice}|{model}|{style_prompt}'
+        self.eleven = bool(ELEVEN_KEY and ELEVEN_VOICE)
+        sig = (f'eleven|{ELEVEN_VOICE}|{ELEVEN_MODEL}|{ELEVEN_STABILITY}|{ELEVEN_STYLE}' if self.eleven
+               else f'{voice}|{model}|{style_prompt}')
         self.tag = hashlib.md5(sig.encode('utf-8')).hexdigest()[:8]
         os.makedirs(out_dir, exist_ok=True)
 
     @property
     def available(self) -> bool:
-        return bool(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'))
+        return self.eleven or bool(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'))
 
     def _get_client(self):
         if self._client is None:
@@ -62,7 +93,10 @@ class Narrator:
         return re.sub(r'\s+', ' ', (text or '')).strip()[:MAX_CHARS]
 
     def _key(self, text, lang, voice, prompt):
-        # 같은 문장이라도 언어·목소리·어조가 다르면 다른 파일
+        # 같은 문장이라도 언어·목소리·어조가 다르면 다른 파일 (ElevenLabs 는 한 목소리라 언어·어조만)
+        if self.eleven:
+            voice = voice if (voice and re.fullmatch(r'[A-Za-z0-9]{15,30}', voice)) else ''
+            prompt = ''
         extra = '' if (lang == 'en-US' and not voice and not prompt) else f'|{lang}|{voice or ""}|{prompt or ""}'
         return hashlib.sha1((text + extra).encode('utf-8')).hexdigest()[:16]
 
@@ -73,6 +107,12 @@ class Narrator:
         return f'/static/audio/narr/{self.tag}/{key}.mp3'
 
     def _synthesize(self, text: str, lang: str = 'en-US', voice: str | None = None, prompt: str | None = None) -> bytes:
+        if self.eleven:
+            # voice 가 ElevenLabs 목소리 ID 꼴(영숫자 20자)이면 그걸, 아니면(구글 이름이면) 기본 목소리
+            vid = voice if (voice and re.fullmatch(r'[A-Za-z0-9]{15,30}', voice)) else None
+            out = _eleven_synthesize(text, lang, vid)
+            self.last_mode = f'ElevenLabs {ELEVEN_MODEL}'
+            return out
         client, tts = self._get_client()
         vname = voice or self.voice
         style = prompt if prompt is not None else self.style_prompt

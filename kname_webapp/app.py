@@ -2257,7 +2257,8 @@ def api_narrate():
             text, lang, voice, prompt = str(x), 'en-US', None, None
         url = NARRATOR.url_for(text, lang, voice, prompt)
         items.append({'text': text, 'url': url, 'error': None if url else NARRATOR.last_error})
-    return jsonify({'items': items, 'mode': NARRATOR.last_mode, 'tag': NARRATOR.tag, 'v': 2})
+    return jsonify({'items': items, 'mode': NARRATOR.last_mode, 'tag': NARRATOR.tag, 'v': 2,
+                    'engine': 'elevenlabs' if getattr(NARRATOR, 'eleven', False) else 'google'})
 
 
 @app.route('/api/export')
