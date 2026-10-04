@@ -1997,8 +1997,9 @@ def demo_page():
         'type_ms': int(_num('type', 90, 20, 400)), # 글자당 타이핑 ms
         'typesec': _num('typesec', 0, 0, 10),      # 입력 장면 전체 초(0 이면 type_ms 로 계산)
         'filled': _num('filled', 0, 0, 10),        # 다 입력된 화면을 제출 전에 보여주는 초
-        'typepre': int(_num('typepre', 0, 0, 5000)),  # 카드가 뜬 뒤 타이핑 시작까지 ms(0 이면 500)
+        'typepre': int(_num('typepre', 0, 0, 30000)),  # 카드가 뜬 뒤 타이핑 시작까지 ms(0 이면 500)
         'rviews': int(_num('rviews', 2, 1, 2)),    # 변환 이유 화면 수(1 이면 첫 화면만)
+        'backend': request.args.get('backend', '0') == '1',   # 뒷면에서 끝낸다(앞면으로 안 돌아감)
         'sayat': _num('sayat', -1, -1, 40),        # 앞면이 뜬 뒤 몇 초에 발음할지(-1 이면 앞면 다음에)
         'say': request.args.get('say', '1') != '0',
         'gap': _num('gap', 0.6, 0, 20),            # 이름 사이 쉬는 초 (자막을 얹을 때는 길게)

@@ -98,8 +98,9 @@
              meaningLines: lineRects(doc, doc.querySelector('.face-front .meaning')),
              card: rectOf(doc.querySelector('#shareCard')) };
   }
-  function layoutBack(doc){                                         // 뒷면: 글자별 뜻 행
+  function layoutBack(doc){                                         // 뒷면: 성씨 문단, 글자별 뜻 행
     return { rows: rectsOf(doc, '.face-back .bg-row'),
+             surnameLines: lineRects(doc, doc.querySelector('.face-back .back-surname:not(.back-nudge)')),
              meaningLines: lineRects(doc, doc.querySelector('.face-back .back-meaning')) };
   }
   function layoutReason(doc){                                       // Why this name 첫 화면
@@ -231,6 +232,7 @@
       fl.click();                                        // 뒷면: 뜻
       mark('back', item.name);
       setTimeout(function(){ try { mark('layout_back', item.name, layoutBack(stage.contentDocument)); } catch(e){} }, 900);
+      if(CFG.backend) return sleep(CFG.back * 1000);   // 뒷면에서 그대로 끝낸다(앞면으로 안 돌아감)
       return sleep(CFG.back * 1000).then(function(){ fl.click(); mark('front', item.name); return sleep(900); });
     }).then(function(){
       if(CFG.reason <= 0) return;

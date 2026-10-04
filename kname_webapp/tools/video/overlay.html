@@ -27,15 +27,25 @@
   .full .eyebrow{font-family:var(--sans);font-size:38px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:34px;}
   .full .big{font-family:var(--serif);font-style:italic;font-size:210px;line-height:1;letter-spacing:-.01em;}
   .full .sub{font-family:var(--serif);font-size:66px;line-height:1.25;margin-top:52px;max-width:900px;}
-  .full .hand{font-size:96px;margin-top:40px;}
+  .full .hand{font-family:var(--serif);font-style:italic;font-size:72px;margin-top:44px;color:var(--ink-soft);}
+  /* 나레이션 자막(영어): 안전 영역(아래 420·오른쪽 150) 안에, 종이색 위에서도 읽히게 진한 판 */
+  #capL{pointer-events:none;}
+  .capbox{position:absolute;left:70px;width:860px;text-align:center;font-family:var(--sans);font-weight:700;font-size:52px;line-height:1.22;text-wrap:balance;
+          color:#fff;background:rgba(22,22,22,.80);padding:20px 34px 22px;border-radius:30px;box-sizing:border-box;letter-spacing:.005em;}
+  .capbox .kr{font-family:var(--kr);font-weight:700;color:#ffd650;}
   /* 훅: 사진 전면 + 캡션 */
   #hookMedia{background:#111;overflow:hidden;}
   #hookMedia .media{position:absolute;inset:0;background-size:cover;background-position:center 30%;transform-origin:50% 40%;}
   #hookMedia video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-  #hookMedia .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 55%,rgba(0,0,0,.72) 100%);}
-  #hookMedia .cap{position:absolute;left:80px;right:80px;top:1180px;text-align:center;color:#fff;font-family:var(--serif);font-size:96px;line-height:1.18;text-shadow:0 4px 30px rgba(0,0,0,.55);}
+  #hookMedia .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25) 0%,rgba(0,0,0,0) 25%,rgba(0,0,0,0) 60%,rgba(0,0,0,.45) 100%);}
+  /* 캡션: 앱과 같은 종이색 카드 위에 먹색 글자 — 사진이 밝든 어둡든 읽힌다. 아래 안전 영역(1500px~) 위에 둔다 */
+  #hookMedia .capbox{position:absolute;left:66px;right:66px;top:1120px;background:rgba(249,244,231,.95);border-radius:30px;padding:46px 44px 34px;
+                     text-align:center;box-shadow:0 22px 70px rgba(0,0,0,.38);}
+  #hookMedia .capbox:before{content:'';position:absolute;inset:14px;border:2px solid rgba(26,26,26,.16);border-radius:20px;pointer-events:none;}
+  #hookMedia .cap{position:relative;color:var(--ink);font-family:var(--serif);font-weight:700;font-size:94px;line-height:1.1;letter-spacing:-.01em;text-wrap:balance;}
   #hookMedia .cap .w{display:inline-block;}
-  #hookMedia .credit{position:absolute;left:0;right:0;top:1470px;text-align:center;color:rgba(255,255,255,.72);font-size:24px;letter-spacing:.06em;}
+  #hookMedia .cap .kr{font-family:var(--kr);}
+  #hookMedia .credit{position:relative;margin-top:24px;color:#7a746a;font-family:var(--sans);font-size:23px;letter-spacing:.05em;}
   .pill{position:absolute;top:186px;left:50%;transform:translateX(-50%);font-size:30px;letter-spacing:.3em;text-transform:uppercase;
         color:var(--ink-soft);background:rgba(249,244,231,.92);border:1.5px solid rgba(26,26,26,.18);border-radius:999px;padding:16px 34px;white-space:nowrap;}
   .w{display:inline-block;will-change:transform,opacity;}
@@ -55,11 +65,12 @@
   <div class="big" id="hookBig"></div>
   <div class="sub" id="hookSub"></div>
 </div>
-<div class="layer" id="hookMedia"><div class="media" id="hmImg"></div><div class="shade"></div><div class="cap" id="hmCap"></div><div class="credit" id="hmCredit"></div></div>
+<div class="layer" id="hookMedia"><div class="media" id="hmImg"></div><div class="shade"></div><div class="capbox"><div class="cap" id="hmCap"></div><div class="credit" id="hmCredit"></div></div></div>
 <div class="layer" id="ep"><div class="pill" id="epTx"></div></div>
 <div class="layer draw" id="drawF"><svg id="svgF" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"></svg></div>
 <div class="layer draw" id="drawB"><svg id="svgB" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"></svg></div>
 <div class="layer draw" id="drawR"><svg id="svgR" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"></svg></div>
+<div class="layer" id="capL"><div class="capbox" id="capTxt"></div></div>
 <div class="layer full" id="outro">
   <div class="big" id="outBig" style="font-style:normal;font-size:150px;"></div>
   <div class="sub" id="outSub"></div>
@@ -134,7 +145,7 @@
     });
   }
 
-  var F = { ul: [], braces: [], labels: [], hl: [] }, B = { rows: [] }, Rn = { hangul: null, chips: [], intro: [] };
+  var F = { ul: [], braces: [], labels: [], hl: [] }, B = { rows: [], surname: [] }, Rn = { hangul: null, chips: [], intro: [] };
 
   window.setup = function(script, timeline, cues, layout){
     S = script; T = timeline; C = cues || {}; L = layout || {};
@@ -183,6 +194,7 @@
     svg = $('svgB'); while(svg.firstChild) svg.removeChild(svg.firstChild);
     var lb = L.layout_back;
     if(lb && lb.rows) B.rows = lb.rows.map(function(r){ return highlight(svg, r); });
+    B.surname = (lb && lb.surnameLines) ? lb.surnameLines.map(function(r){ return highlight(svg, r); }) : [];
     // ── 이유 화면: 테일러 밑줄, 고른 음절 밑줄, 'We carried…' 형광펜
     svg = $('svgR'); while(svg.firstChild) svg.removeChild(svg.firstChild);
     var lr = L.layout_reason;
@@ -206,14 +218,14 @@
   window.render = function(t){
     var v, sig = [];
     // ── 훅
-    var hookEnd = T.type - .2;
+    var hookEnd = (T.card !== undefined) ? T.card + .05 : T.type - .2;   // 입력 카드가 뜨면 훅이 걷힌다
     if(S.hook.media){
       v = vis(t, T.start - 1, hookEnd, .01, .4);
       setLayer($('hookMedia'), v); setLayer($('hook'), 0);
       if(v > 0){
         var p = clamp((t + 1) / (hookEnd + 1));
         $('hmImg').style.transform = 'scale(' + (1 + .09 * p) + ')';
-        words($('hmCap'), t, (C.hook ? C.hook.t : .2) - .05, .07, 26);
+        words($('hmCap'), t, (C.hook ? C.hook.t - .05 : .1), .07, 26);
         sig.push('hm', q(v), q(p), q(t));
       }
     } else {
@@ -222,7 +234,7 @@
       if(v > 0){ words($('hookEye'), t, .05, .05, 14); words($('hookBig'), t, .25, 0, 40); words($('hookSub'), t, .7, .06, 18); sig.push('hk', q(v), q(Math.min(t, 2))); }
     }
     // ── 회차 표시
-    v = vis(t, T.type - .2, T.submit + .35, .3, .25);
+    v = vis(t, hookEnd, T.submit + .35, .3, .25);
     setLayer($('ep'), v, -16); if(v > 0) sig.push('ep', q(v));
     // ── 앞면 그림
     var frontEnd = (T.back || (T.result + 60)) - .05;
@@ -230,9 +242,12 @@
     setLayer($('drawF'), v);
     if(v > 0){
       sig.push('F', q(v));
-      var sl = C.slow;                                             // 천천히 읽기: 음절마다 소리 구간에 밑줄
+      var sl = C.slow || C.say, n = F.ul.length;                    // 이름을 읽는 동안 음절마다 밑줄
       F.ul.forEach(function(u, i){
-        var seg = sl && sl.segs && sl.segs[i], a = sl ? sl.t + (seg ? seg[0] : i * .8) : T.say + i * .5, d = seg ? Math.max(.2, (seg[1] - seg[0]) * .9) : .4;
+        var a, d;
+        if(sl && sl.segs && sl.segs[i]){ a = sl.t + sl.segs[i][0]; d = Math.max(.2, (sl.segs[i][1] - sl.segs[i][0]) * .9); }
+        else if(sl){ var v0 = sl.v0 || 0, v1 = sl.v1 || sl.dur, slot = (v1 - v0) / Math.max(1, n); a = sl.t + v0 + i * slot; d = Math.max(.15, slot * .9); }
+        else { a = T.result + 1 + i * .5; d = .4; }
         drawTo(u, (t - a) / d, sig);
       });
       // 성/이름 브레이스: 한국어 세그먼트("서.", "태이.")를 말하는 순간에 그린다
@@ -244,19 +259,26 @@
         drawTo(b, p, sig); F.labels[i].style.opacity = lp; sig.push(q(lp));
       });
       // 한 줄 뜻 형광펜: 목소리가 실제로 시작되는 순간부터 문장 길이에 맞춰
-      if(C.meaning){ var m0 = C.meaning.t + (C.meaning.v0 || 0); sweep(F.hl, t, m0, Math.max(.8, (C.meaning.dur - (C.meaning.v0 || 0)) * .92), sig); }
+      if(C.meaning){ var m0 = C.meaning.hlAt !== undefined ? C.meaning.hlAt : C.meaning.t + (C.meaning.v0 || 0);
+                     var md = C.meaning.hlDur !== undefined ? C.meaning.hlDur : (C.meaning.dur - (C.meaning.v0 || 0));
+                     sweep(F.hl, t, m0, Math.max(.8, md * .92), sig); }
     }
     // ── 뒷면 그림: "Tae means a star." 때 태 행, "And I means…" 때 이 행
-    var backEnd = (T.front || (T.back + 60)) - .05;
+    var backEnd = (T.front || T.outro || (T.back + 60)) - .05;
     v = vis(t, T.back + .9, backEnd, .01, .2);
     setLayer($('drawB'), v);
     if(v > 0){
       sig.push('B', q(v));
       (S.backKeys || []).forEach(function(k, i){
         var c = C[k]; if(!c || !B.rows[i]) return;
-        var a = c.t + (c.v0 || 0);                                   // "태." 를 말하는 순간부터
+        var a = c.t + (c.v0 || 0);
         drawTo(B.rows[i], (t - a) / Math.max(.5, (c.dur - (c.v0 || 0)) * .75), sig);
       });
+      if(C.back && C.back.koStarts){                                 // 한 문장 대본: 한국어 세그먼트 순서 = [성], 글자1, 글자2…
+        var ks = C.back.koStarts, off = (S.nSurname > 0 && B.surname.length) ? 1 : 0;
+        if(off) sweep(B.surname, t, ks[0], 1.6, sig);
+        B.rows.forEach(function(r, i){ var a = ks[i + off]; if(a !== undefined) drawTo(r, (t - a) / .6, sig); });
+      }
     }
     // ── 이유 화면 그림
     var rEnd = (T.reason2 || (T.reason1 + 60)) - .05;
@@ -272,6 +294,20 @@
         sweep(Rn.intro, t, b1.t + .1, Math.max(.8, b1.dur * .8), sig);
       }
     }
+    // ── 영어 자막: 나레이션 문장 조각을 소리 나는 동안
+    var capI = -1, capV = 0, caps = S.captions || [];
+    for(var ci = 0; ci < caps.length; ci++){ if(t >= caps[ci].t0 && t < caps[ci].t1){ capI = ci; break; } }
+    if(capI >= 0 && t < T.outro - .05){
+      var cc = caps[capI]; capV = Math.min(easeOut((t - cc.t0) / .12), easeOut((cc.t1 - t) / .12));
+      var capEl = $('capTxt');
+      if(capEl.getAttribute('data-i') !== String(capI)){
+        capEl.setAttribute('data-i', capI);
+        capEl.innerHTML = cc.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/([가-힣]+)/g, '<span class="kr">$1</span>');
+        capEl.style.top = (cc.y || 1290) + 'px';
+      }
+      sig.push('cap', capI, q(capV));
+    }
+    setLayer($('capL'), capV);
     // ── 아웃트로
     v = vis(t, T.outro, T.outro + 60, .35, 1);
     setLayer($('outro'), v);
