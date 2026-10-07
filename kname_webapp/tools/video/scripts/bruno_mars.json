@@ -1,0 +1,95 @@
+{
+ "_설명": [
+  "키(input, result …)는 장면과 효과의 자리입니다. 키는 두고 문장만 고치세요.",
+  "목록([…])은 한 문장을 여러 소리로 나눈 것 — {\"text\",\"lang\":\"ko-KR\",\"frame\":…} 부분은 한국어로 읽히고(frame 은 말하지 않는 앞말 — \"frame — text — 이렇게 읽어요.\" 문장 전체를 한국어로 읽힌 뒤 가운데만 씁니다), 그 순간에 효과(브레이스·형광펜)가 붙습니다.",
+  "줄을 지우면 그 장면은 나레이션 없이 짧게 지나갑니다. \"audio\": \"파일경로\" 를 주면 TTS 대신 그 소리를 씁니다.",
+  "장면 순서: 훅(캡션만) → input(타이핑) → result(앞면, 이름 발음+밑줄) → names(성/이름 브레이스) → meaning(형광펜) → back(뒷면: 성씨·글자별 뜻·합친 뜻) → why(마지막 화면)"
+ ],
+ "name": "Bruno Mars:m",
+ "hook_media": "/home/claude/work/photos/bruno.jpg",
+ "hook_credit": "Photo: slgckgc · CC BY 2.0 · Wikimedia Commons",
+ "en_voice": "danbi",
+ "tempo_scene": {
+  "input": 1.1
+ },
+ "hook_caption": "Bruno Mars's Korean name?",
+ "lines": {
+  "input": "Let's make the Korean name that fits Bruno Mars best — one that keeps the sound and feel of the original, and carries a real Korean meaning. First, let's type the name in.",
+  "result": [
+   "The Korean name that fits Bruno best is",
+   {
+    "text": "문범준",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Moon-Beom-Jun",
+    "frame": "이 사람의 한국 이름은"
+   }
+  ],
+  "names": [
+   "Korean names put the last name first, so",
+   {
+    "text": "문",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Moon",
+    "frame": "성은"
+   },
+   "is the last name, and",
+   {
+    "text": "범준",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Beom-Jun",
+    "frame": "이름은"
+   },
+   "is the first name."
+  ],
+  "meaning": [
+   "Korean names carry real meaning.",
+   {
+    "text": "범준",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Beom-Jun",
+    "frame": "이름은"
+   },
+   "means someone broad-minded who stands tall."
+  ],
+  "back": [
+   "Now, let's break it down, piece by piece.",
+   "The last name",
+   {
+    "text": "문",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Moon",
+    "frame": "성은"
+   },
+   "is Korea's 23rd most common family name.",
+   "In the first name,",
+   {
+    "text": "범",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Beom",
+    "frame": "이 글자는"
+   },
+   "means broad, boundless,",
+   "and",
+   {
+    "text": "준",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jun",
+    "frame": "이 글자는"
+   },
+   "means lofty,",
+   "so together, someone broad-minded who stands tall.",
+   "Pretty cool, right?"
+  ],
+  "why": {
+   "text": "Curious why this name? Check the link in bio. Thank you!",
+   "mood": "bright"
+  }
+ }
+}
