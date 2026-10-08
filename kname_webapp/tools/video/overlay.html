@@ -275,8 +275,8 @@
         drawTo(B.rows[i], (t - a) / Math.max(.5, (c.dur - (c.v0 || 0)) * .75), sig);
       });
       if(C.back && C.back.koStarts){                                 // 한 문장 대본: 한국어 세그먼트 순서 = [성], 글자1, 글자2…
-        var ks = C.back.koStarts, off = (S.nSurname > 0 && B.surname.length) ? 1 : 0;
-        if(off) sweep(B.surname, t, ks[0], 1.6, sig);
+        var ks = C.back.koStarts, off = (C.back.hasSn !== undefined ? C.back.hasSn : (S.nSurname > 0)) && B.surname.length ? 1 : 0;
+        if(off) sweep(B.surname, t, ks[0], Math.max(1.6, C.back.snDur || 1.6), sig);
         B.rows.forEach(function(r, i){ var a = ks[i + off]; if(a !== undefined) drawTo(r, (t - a) / .6, sig); });
       }
     }

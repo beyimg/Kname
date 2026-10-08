@@ -14,9 +14,9 @@
  },
  "hook_caption": "Selena Gomez's Korean name?",
  "lines": {
-  "input": "Let's make the Korean name that fits Selena Gomez best — one that keeps the sound and feel of the original, and carries a real Korean meaning. First, let's type the name in.",
+  "input": "Let's turn Selena Gomez into a Korean name.",
   "result": [
-   "The Korean name that fits Selena best is",
+   "Selena becomes",
    {
     "text": "고세나",
     "lang": "ko-KR",
@@ -26,13 +26,15 @@
    }
   ],
   "names": [
-   "Korean names put the last name first, so",
+   "In Korea, the last name comes first. So",
    {
     "text": "고",
     "lang": "ko-KR",
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Ko",
-    "frame": "성은"
+    "frame": "성은",
+    "full": "고세나",
+    "idx": 0
    },
    "is the last name, and",
    {
@@ -42,53 +44,50 @@
     "rom": "Se-Na",
     "frame": "이름은"
    },
-   "is the first name."
+   "is the first."
   ],
   "meaning": [
-   "Korean names carry real meaning.",
-   {
-    "text": "세나",
-    "lang": "ko-KR",
-    "voice": "ko-KR-Chirp3-HD-Aoede",
-    "rom": "Se-Na",
-    "frame": "이름은"
-   },
-   "means someone beautiful through the years."
+   "And it has a meaning:",
+   "someone beautiful through the years."
   ],
   "back": [
-   "Now, let's break it down, piece by piece.",
+   "Here's how.",
    "The last name",
    {
     "text": "고",
     "lang": "ko-KR",
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Ko",
-    "frame": "성은"
+    "frame": "성은",
+    "full": "고세나",
+    "idx": 0
    },
-   "is Korea's 22nd most common family name.",
+   "is a Jeju Island name — one of three founding families, the legend says.",
    "In the first name,",
    {
     "text": "세",
     "lang": "ko-KR",
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Se",
-    "frame": "이 글자는"
+    "frame": "이 글자는",
+    "full": "고세나",
+    "idx": 1
    },
-   "means years, age,",
+   "means years,",
    "and",
    {
     "text": "나",
     "lang": "ko-KR",
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Na",
-    "frame": "이 글자는"
+    "frame": "이 글자는",
+    "full": "고세나",
+    "idx": 2
    },
-   "means graceful, lovely,",
-   "so together, someone beautiful through the years.",
-   "Pretty, right?"
+   "means graceful."
   ],
   "why": {
-   "text": "Curious why this name? Check the link in bio. Thank you!",
+   "text": "Want yours? Drop a name below, or try it. Link in bio. Thank you!",
    "mood": "bright"
   }
  }

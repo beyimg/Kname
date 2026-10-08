@@ -18,7 +18,7 @@ import argparse, asyncio, base64, glob, hashlib, json, os, re, shutil, subproces
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.dirname(os.path.dirname(HERE))
-os.chdir(BASE); sys.path.insert(0, BASE); sys.path.insert(0, os.path.join(BASE, 'lib'))
+os.chdir(BASE); sys.path.insert(0, BASE); sys.path.insert(0, os.path.join(BASE, 'lib')); sys.path.insert(0, os.path.join(BASE, 'data'))
 BASE_URL = os.environ.get('DEMO_BASE', 'http://127.0.0.1:5078')
 PROD = os.environ.get('KNAME_PROD_URL', 'https://kname.onrender.com').rstrip('/')
 TOKEN = os.environ.get('KNAME_VIDEO_TOKEN', '')
@@ -113,9 +113,13 @@ def en_context(spec):
 
 _ROM_D = None                                                       # build_lines 가 현재 변환 결과를 넣는다
 KO_FRAMES = ['{p} — {t} — 이렇게 읽어요.', '{p} — {t} — 이렇게 불러요.']   # 테이크 2개 → 톤이 고른 쪽
+KO_FRAMES_SYL = KO_FRAMES + ['{p} — {t} — 라고 읽어요.', '{p} — {t} — 이렇게 발음해요.']   # 한 글자는 테이크 4개(짧게 잘리는 일이 잦다)
+KO_SYL_STRETCH = 1.1                                                  # 한 글자 조각 길이 배수(음높이 유지)
+KO_SYL_FROM_FULL = True                                               # 낱글자는 이름 전체 발음에서 잘라 쓴다(False 면 문장 틀로 따로 합성)
+KO_SYL_MIN = 0.24                                                     # 한 글자 소리 길이 최소(초) — Danbi 는 낱글자를 0.12~0.2s 로 짧게 읽는다
 
 
-def ko(text, prev='한국 이름은', nxt=None):
+def ko(text, prev='한국 이름은', nxt=None, full=None, idx=None):
     """한국어로 읽을 세그먼트. ElevenLabs 는 글자만 주거나 숨은 문맥(prev/next)만 주면 영어식·높은 톤으로
     읽는 일이 잦다 → **한국어 문장 전체**('성은 — 서 — 이렇게 읽어요.')를 읽힌 뒤 가운데(— … —)만 잘라 쓴다.
     frame = 앞에 붙는(말하지 않는) 한국어 문맥."""
@@ -124,7 +128,49 @@ def ko(text, prev='한국 이름은', nxt=None):
         d['rom'] = romanize_text(text, _ROM_D)                  # 영어 조각의 문맥(말하지 않는 앞뒤 글)에 쓴다
     if ENGINE == 'elevenlabs':
         d['frame'] = prev.rstrip(', ')
+        if full and len(text) == 1 and text in full and KO_SYL_FROM_FULL:
+            d['full'] = full                                   # 낱글자는 이름 전체 발음에서 잘라 쓴다(민우님 2026-10-07: 낱글자 단독은 영어식으로 읽힘)
+            d['idx'] = idx if idx is not None else full.index(text)
     return d
+
+
+def _rms_env(path, hop=0.005):
+    """5ms 간격 RMS 포락선(numpy)."""
+    import numpy as np
+    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', path, '-f', 'f32le', '-ac', '1', '-ar', '16000', '-'], capture_output=True).stdout
+    x = np.frombuffer(raw, np.float32); n = int(16000 * hop)
+    env = np.array([np.sqrt((x[i:i + n] ** 2).mean()) for i in range(0, len(x) - n, n)])
+    return env, hop
+
+
+def syllable_from_full(full_path, full_text, idx, ndir, key):
+    """이름 전체 발음 클립에서 idx 번째 글자를 잘라 낸다. 글자 경계는 균등 분할 자리 근처(±30%)에서 에너지가 가장 낮은 곳으로 맞춘다."""
+    try:
+        import numpy as np
+    except ImportError:
+        return None
+    out = os.path.join(ndir, f'syl_{key}.mp3')
+    if os.path.exists(out):
+        return out
+    a, b = voiced_span(full_path)
+    n = max(1, len(re.findall(r'[가-힣]', full_text)))
+    L = (b - a) / n
+    env, hop = _rms_env(full_path)
+    def valley(t, lo, hi):
+        i0, i1 = max(0, int(lo / hop)), min(len(env) - 1, int(hi / hop))
+        if i1 <= i0:
+            return t
+        j = i0 + int(np.argmin(env[i0:i1]))
+        return j * hop
+    s0 = a if idx == 0 else valley(a + idx * L, a + idx * L - 0.3 * L, a + idx * L + 0.3 * L)
+    e0 = b if idx == n - 1 else valley(a + (idx + 1) * L, a + (idx + 1) * L - 0.3 * L, a + (idx + 1) * L + 0.3 * L)
+    pre = 0.03 if idx == 0 else 0.0
+    post = 0.08 if idx == n - 1 else 0.0
+    fade = 0.05
+    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', full_path, '-af',
+                    f'atrim={max(0, s0 - pre):.3f}:{e0 + post:.3f},asetpts=PTS-STARTPTS,afade=t=in:d=0.012,afade=t=out:st={max(0.0, (e0 + post) - max(0, s0 - pre) - fade):.3f}:d={fade}',
+                    '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '96k', out], check=True)
+    return out
 
 
 def _pitch_mean(path, a=None, b=None):
@@ -310,8 +356,21 @@ def ko_synthesize(sp, ndir):
     """frame 이 있는 한국어 세그먼트: 문장 전체를 테이크별로 받아 가운데 소리 구간만 잘라 낸 mp3 경로.
     테이크가 여럿이면 문장 전체의 음높이와 가장 가까운(톤이 튀지 않는) 테이크를 고른다."""
     text, frame = sp['text'], sp['frame']
-    takes = [f.format(p=frame, t=text) for f in KO_FRAMES]
-    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text).encode('utf-8')).hexdigest()[:16] + '.mp3')
+    if sp.get('full') and len(text) == 1:
+        fullp = ko_synthesize({'text': sp['full'], 'frame': '이 사람의 한국 이름은', 'voice': sp.get('voice')}, ndir)
+        if fullp:
+            key = hashlib.sha1(f"{sp['full']}|{sp['idx']}|{KO_SYL_STRETCH}|{KO_SYL_MIN}".encode('utf-8')).hexdigest()[:16]
+            raw = syllable_from_full(fullp, sp['full'], int(sp['idx']), ndir, key)
+            if raw:
+                v0, v1 = voiced_span(raw); ln = max(0.05, v1 - v0)
+                stretch = max(KO_SYL_STRETCH, min(1.5, KO_SYL_MIN / ln)) if ln * KO_SYL_STRETCH < KO_SYL_MIN else KO_SYL_STRETCH
+                final = raw[:-4] + f'_s{int(stretch * 100)}.mp3'
+                if not os.path.exists(final):
+                    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', raw, '-af', f'atempo={1 / stretch:.4f}', '-c:a', 'libmp3lame', '-b:a', '96k', final], check=True)
+                print(f'  ko [{text}] {ln * stretch:.2f}s ← {sp["full"]} 전체 발음의 {int(sp["idx"]) + 1}번째 글자')
+                return final
+    takes = [f.format(p=frame, t=text) for f in (KO_FRAMES_SYL if len(re.findall(r'[가-힣]', text)) == 1 else KO_FRAMES)]
+    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text + f'|s{KO_SYL_STRETCH}|m{KO_SYL_MIN}').encode('utf-8')).hexdigest()[:16] + '.mp3')
     if os.path.exists(final):
         return final
     paths = [os.path.join(ndir, hashlib.sha1((t + '|ko-KR|full').encode('utf-8')).hexdigest()[:16] + '.mp3') for t in takes]
@@ -337,14 +396,24 @@ def ko_synthesize(sp, ndir):
             continue
         mid, whole = _pitch_mean(p, a, b), _pitch_mean(p)
         score = abs((mid or 0) - (whole or 0)) if (mid and whole) else 0
+        if n_syl == 1 and b - a < 0.18:
+            score += 60                                      # 한 글자가 너무 짧게 잘린 테이크는 뒤로
         cands.append((score, p, a, b))
     if not cands:
         return None
     cands.sort()
     score, p, a, b = cands[0]
     cut = cut_clip(p, a, b)
+    stretch = KO_SYL_STRETCH if n_syl == 1 else 1.0          # 한 글자씩 읽는 조각은 조금 길게(민우님 2026-10-05: 너무 짧다)
+    if n_syl == 1 and (b - a) * stretch < KO_SYL_MIN:
+        stretch = min(1.5, KO_SYL_MIN / (b - a))               # 그래도 KO_SYL_MIN 이 안 되면 더 늘린다(최대 1.5배)
+    if stretch != 1.0:
+        slow = cut[:-4] + f'_s{int(stretch * 100)}.mp3'
+        if not os.path.exists(slow):
+            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', cut, '-af', f'atempo={1 / stretch:.4f}', '-c:a', 'libmp3lame', '-b:a', '96k', slow], check=True)
+        cut = slow
     shutil.copyfile(cut, final)
-    print(f'  ko [{text}] {b - a:.2f}s 톤차 {score:.0f}Hz ← {os.path.basename(p)}')
+    print(f'  ko [{text}] {(b - a) * stretch:.2f}s 톤차 {score:.0f}Hz ← {os.path.basename(p)}')
     return final
 
 
@@ -558,10 +627,38 @@ def sentences(text):
     return [s.strip() for s in re.findall(r'[^.!?]*[.!?]+["\u201d\u2019]?', text or '') if s.strip()]
 
 
-def surname_rank(desc):
-    """'Seo (徐) is Korea's 13th most common surname…' → '13th'"""
-    m = re.search(r"(\d+)(st|nd|rd|th) most common", desc or '')
-    return m.group(0).split(' ')[0] if m else None
+GLOSS_PRIMARY = {}                      # 한자 → 대표 뜻을 손으로 정해야 하는 소수의 예외 {'範': 'a model'}
+
+
+def primary_gloss(gloss, hanja=None):
+    """한자 뜻 사전 값은 'broad, boundless,' 처럼 동의어 나열이다. 눈으로 보는 카드엔 괜찮지만 소리로는
+    끝맺음 없이 끊겨 들린다(2026-10-07). 영상에서는 **대표 뜻 하나**만 읽는다 — 사전의 첫 번째 뜻."""
+    if hanja and hanja in GLOSS_PRIMARY:
+        return GLOSS_PRIMARY[hanja]
+    words = [w.strip() for w in str(gloss or '').split(',') if w.strip()]
+    words = [w for w in words if not _HANGUL.search(w)]
+    return words[0] if words else str(gloss or '').strip(' ,')
+
+
+def surname_line(d):
+    """성씨 뒤에 붙일 한 문장(주어 'The last name 고' 뒤). 없으면 None — 억지로 채우지 않는다.
+    1~3위만 순위를 말한다 · 특징 있는 성씨는 그 사실 · 약한 성씨는 실제 성이 같은 유명인 · 그것도 없으면 글자 뜻 · 없으면 생략."""
+    sn = d.get('surname')
+    if not sn:
+        return None
+    try:
+        from surname_notes import TOP3_SPOKEN_EN, SURNAME_SPOKEN_EN, celeb_spoken
+    except Exception:
+        return None
+    line = TOP3_SPOKEN_EN.get(sn) or SURNAME_SPOKEN_EN.get(sn) or celeb_spoken(sn)
+    if line:
+        return line
+    m = re.search(r"[Tt]he character means [\"\u201c']([^\"\u201d']+?)[.,]?[\"\u201d']", d.get('surname_desc') or '')
+    if m:
+        w = m.group(1).strip()
+        w = w if len(w.split()) <= 4 else w.split(',')[0].strip()
+        return f"is written with the character for \u201c{w}.\u201d"
+    return None
 
 
 def phrase_split(text, min_words=8):
@@ -592,39 +689,34 @@ def build_lines(d, first, last, args):
     ms = (d.get('meaning_short') or '').strip()
     ms_l = (ms[0].lower() + ms[1:]) if ms else ''
     lines = {}
-    # 훅: 나레이션 없음(캡션만). 입력 화면부터 말한다.
-    lines['input'] = (f"Let's make the Korean name that fits {full_en} best — one that keeps the sound and feel "
-                      f"of the original, and carries a real Korean meaning. First, let's type the name in.")
-    lines['result'] = [f"The Korean name that fits {first} best is", ko(d['full_hangul'], prev='이 사람의 한국 이름은')]
+    # 훅: 나레이션 없음(캡션만). 입력 화면부터 말한다.   (2026-10-07 대본 개편: 짧게 · 뜻은 한 번만 · 참여 유도로 마무리)
+    lines['input'] = f"Let's turn {full_en} into a Korean name."
+    lines['result'] = [f"{first} becomes", ko(d['full_hangul'], prev='이 사람의 한국 이름은')]
     if n_s:
-        lines['names'] = ["Korean names put the last name first, so", ko(d['surname'], prev='성은'),
-                          'is the last name, and', ko(given_ko, prev='이름은'), 'is the first name.']
+        lines['names'] = ["In Korea, the last name comes first. So", ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0),
+                          'is the last name, and', ko(given_ko, prev='이름은'), 'is the first.']
     else:
-        lines['names'] = ["Korean names put the last name first —", ko(given_ko, prev='이름은'), 'is the first name.']
+        lines['names'] = ["In Korea, the last name comes first.", ko(given_ko, prev='이름은'), 'is the first name.']
     if ms:
         pcs = phrase_split(ms_l.rstrip('.'))
-        lines['meaning'] = ["Korean names carry real meaning.", ko(given_ko, prev='이름은'), f"means {pcs[0]}"] + pcs[1:]
+        lines['meaning'] = ["And it has a meaning:", pcs[0]] + pcs[1:]
         lines['meaning'][-1] = lines['meaning'][-1].rstrip('.,') + '.'
-    # 뒷면: 성씨 → 글자별 뜻 → 합쳐진 뜻
-    back = ["Now, let's break it down, piece by piece."]
-    rank = surname_rank(d.get('surname_desc'))
-    if n_s and rank:
-        back += ["The last name", ko(d['surname'], prev='성은'), f"is Korea's {rank} most common family name."]
-    elif n_s:
-        back += ["The last name", ko(d['surname'], prev='성은'), "is a Korean family name."]
+    # 뒷면: 성씨 한 줄(있을 때만) → 글자별 대표 뜻.  합친 뜻은 meaning 장면에서 이미 말했다.
+    back = ["Here's how."]
+    sl = surname_line(d)
+    if n_s and sl:
+        back += ["The last name", ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0), sl]
     hl = d['hanja_lines']
     for i, h in enumerate(hl):
-        lead = "In the first name," if i == 0 else ("and" if i == len(hl) - 1 else "")
+        lead = "In the first name," if (i == 0 and n_s and sl) else ("and" if i == len(hl) - 1 and len(hl) > 1 else "")
         if lead:
             back.append(lead)
-        back += [ko(h['syl'], prev='이 글자는'), f"means {h['gloss']}" + ("," if (i < len(hl) - 1 or ms) else "")]
-    if ms:
-        pcs = phrase_split(ms_l.rstrip('.'))
-        back += ["so together, " + pcs[0]] + pcs[1:]
-        back[-1] = back[-1].rstrip('.,') + '.'
-    back.append(args.back_tail or "Pretty, right?")
+        back += [ko(h['syl'], prev='이 글자는', full=d['full_hangul'], idx=n_s + i),
+                 f"means {primary_gloss(h['gloss'], h.get('hanja'))}" + ("," if i < len(hl) - 1 else ".")]
+    if args.back_tail:
+        back.append(args.back_tail)
     lines['back'] = back
-    lines['why'] = {'text': args.why_line or "Curious why this name? Check the link in bio. Thank you!", 'mood': 'bright'}   # mood=bright: 밝고 활기찬 테이크를 고른다
+    lines['why'] = {'text': args.why_line or "Want yours? Drop a name below, or try it. Link in bio. Thank you!", 'mood': 'bright'}   # mood=bright: 밝고 활기찬 테이크를 고른다
     return lines
 
 
@@ -731,7 +823,7 @@ def build_script(name, sex, args):
         'ep': f'Korean name · {name}',
         'hook': {'eyebrow': 'What is', 'big': f'{name}’s', 'sub': 'Korean name?', 'media': media},
         'rom': d['full_rom'], 'nSurname': len(d['surname'] or '') if d.get('surname') else 0,
-        'outro': {'big': args.outro_big or 'Why this name?', 'sub': args.outro_sub or 'Check the link in bio.', 'hand': 'Thank you! \U0001F517'},
+        'outro': {'big': args.outro_big or 'Want yours?', 'sub': args.outro_sub or 'Drop a name below, or try it. Link in bio.', 'hand': 'Thank you! \U0001F517'},
         'given': d['given'], 'hanja': d['hanja'], 'full': d['full_hangul'],
     }
     return script, d, first, last.strip()
@@ -877,7 +969,7 @@ def main():
     ap.add_argument('--no-captions', action='store_true', help='영어 자막을 넣지 않는다')
     ap.add_argument('--outro-big', default=''); ap.add_argument('--outro-sub', default='')
     ap.add_argument('--why-line', default='', help='마지막 화면 나레이션'); ap.add_argument('--why-secs', type=float, default=3.0)
-    ap.add_argument('--back-tail', default='', help='뒷면 설명 끝맺음(기본 "Pretty, right?")')
+    ap.add_argument('--back-tail', default='', help='뒷면 끝에 덧붙일 한마디(기본 없음)')
     ap.add_argument('--filled', type=float, default=0.5, help='이름을 다 입력한 화면을 제출 전에 보여주는 초(로딩 느낌)')
     ap.add_argument('--type', type=int, default=70)
     ap.add_argument('--tail', type=float, default=1.2)
@@ -992,9 +1084,17 @@ def main():
             cues['say'] = {'t': kp['t'], 'dur': kp['dur'], 'v0': kp['v0'], 'v1': kp['v1'], 'parts': [], 'koStarts': []}
     if 'meaning' in cues:                                             # 형광펜: 뜻 문장을 말하는 순간
         mp = cues['meaning']['parts']                                  # 한국어 이름 뒤의 뜻풀이 조각들 전체 구간
-        k0 = min(max([i for i, p in enumerate(mp) if p['ko']] or [-1]) + 1, len(mp) - 1)
+        k0 = min(max([i for i, p in enumerate(mp) if p['ko']] or [0]) + 1, len(mp) - 1)   # 한국어 조각이 없으면 도입구('And it has a meaning:') 다음부터
         cues['meaning']['hlAt'] = mp[k0]['t'] + mp[k0]['v0']; cues['meaning']['hlDur'] = (mp[-1]['t'] + mp[-1]['v1']) - cues['meaning']['hlAt']
     put('back', T['back'] + 0.9)
+    if 'back' in cues:                                                # 뒷면 형광펜: 성씨 문장이 있을 때만 성씨 줄을 칠하고, 문장이 읽히는 시간만큼 천천히 쓸어간다
+        bp = cues['back']['parts']
+        ko_i = [i for i, p_ in enumerate(bp) if p_['ko']]
+        has_sn = len(ko_i) == len(d['hanja_lines']) + 1
+        cues['back']['hasSn'] = has_sn
+        if has_sn and ko_i[0] + 1 < len(bp):
+            a_, b_ = bp[ko_i[0]], bp[ko_i[0] + 1]
+            cues['back']['snDur'] = max(1.0, (b_['t'] + b_['v1']) - (a_['t'] + a_['v0']))
     put('why', T['outro'] + 0.2)
     script['backKeys'] = []
     script['captions'] = [] if args.no_captions else caption_lines(cues)

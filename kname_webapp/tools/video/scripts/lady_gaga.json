@@ -14,9 +14,9 @@
  },
  "hook_caption": "Lady Gaga's Korean name?",
  "lines": {
-  "input": "Lady Gaga's real name is Stefani Germanotta. So let's make the Korean name that fits her best — one that keeps the sound and feel of the original, and carries a real Korean meaning. First, let's type the name in.",
+  "input": "Lady Gaga's real name is Stefani Germanotta. Let's turn her into a Korean name.",
   "result": [
-   "The Korean name that fits Gaga best is",
+   "Gaga becomes",
    {
     "text": "정서하",
     "lang": "ko-KR",
@@ -26,13 +26,15 @@
    }
   ],
   "names": [
-   "Korean names put the last name first, so",
+   "In Korea, the last name comes first. So",
    {
     "text": "정",
     "lang": "ko-KR",
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Jung",
-    "frame": "성은"
+    "frame": "성은",
+    "full": "정서하",
+    "idx": 0
    },
    "is the last name, and",
    {
@@ -42,37 +44,34 @@
     "rom": "Seo-Ha",
     "frame": "이름은"
    },
-   "is the first name."
+   "is the first."
   ],
   "meaning": [
-   "Korean names carry real meaning.",
-   {
-    "text": "서하",
-    "lang": "ko-KR",
-    "voice": "ko-KR-Chirp3-HD-Aoede",
-    "rom": "Seo-Ha",
-    "frame": "이름은"
-   },
-   "means someone auspicious and noble as a lotus."
+   "And it has a meaning:",
+   "someone auspicious and noble as a lotus."
   ],
   "back": [
-   "Now, let's break it down, piece by piece.",
+   "Here's how.",
    "The last name",
    {
     "text": "정",
     "lang": "ko-KR",
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Jung",
-    "frame": "성은"
+    "frame": "성은",
+    "full": "정서하",
+    "idx": 0
    },
-   "is Korea's 5th most common family name.",
+   "is the family name of actor Jung Hae-in.",
    "In the first name,",
    {
     "text": "서",
     "lang": "ko-KR",
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Seo",
-    "frame": "이 글자는"
+    "frame": "이 글자는",
+    "full": "정서하",
+    "idx": 1
    },
    "means good omen,",
    "and",
@@ -81,14 +80,14 @@
     "lang": "ko-KR",
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Ha",
-    "frame": "이 글자는"
+    "frame": "이 글자는",
+    "full": "정서하",
+    "idx": 2
    },
-   "means a lotus,",
-   "so together, someone auspicious and noble as a lotus.",
-   "Pretty, right?"
+   "means a lotus."
   ],
   "why": {
-   "text": "Curious why this name? Check the link in bio. Thank you!",
+   "text": "Want yours? Drop a name below, or try it. Link in bio. Thank you!",
    "mood": "bright"
   }
  }
