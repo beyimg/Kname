@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 """
 성씨 카드 뒷면 · 영상 대본용 성씨 데이터 (2026-10-12 개편).
 
@@ -6,7 +7,7 @@
 본관·역사 문장은 쓰지 않는다. 원본(dict_translit_to_result_full.json, surname_info_extra.py)은 그대로 두고 표시할 때 바꾼다.
 
 SURNAME_MEANING_EN : 성씨 → (한자, 영어 뜻).  한자 사전(hanja_dict.xlsx)의 뜻 + 사전에 없는 37자는 손으로.
-SURNAME_CELEB_EN   : 성씨 → (카드용 이름, 카드용 설명, 영상에서 읽을 말).  본명(법적 이름)의 첫 음절이 그 성씨인 사람만
+SURNAME_CELEB_EN   : 성씨 → (영어 이름, 카드용 설명, 영상에서 읽을 앞말, 한글 이름). 카드엔 '정해인 (Jung Hae-in)', 영상에선 한글을 한국어로 읽는다(2026-10-13).  본명(법적 이름)의 첫 음절이 그 성씨인 사람만
                      (영어 위키백과 등에서 확인). 예명이 본명과 다르면 본명을 괄호에. 확인 못 한 성씨는 비워 둔다.
 TOP3               : 1~3위 문장 (카드용, 영상용)
 검증 내역·제외 사유: 프로젝트 문서 claude/SURNAME_NOTES.md
@@ -149,87 +150,87 @@ SURNAME_MEANING_EN = {
 }
 
 SURNAME_CELEB_EN = {
-    '김': ('V (Kim Tae-hyung)', 'member of BTS', "BTS's V, Kim Tae-hyung"),
-    '이': ('IU (Lee Ji-eun)', 'singer and actress in “Hotel del Luna”', 'singer IU, Lee Ji-eun'),
-    '박': ('Jimin (Park Ji-min)', 'member of BTS', "BTS's Jimin, Park Ji-min"),
-    '최': ('Soobin (Choi Soo-bin)', 'leader of TXT', "TXT's Soobin"),
-    '정': ('Jung Hae-in', 'actor in “D.P.” and “Something in the Rain”', 'actor Jung Hae-in'),
-    '조': ('Jo In-sung', 'actor in “Escape from Mogadishu” and “Moving”', 'actor Jo In-sung'),
-    '윤': ('Jeonghan (Yoon Jeong-han)', 'member of SEVENTEEN', "SEVENTEEN's Jeonghan"),
-    '강': ('Kang Daniel', 'singer, former Wanna One', 'singer Kang Daniel'),
-    '장': ('Jang Won-young', 'member of IVE', "IVE's Jang Wonyoung"),
-    '임': ('YoonA (Im Yoon-ah)', "member of Girls' Generation", "Girls' Generation's YoonA"),
-    '한': ('Han (Han Ji-sung)', 'member of Stray Kids', "Stray Kids' Han"),
-    '오': ('Sehun (Oh Se-hun)', 'member of EXO', "EXO's Sehun"),
-    '서': ('Seohyun (Seo Ju-hyun)', "member of Girls' Generation", "Girls' Generation's Seohyun"),
-    '유': ('Jeongyeon (Yoo Jeong-yeon)', 'member of TWICE', "TWICE's Jeongyeon"),
-    '신': ('Yuna (Shin Yu-na)', 'member of ITZY', "ITZY's Yuna"),
-    '권': ('G-Dragon (Kwon Ji-yong)', 'leader of BIGBANG', "BIGBANG's G-Dragon"),
-    '황': ('Hyunjin (Hwang Hyun-jin)', 'member of Stray Kids', "Stray Kids' Hyunjin"),
-    '안': ('An Yu-jin', 'leader of IVE', "IVE's An Yujin"),
-    '송': ('Song Hye-kyo', 'actress in “The Glory”', 'actress Song Hye-kyo'),
-    '홍': ('Eunchae (Hong Eun-chae)', 'member of LE SSERAFIM', "LE SSERAFIM's Eunchae"),
-    '전': ('Jung Kook (Jeon Jung-kook)', 'member of BTS', "BTS's Jungkook"),
-    '고': ('Go Youn-jung', 'actress in “Moving”', 'actress Go Youn-jung'),
-    '문': ('Moon Ga-young', 'actress in “True Beauty”', 'actress Moon Ga-young'),
-    '양': ('I.N (Yang Jeong-in)', 'member of Stray Kids', "Stray Kids' I.N"),
-    '배': ('Suzy (Bae Su-ji)', 'singer and actress in “Start-Up”', 'singer and actress Suzy'),
-    '손': ('Son Heung-min', 'footballer, South Korea captain', 'footballer Son Heung-min'),
-    '백': ('Baek Ye-rin', 'singer-songwriter', 'singer Baek Yerin'),
-    '허': ('Huh Yunjin', 'member of LE SSERAFIM', "LE SSERAFIM's Huh Yunjin"),
-    '노': ('Roh Jeong-eui', 'actress in “Hierarchy”', 'actress Roh Jeong-eui'),
-    '남': ('Nam Joo-hyuk', 'actor in “Twenty-Five Twenty-One”', 'actor Nam Joo-hyuk'),
-    '심': ('Changmin (Shim Chang-min)', 'member of TVXQ', "TVXQ's Changmin"),
-    '하': ('Ha Sung-woon', 'singer, former Wanna One', 'singer Ha Sung-woon'),
-    '주': ('Joo Jong-hyuk', 'actor in “Extraordinary Attorney Woo”', 'actor Joo Jong-hyuk'),
-    '구': ('Koo Hye-sun', 'actress in “Boys Over Flowers”', 'actress Koo Hye-sun'),
-    '곽': ('Kwak Dong-yeon', 'actor in “Vincenzo”', 'actor Kwak Dong-yeon'),
-    '성': ('Sung Si-kyung', 'ballad singer', 'singer Sung Si-kyung'),
-    '차': ('Cha Seung-won', 'actor in “City Hall”', 'actor Cha Seung-won'),
-    '우': ('Woo Do-hwan', 'actor in “Bloodhounds”', 'actor Woo Do-hwan'),
-    '민': ('Suga (Min Yoon-gi)', 'member of BTS', "BTS's Suga, Min Yoon-gi"),
-    '류': ('Ryu Seung-ryong', 'actor in “Extreme Job”', 'actor Ryu Seung-ryong'),
-    '나': ('Na Hong-jin', 'director of “The Wailing”', 'director Na Hong-jin'),
-    '변': ('Byeon Woo-seok', 'actor in “Lovely Runner”', 'actor Byeon Woo-seok'),
-    '설': ('Sol Kyung-gu', 'actor in “Oasis”', 'actor Sol Kyung-gu'),
-    '방': ('Bang Chan', 'leader of Stray Kids', "Stray Kids' Bang Chan"),
-    '엄': ('Uhm Jung-hwa', 'singer and actress', 'singer and actress Uhm Jung-hwa'),
-    '위': ('Wi Ha-joon', 'actor in “Squid Game”', 'actor Wi Ha-joon'),
-    '여': ('Yeo Jin-goo', 'actor in “Hotel del Luna”', 'actor Yeo Jin-goo'),
-    '천': ('Chun Woo-hee', 'actress in “The Wailing”', 'actress Chun Woo-hee'),
-    '함': ('Hahm Eun-jung', 'member of T-ara', "T-ara's Eunjung"),
-    '염': ('Yeom Hye-ran', 'actress in “The Glory”', 'actress Yeom Hye-ran'),
-    '도': ('D.O. (Doh Kyung-soo)', 'member of EXO', "EXO's D.O."),
-    '소': ('So Ji-sub', 'actor in “Master’s Sun”', 'actor So Ji-sub'),
-    '연': ('Yeon Sang-ho', 'director of “Train to Busan”', 'director Yeon Sang-ho'),
-    '표': ('Pyo Ye-jin', 'actress in “Taxi Driver”', 'actress Pyo Ye-jin'),
-    '명': ('Jaehyun (Myung Jae-hyun)', 'member of BOYNEXTDOOR', "BOYNEXTDOOR's Jaehyun"),
-    '기': ('Ki Bo-bae', 'three-time Olympic archery champion', 'Olympic archer Ki Bo-bae'),
-    '반': ('Ban Ki-moon', 'former UN Secretary-General', 'former UN chief Ban Ki-moon'),
-    '라': ('Ra Mi-ran', 'actress in “Reply 1988”', 'actress Ra Mi-ran'),
-    '왕': ('Wang Seok-hyeon', 'actor in “Scandal Makers”', 'actor Wang Seok-hyeon'),
-    '금': ('Keum Sae-rok', 'actress in “Youth of May”', 'actress Keum Sae-rok'),
-    '육': ('Yook Sung-jae', 'member of BTOB', "BTOB's Sungjae"),
-    '인': ('In Gyo-jin', 'actor in “Hometown Cha-Cha-Cha”', 'actor In Gyo-jin'),
-    '맹': ('Maeng Se-chang', 'actor in “Ode to My Father”', 'actor Maeng Se-chang'),
-    '모': ('Mo Tae-bum', 'Olympic speed-skating champion', 'Olympic champion Mo Tae-bum'),
-    '남궁': ('Namkoong Min', 'actor in “Stove League”', 'actor Namkoong Min'),
-    '경': ('Kyung Soo-jin', 'actress in “Weightlifting Fairy Kim Bok-joo”', 'actress Kyung Soo-jin'),
-    '은': ('Eun Ji-won', 'leader of Sechs Kies', "Sechs Kies' Eun Ji-won"),
-    '봉': ('Bong Joon-ho', 'director of “Parasite”', 'director Bong Joon-ho'),
-    '부': ('Seungkwan (Boo Seung-kwan)', 'member of SEVENTEEN', "SEVENTEEN's Seungkwan"),
-    '황보': ('Hwangbo Ra', 'actress in “Vagabond”', 'actress Hwangbo Ra'),
-    '감': ('Kam Woo-sung', 'actor in “The King and the Clown”', 'actor Kam Woo-sung'),
-    '동': ('Taeyang (Dong Young-bae)', 'member of BIGBANG', "BIGBANG's Taeyang"),
-    '제갈': ('Jaegal Sung-yeol', 'Olympic speed skater and commentator', 'speed skater Jaegal Sung-yeol'),
-    '음': ('Eum Moon-suk', 'actor in “The Fiery Priest”', 'actor Eum Moon-suk'),
-    '선우': ('Sunwoo Jung-a', 'singer-songwriter', 'singer Sunwoo Jung-a'),
-    '견': ('Kyeon Mi-ri', 'actress in “Jewel in the Palace”', 'actress Kyeon Mi-ri'),
-    '진': ('Jin Goo', 'actor in “Descendants of the Sun”', 'actor Jin Goo'),
-    '원': ('Won Jin-ah', 'actress in “Hellbound”', 'actress Won Jin-ah'),
-    '추': ('Shin-Soo Choo', 'former MLB All-Star', 'baseball star Shin-Soo Choo'),
-    '공': ('Gong Yoo (Gong Ji-cheol)', 'actor in “Train to Busan” and “Squid Game”', 'actor Gong Yoo'),
-    '옹': ('Ong Seong-wu', 'actor and former Wanna One member', 'actor Ong Seong-wu'),
+    '김': ('V (Kim Tae-hyung)', 'member of BTS', "BTS's V, Kim Tae-hyung", '뷔'),
+    '이': ('IU (Lee Ji-eun)', 'singer and actress in “Hotel del Luna”', 'singer IU, Lee Ji-eun', '아이유'),
+    '박': ('Jimin (Park Ji-min)', 'member of BTS', "BTS's Jimin, Park Ji-min", '박지민'),
+    '최': ('Soobin (Choi Soo-bin)', 'leader of TXT', "TXT's Soobin", '최수빈'),
+    '정': ('Jung Hae-in', 'actor in “D.P.” and “Something in the Rain”', 'actor Jung Hae-in', '정해인'),
+    '조': ('Jo In-sung', 'actor in “Escape from Mogadishu” and “Moving”', 'actor Jo In-sung', '조인성'),
+    '윤': ('Jeonghan (Yoon Jeong-han)', 'member of SEVENTEEN', "SEVENTEEN's Jeonghan", '윤정한'),
+    '강': ('Kang Daniel', 'singer, former Wanna One', 'singer Kang Daniel', '강다니엘'),
+    '장': ('Jang Won-young', 'member of IVE', "IVE's Jang Wonyoung", '장원영'),
+    '임': ('YoonA (Im Yoon-ah)', "member of Girls' Generation", "Girls' Generation's YoonA", '임윤아'),
+    '한': ('Han (Han Ji-sung)', 'member of Stray Kids', "Stray Kids' Han", '한지성'),
+    '오': ('Sehun (Oh Se-hun)', 'member of EXO', "EXO's Sehun", '오세훈'),
+    '서': ('Seohyun (Seo Ju-hyun)', "member of Girls' Generation", "Girls' Generation's Seohyun", '서현'),
+    '유': ('Jeongyeon (Yoo Jeong-yeon)', 'member of TWICE', "TWICE's Jeongyeon", '유정연'),
+    '신': ('Yuna (Shin Yu-na)', 'member of ITZY', "ITZY's Yuna", '신유나'),
+    '권': ('G-Dragon (Kwon Ji-yong)', 'leader of BIGBANG', "BIGBANG's G-Dragon", '지드래곤'),
+    '황': ('Hyunjin (Hwang Hyun-jin)', 'member of Stray Kids', "Stray Kids' Hyunjin", '황현진'),
+    '안': ('An Yu-jin', 'leader of IVE', "IVE's An Yujin", '안유진'),
+    '송': ('Song Hye-kyo', 'actress in “The Glory”', 'actress Song Hye-kyo', '송혜교'),
+    '홍': ('Eunchae (Hong Eun-chae)', 'member of LE SSERAFIM', "LE SSERAFIM's Eunchae", '홍은채'),
+    '전': ('Jung Kook (Jeon Jung-kook)', 'member of BTS', "BTS's Jungkook", '전정국'),
+    '고': ('Go Youn-jung', 'actress in “Moving”', 'actress Go Youn-jung', '고윤정'),
+    '문': ('Moon Ga-young', 'actress in “True Beauty”', 'actress Moon Ga-young', '문가영'),
+    '양': ('I.N (Yang Jeong-in)', 'member of Stray Kids', "Stray Kids' I.N", '양정인'),
+    '배': ('Suzy (Bae Su-ji)', 'singer and actress in “Start-Up”', 'singer and actress Suzy', '배수지'),
+    '손': ('Son Heung-min', 'footballer, South Korea captain', 'footballer Son Heung-min', '손흥민'),
+    '백': ('Baek Ye-rin', 'singer-songwriter', 'singer Baek Yerin', '백예린'),
+    '허': ('Huh Yunjin', 'member of LE SSERAFIM', "LE SSERAFIM's Huh Yunjin", '허윤진'),
+    '노': ('Roh Jeong-eui', 'actress in “Hierarchy”', 'actress Roh Jeong-eui', '노정의'),
+    '남': ('Nam Joo-hyuk', 'actor in “Twenty-Five Twenty-One”', 'actor Nam Joo-hyuk', '남주혁'),
+    '심': ('Changmin (Shim Chang-min)', 'member of TVXQ', "TVXQ's Changmin", '심창민'),
+    '하': ('Ha Sung-woon', 'singer, former Wanna One', 'singer Ha Sung-woon', '하성운'),
+    '주': ('Joo Jong-hyuk', 'actor in “Extraordinary Attorney Woo”', 'actor Joo Jong-hyuk', '주종혁'),
+    '구': ('Koo Hye-sun', 'actress in “Boys Over Flowers”', 'actress Koo Hye-sun', '구혜선'),
+    '곽': ('Kwak Dong-yeon', 'actor in “Vincenzo”', 'actor Kwak Dong-yeon', '곽동연'),
+    '성': ('Sung Si-kyung', 'ballad singer', 'singer Sung Si-kyung', '성시경'),
+    '차': ('Cha Seung-won', 'actor in “City Hall”', 'actor Cha Seung-won', '차승원'),
+    '우': ('Woo Do-hwan', 'actor in “Bloodhounds”', 'actor Woo Do-hwan', '우도환'),
+    '민': ('Suga (Min Yoon-gi)', 'member of BTS', "BTS's Suga, Min Yoon-gi", '슈가'),
+    '류': ('Ryu Seung-ryong', 'actor in “Extreme Job”', 'actor Ryu Seung-ryong', '류승룡'),
+    '나': ('Na Hong-jin', 'director of “The Wailing”', 'director Na Hong-jin', '나홍진'),
+    '변': ('Byeon Woo-seok', 'actor in “Lovely Runner”', 'actor Byeon Woo-seok', '변우석'),
+    '설': ('Sol Kyung-gu', 'actor in “Oasis”', 'actor Sol Kyung-gu', '설경구'),
+    '방': ('Bang Chan', 'leader of Stray Kids', "Stray Kids' Bang Chan", '방찬'),
+    '엄': ('Uhm Jung-hwa', 'singer and actress', 'singer and actress Uhm Jung-hwa', '엄정화'),
+    '위': ('Wi Ha-joon', 'actor in “Squid Game”', 'actor Wi Ha-joon', '위하준'),
+    '여': ('Yeo Jin-goo', 'actor in “Hotel del Luna”', 'actor Yeo Jin-goo', '여진구'),
+    '천': ('Chun Woo-hee', 'actress in “The Wailing”', 'actress Chun Woo-hee', '천우희'),
+    '함': ('Hahm Eun-jung', 'member of T-ara', "T-ara's Eunjung", '함은정'),
+    '염': ('Yeom Hye-ran', 'actress in “The Glory”', 'actress Yeom Hye-ran', '염혜란'),
+    '도': ('D.O. (Doh Kyung-soo)', 'member of EXO', "EXO's D.O.", '디오'),
+    '소': ('So Ji-sub', 'actor in “Master’s Sun”', 'actor So Ji-sub', '소지섭'),
+    '연': ('Yeon Sang-ho', 'director of “Train to Busan”', 'director Yeon Sang-ho', '연상호'),
+    '표': ('Pyo Ye-jin', 'actress in “Taxi Driver”', 'actress Pyo Ye-jin', '표예진'),
+    '명': ('Jaehyun (Myung Jae-hyun)', 'member of BOYNEXTDOOR', "BOYNEXTDOOR's Jaehyun", '명재현'),
+    '기': ('Ki Bo-bae', 'three-time Olympic archery champion', 'Olympic archer Ki Bo-bae', '기보배'),
+    '반': ('Ban Ki-moon', 'former UN Secretary-General', 'former UN chief Ban Ki-moon', '반기문'),
+    '라': ('Ra Mi-ran', 'actress in “Reply 1988”', 'actress Ra Mi-ran', '라미란'),
+    '왕': ('Wang Seok-hyeon', 'actor in “Scandal Makers”', 'actor Wang Seok-hyeon', '왕석현'),
+    '금': ('Keum Sae-rok', 'actress in “Youth of May”', 'actress Keum Sae-rok', '금새록'),
+    '육': ('Yook Sung-jae', 'member of BTOB', "BTOB's Sungjae", '육성재'),
+    '인': ('In Gyo-jin', 'actor in “Hometown Cha-Cha-Cha”', 'actor In Gyo-jin', '인교진'),
+    '맹': ('Maeng Se-chang', 'actor in “Ode to My Father”', 'actor Maeng Se-chang', '맹세창'),
+    '모': ('Mo Tae-bum', 'Olympic speed-skating champion', 'Olympic champion Mo Tae-bum', '모태범'),
+    '남궁': ('Namkoong Min', 'actor in “Stove League”', 'actor Namkoong Min', '남궁민'),
+    '경': ('Kyung Soo-jin', 'actress in “Weightlifting Fairy Kim Bok-joo”', 'actress Kyung Soo-jin', '경수진'),
+    '은': ('Eun Ji-won', 'leader of Sechs Kies', "Sechs Kies' Eun Ji-won", '은지원'),
+    '봉': ('Bong Joon-ho', 'director of “Parasite”', 'director Bong Joon-ho', '봉준호'),
+    '부': ('Seungkwan (Boo Seung-kwan)', 'member of SEVENTEEN', "SEVENTEEN's Seungkwan", '부승관'),
+    '황보': ('Hwangbo Ra', 'actress in “Vagabond”', 'actress Hwangbo Ra', '황보라'),
+    '감': ('Kam Woo-sung', 'actor in “The King and the Clown”', 'actor Kam Woo-sung', '감우성'),
+    '동': ('Taeyang (Dong Young-bae)', 'member of BIGBANG', "BIGBANG's Taeyang", '태양'),
+    '제갈': ('Jaegal Sung-yeol', 'Olympic speed skater and commentator', 'speed skater Jaegal Sung-yeol', '제갈성렬'),
+    '음': ('Eum Moon-suk', 'actor in “The Fiery Priest”', 'actor Eum Moon-suk', '음문석'),
+    '선우': ('Sunwoo Jung-a', 'singer-songwriter', 'singer Sunwoo Jung-a', '선우정아'),
+    '견': ('Kyeon Mi-ri', 'actress in “Jewel in the Palace”', 'actress Kyeon Mi-ri', '견미리'),
+    '진': ('Jin Goo', 'actor in “Descendants of the Sun”', 'actor Jin Goo', '진구'),
+    '원': ('Won Jin-ah', 'actress in “Hellbound”', 'actress Won Jin-ah', '원진아'),
+    '추': ('Shin-Soo Choo', 'former MLB All-Star', 'baseball star Shin-Soo Choo', '추신수'),
+    '공': ('Gong Yoo (Gong Ji-cheol)', 'actor in “Train to Busan” and “Squid Game”', 'actor Gong Yoo', '공유'),
+    '옹': ('Ong Seong-wu', 'actor and former Wanna One member', 'actor Ong Seong-wu', '옹성우'),
 }
 
 TOP4 = {                                                               # 1~4위만 순위를 말한다(민우님 2026-10-13). (카드용, 영상용)
@@ -248,19 +249,38 @@ def meaning_of(surname):
     return m[1] if m else ''
 
 
-def celeb_card_sentence(surname):
-    """카드용: 'Also the surname of X, <설명>.'  없으면 ''."""
+def celeb_display(surname):
+    """카드 표기: '정해인 (Jung Hae-in)', 예명은 '뷔 (V, Kim Tae-hyung)'."""
     c = SURNAME_CELEB_EN.get(surname)
     if not c:
         return ''
-    who, role, _ = c
+    en = c[0].replace(' (', ', ').rstrip(')')
+    return f'{c[3]} ({en})' if len(c) > 3 and c[3] else c[0]
+
+
+def celeb_card_sentence(surname):
+    """카드용: 'Also the surname of 정해인 (Jung Hae-in), <설명>.'  없으면 ''."""
+    c = SURNAME_CELEB_EN.get(surname)
+    if not c:
+        return ''
+    role = c[1]
     role = role[:-1] + '.”' if role.endswith('”') else role + '.'   # 마침표는 닫는 따옴표 안쪽
-    return f'Also the surname of {who}, {role}'
+    return f'Also the surname of {celeb_display(surname)}, {role}'
+
+
+_LEAD = re.compile(r"^(.*?(?:'s|singer and actress|singer-songwriter|actor|actress|singer|director|footballer|champion|archer|star|chief|skater))\b")
 
 
 def celeb_spoken(surname):
+    """영상용 (앞말, 한글이름): ('actor', '정해인') / ("BTS's", '뷔'). 한글은 한국어 발음으로 읽는다."""
     c = SURNAME_CELEB_EN.get(surname)
-    return c[2] if c else ''
+    if not c:
+        return None
+    lead, hang = c[2], (c[3] if len(c) > 3 else '')
+    if not hang:
+        return (lead, '')
+    m = _LEAD.match(lead)
+    return ((m.group(1) if m else lead.split(' ')[0]), hang)
 
 
 def card_text(surname, rom, hanja):
@@ -282,7 +302,7 @@ def card_text(surname, rom, hanja):
 
 
 def spoken_line(surname):
-    """영상용: 'The last name 문' 뒤에 붙는 서술부. 뜻 → 유명인 → 순위(4위까지). 뜻은 첫 번째 것만 읽는다('writing, literature' → 'writing')."""
+    """영상용: 'The last name 문' 뒤에 붙는 조각 목록. 뜻 → 유명인(한글은 {'ko':…}) → 순위(4위까지). 뜻은 첫 번째 것만 읽는다('writing, literature' → 'writing')."""
     m, c = meaning_of(surname), celeb_spoken(surname)
     m_sp = m.split(' — ')[0].split(' (')[0].split(',')[0].strip('“” ') if m else ''
     out = []
@@ -290,10 +310,11 @@ def spoken_line(surname):
         out.append('is a rare two-syllable family name.')
     elif m_sp:
         out.append(f'means {m_sp}.')
-    if c:
-        out.append(f'It’s also the family name of {c}.')
+    if c and c[1]:
+        out.append(f'It’s also the family name of {c[0]}')
+        out.append({'ko': c[1], 'end': True})                         # 한글 이름: record.py 가 ko() 로 바꿔 한국어로 읽힌다. 문장 끝
+    elif c:
+        out.append(f'It’s also the family name of {c[0]}.')
     if surname in TOP4:
         out.append(TOP4[surname][1])
-    if not out:
-        return ''
-    return ' '.join(out)
+    return out
