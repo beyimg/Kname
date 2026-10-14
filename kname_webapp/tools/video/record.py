@@ -81,12 +81,13 @@ KO_VOICE = os.environ.get('KNAME_KO_VOICE', 'ko-KR-Chirp3-HD-Aoede')   # 한국�
 #   Matilda XrExE9yKIg1WjnnlVkGX (미국, 따뜻함)        Lily pFZP5JQG7iQjIQuC4Bku (영국)
 EN_VOICES = {'jessica': 'cgSgspJ2msm6clMCkdW9', 'laura': 'FGY2WhTYpPnrIDTdsKH5', 'sarah': 'EXAVITQu4vr4xnSDxMaL',
              'matilda': 'XrExE9yKIg1WjnnlVkGX', 'lily': 'pFZP5JQG7iQjIQuC4Bku', 'danbi': ''}
-TEMPO_BY_SCENE = {'input': 1.1}                                       # 장면별 영어 배속(나머지는 --tempo)
+TEMPO_BY_SCENE = {'input': 1.1, 'hook': 1.0}                          # 장면별 영어 배속(나머지는 --tempo). 훅은 원속도(기다림을 줄인다)
 EN_VOICE = os.environ.get('KNAME_EN_VOICE', 'danbi')          # 기본: 한국어와 같은 목소리(민우님 결정 2026-10-04)
 ENGINE = 'google'                                                      # 서버가 알려준다: google | elevenlabs
 GAP = 0.12                                                            # (구버전 호환)
 CAP_Y = {'back': 1440}                                                            # 장면 → 자막 상단 y(px). 기본 1290
 GAP_IN, GAP_COMMA, GAP_END = 0.08, 0.2, 0.42                          # 문장 안 조각 사이 / 쉼표·대시 뒤 / 문장이 끝난 뒤 쉼(초)
+GAP_ELLIPSIS = 0.35                                                   # "…is…" 처럼 뜸 들이는 조각 뒤(이름 공개 직전). 0.7 → 0.35 (2026-10-12)
 
 
 def part_texts(spec):
@@ -97,7 +98,8 @@ def part_texts(spec):
 def part_gaps(spec):
     """한 장면의 조각 사이 쉼 — 문장이 끝나는(.!?) 조각 뒤는 길게, 문장 중간은 짧게."""
     t = part_texts(spec)
-    return [GAP_END if re.search(r'[.!?]["\u201d\u2019\']?\s*$', x) else (GAP_COMMA if re.search(r'[,;:\u2014]\s*$', x) else GAP_IN) for x in t[:-1]]
+    return [GAP_ELLIPSIS if re.search(r'(\u2026|\.\.\.)\s*$', x) else
+            GAP_END if re.search(r'[.!?]["\u201d\u2019\']?\s*$', x) else (GAP_COMMA if re.search(r'[,;:\u2014]\s*$', x) else GAP_IN) for x in t[:-1]]
 
 
 def en_context(spec):
@@ -114,12 +116,19 @@ def en_context(spec):
 _ROM_D = None                                                       # build_lines 가 현재 변환 결과를 넣는다
 KO_FRAMES = ['{p} — {t} — 이렇게 읽어요.', '{p} — {t} — 이렇게 불러요.']   # 테이크 2개 → 톤이 고른 쪽
 KO_FRAMES_SYL = KO_FRAMES + ['{p} — {t} — 라고 읽어요.', '{p} — {t} — 이렇게 발음해요.']   # 한 글자는 테이크 4개(짧게 잘리는 일이 잦다)
-KO_SYL_STRETCH = 1.1                                                  # 한 글자 조각 길이 배수(음높이 유지)
+KO_SYL_STRETCH = 1.45                                                 # 한 글자 조각 길이 배수(음높이 유지). 1.1 → 1.21 → 1.45 (민우님 2026-10-13: 1.2배 더)
 KO_SYL_FROM_FULL = True                                               # 낱글자는 이름 전체 발음에서 잘라 쓴다(False 면 문장 틀로 따로 합성)
-KO_SYL_MIN = 0.24                                                     # 한 글자 소리 길이 최소(초) — Danbi 는 낱글자를 0.12~0.2s 로 짧게 읽는다
+KO_SYL_MIN = 0.34                                                     # 한 글자 소리 길이 최소(초) — Danbi 는 낱글자를 0.12~0.2s 로 짧게 읽는다
 
 
-def ko(text, prev='한국 이름은', nxt=None, full=None, idx=None):
+KO_NAME_FX = {}                                                       # 결과 이름 소리 가공 없음. rubberband(속도·음높이)를 걸면 목소리 자체가 달라진다 — 민우님 2026-10-14: "TTS 목소리 그대로"
+KO_MATCH = False                                                      # 한국어 조각 음높이·크기 맞춤(rubberband+volume)도 끔 — 같은 이유. 켜면 ko_match_all 이 돈다
+KO_MATCH_PITCH = (0.85, 1.4)                                          # 음높이 배율 허용 범위
+KO_MATCH_GAIN = (0.5, 2.5)                                            # 소리 크기 배율 허용 범위
+KO_WORD_STRETCH = 1.2                                                 # 두 글자 이상 한국어 조각(성/이름 소개의 '서하' 등) 길이 배수 — 결과 이름(fx)은 제외
+
+
+def ko(text, prev='한국 이름은', nxt=None, full=None, idx=None, fx=None):
     """한국어로 읽을 세그먼트. ElevenLabs 는 글자만 주거나 숨은 문맥(prev/next)만 주면 영어식·높은 톤으로
     읽는 일이 잦다 → **한국어 문장 전체**('성은 — 서 — 이렇게 읽어요.')를 읽힌 뒤 가운데(— … —)만 잘라 쓴다.
     frame = 앞에 붙는(말하지 않는) 한국어 문맥."""
@@ -131,6 +140,8 @@ def ko(text, prev='한국 이름은', nxt=None, full=None, idx=None):
         if full and len(text) == 1 and text in full and KO_SYL_FROM_FULL:
             d['full'] = full                                   # 낱글자는 이름 전체 발음에서 잘라 쓴다(민우님 2026-10-07: 낱글자 단독은 영어식으로 읽힘)
             d['idx'] = idx if idx is not None else full.index(text)
+    if fx:
+        d['fx'] = dict(fx)                                     # 잘라 낸 뒤 rubberband 로 속도·음높이를 바꾼다
     return d
 
 
@@ -354,7 +365,25 @@ def en_best_takes(jobs, ndir, takes, extra=6):
 
 def ko_synthesize(sp, ndir):
     """frame 이 있는 한국어 세그먼트: 문장 전체를 테이크별로 받아 가운데 소리 구간만 잘라 낸 mp3 경로.
-    테이크가 여럿이면 문장 전체의 음높이와 가장 가까운(톤이 튀지 않는) 테이크를 고른다."""
+    테이크가 여럿이면 문장 전체의 음높이와 가장 가까운(톤이 튀지 않는) 테이크를 고른다.
+    sp['fx'] = {'tempo': 0.85, 'pitch': 1.1} 이면 잘라 낸 소리를 rubberband 로 느리게·높게 바꾼다(결과 이름 공개용)."""
+    base = _ko_synthesize(sp, ndir)
+    fx = sp.get('fx')
+    if not base or not fx:
+        return base
+    tempo, pitch = float(fx.get('tempo', 1.0)), float(fx.get('pitch', 1.0))
+    if abs(tempo - 1.0) < 1e-3 and abs(pitch - 1.0) < 1e-3:
+        return base
+    out = base[:-4] + f'_fx_t{int(round(tempo * 100))}_p{int(round(pitch * 100))}.mp3'
+    if not os.path.exists(out):
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', base, '-af',
+                        f'rubberband=tempo={tempo:.3f}:pitch={pitch:.3f}:pitchq=quality:transients=smooth',
+                        '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '96k', out], check=True)
+        print(f'  ko [{sp["text"]}] 속도 ×{tempo} · 음높이 ×{pitch} (rubberband)')
+    return out
+
+
+def _ko_synthesize(sp, ndir):
     text, frame = sp['text'], sp['frame']
     if sp.get('full') and len(text) == 1:
         fullp = ko_synthesize({'text': sp['full'], 'frame': '이 사람의 한국 이름은', 'voice': sp.get('voice')}, ndir)
@@ -370,7 +399,7 @@ def ko_synthesize(sp, ndir):
                 print(f'  ko [{text}] {ln * stretch:.2f}s ← {sp["full"]} 전체 발음의 {int(sp["idx"]) + 1}번째 글자')
                 return final
     takes = [f.format(p=frame, t=text) for f in (KO_FRAMES_SYL if len(re.findall(r'[가-힣]', text)) == 1 else KO_FRAMES)]
-    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text + f'|s{KO_SYL_STRETCH}|m{KO_SYL_MIN}').encode('utf-8')).hexdigest()[:16] + '.mp3')
+    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text + f'|s{KO_SYL_STRETCH}|m{KO_SYL_MIN}|w{1.0 if sp.get("fx") else KO_WORD_STRETCH}').encode('utf-8')).hexdigest()[:16] + '.mp3')
     if os.path.exists(final):
         return final
     paths = [os.path.join(ndir, hashlib.sha1((t + '|ko-KR|full').encode('utf-8')).hexdigest()[:16] + '.mp3') for t in takes]
@@ -404,7 +433,7 @@ def ko_synthesize(sp, ndir):
     cands.sort()
     score, p, a, b = cands[0]
     cut = cut_clip(p, a, b)
-    stretch = KO_SYL_STRETCH if n_syl == 1 else 1.0          # 한 글자씩 읽는 조각은 조금 길게(민우님 2026-10-05: 너무 짧다)
+    stretch = KO_SYL_STRETCH if n_syl == 1 else (1.0 if sp.get('fx') else KO_WORD_STRETCH)   # 한 글자는 길게(2026-10-05), 성/이름 소개의 두 글자도 1.2배(2026-10-13). 결과 이름은 fx 가 따로 느리게
     if n_syl == 1 and (b - a) * stretch < KO_SYL_MIN:
         stretch = min(1.5, KO_SYL_MIN / (b - a))               # 그래도 KO_SYL_MIN 이 안 되면 더 늘린다(최대 1.5배)
     if stretch != 1.0:
@@ -521,11 +550,66 @@ def fetch_narration(lines, tempo=1.0, takes=1, tempo_by=None):
             path = fast
         v0, v1 = voiced_span(path)
         out.setdefault(k, {'parts': []})['parts'].append((path, dur(path), v0, v1))
+    if KO_MATCH and TOKEN:
+        ko_match_all(out, lines, ndir)
     for k, v in out.items():
         v['gaps'] = part_gaps(lines[k]) if len(v['parts']) > 1 else []
         v['dur'] = sum(p[1] for p in v['parts']) + sum(v['gaps'])
         v['v0'] = v['parts'][0][2]
     return out
+
+
+def _loudness(path, v0, v1):
+    """소리 나는 구간의 RMS(상위 25% 프레임) — 조각끼리 크기를 맞추는 기준."""
+    try:
+        import numpy as np
+        env, hop = _rms_env(path)
+        seg = env[int(v0 / hop):max(int(v0 / hop) + 1, int(v1 / hop))]
+        return float(np.percentile(seg, 75)) if len(seg) else None
+    except Exception:
+        return None
+
+
+def ko_match_all(out, lines, ndir):
+    """한국어 조각이 영어 문장 속에 끼어 있을 때 톤이 뚝 떨어진다(한국어 문장 틀에서 잘라 낸 소리는 음높이가 낮고 작다).
+    같은 장면의 앞뒤 영어 조각의 중앙 음높이·크기에 맞춰 rubberband 로 음높이를, volume 으로 크기를 바꾼다(2026-10-13)."""
+    cache = {}
+    def stats(path, v0, v1):
+        if path not in cache:
+            cache[path] = (_pitch_mean(path, v0, v1), _loudness(path, v0, v1))
+        return cache[path]
+    for k, v in out.items():
+        spec = lines[k]
+        parts = spec if isinstance(spec, list) else [spec]
+        is_ko = [isinstance(sp, dict) and str(sp.get('lang', '')).startswith('ko') for sp in parts]
+        if not any(is_ko) or all(is_ko):
+            continue
+        for i, (path, dd, v0, v1) in enumerate(v['parts']):
+            if not is_ko[i]:
+                continue
+            ref = [j for j in (i - 1, i + 1) if 0 <= j < len(parts) and not is_ko[j]]
+            if not ref:
+                ref = [j for j in range(len(parts)) if not is_ko[j]]
+            f_ref, g_ref = [], []
+            for j in ref:
+                pj, _, vj0, vj1 = v['parts'][j]
+                f, g = stats(pj, vj0, vj1)
+                if f: f_ref.append(f)
+                if g: g_ref.append(g)
+            f_ko, g_ko = stats(path, v0, v1)
+            if not f_ref or not f_ko or not g_ref or not g_ko:
+                continue
+            pr = max(KO_MATCH_PITCH[0], min(KO_MATCH_PITCH[1], (sum(f_ref) / len(f_ref)) / f_ko))
+            gn = max(KO_MATCH_GAIN[0], min(KO_MATCH_GAIN[1], (sum(g_ref) / len(g_ref)) / g_ko))
+            if abs(pr - 1) < 0.02 and abs(gn - 1) < 0.05:
+                continue
+            outp = path[:-4] + f'_m{int(round(pr * 100))}_{int(round(gn * 100))}.mp3'
+            if not os.path.exists(outp):
+                af = (f'rubberband=pitch={pr:.3f}:pitchq=quality,' if abs(pr - 1) >= 0.02 else '') + f'volume={gn:.3f}'
+                subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', path, '-af', af, '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '96k', outp], check=True)
+            nv0, nv1 = voiced_span(outp)
+            v['parts'][i] = (outp, dur(outp), nv0, nv1)
+            print(f'  ko-match [{k}] {parts[i]["text"]}: 음높이 {f_ko:.0f}→{sum(f_ref) / len(f_ref):.0f}Hz (×{pr:.2f}) 크기 ×{gn:.2f}')
 
 
 def voiced_segments(path, min_gap=0.12):
@@ -641,24 +725,16 @@ def primary_gloss(gloss, hanja=None):
 
 
 def surname_line(d):
-    """성씨 뒤에 붙일 한 문장(주어 'The last name 고' 뒤). 없으면 None — 억지로 채우지 않는다.
-    1~3위만 순위를 말한다 · 특징 있는 성씨는 그 사실 · 약한 성씨는 실제 성이 같은 유명인 · 그것도 없으면 글자 뜻 · 없으면 생략."""
+    """성씨 뒤에 붙일 한 문장(주어 'The last name 고' 뒤). 없으면 None.
+    2026-10-12 규칙(민우님): 한자 뜻 → 같은 성의 유명인(본명 확인된 사람만) → 1~3위만 순위. data/surname_notes.py."""
     sn = d.get('surname')
     if not sn:
         return None
     try:
-        from surname_notes import TOP3_SPOKEN_EN, SURNAME_SPOKEN_EN, celeb_spoken
+        from surname_notes import spoken_line
+        return spoken_line(sn) or None
     except Exception:
         return None
-    line = TOP3_SPOKEN_EN.get(sn) or SURNAME_SPOKEN_EN.get(sn) or celeb_spoken(sn)
-    if line:
-        return line
-    m = re.search(r"[Tt]he character means [\"\u201c']([^\"\u201d']+?)[.,]?[\"\u201d']", d.get('surname_desc') or '')
-    if m:
-        w = m.group(1).strip()
-        w = w if len(w.split()) <= 4 else w.split(',')[0].strip()
-        return f"is written with the character for \u201c{w}.\u201d"
-    return None
 
 
 def phrase_split(text, min_words=8):
@@ -689,9 +765,14 @@ def build_lines(d, first, last, args):
     ms = (d.get('meaning_short') or '').strip()
     ms_l = (ms[0].lower() + ms[1:]) if ms else ''
     lines = {}
-    # 훅: 나레이션 없음(캡션만). 입력 화면부터 말한다.   (2026-10-07 대본 개편: 짧게 · 뜻은 한 번만 · 참여 유도로 마무리)
-    lines['input'] = f"Let's turn {full_en} into a Korean name."
-    lines['result'] = [f"{first} becomes", ko(d['full_hangul'], prev='이 사람의 한국 이름은')]
+    # 2026-10-08 대본: 훅(1초 무음 뒤 "X의 한국 이름은? 알아보자") → 입력 장면 없이 결과 카드(포스트잇이 이름을 가렸다가
+    # "…is… 문범준" 에서 떼어진다) → 성/이름 형광펜 밑줄 → 한 줄 뜻 형광펜 → 뒷면("왜 그 뜻인지 보여줄게") → 마무리
+    stage = (getattr(args, 'stage_name', '') or '').strip()         # 예명(Lady Gaga). 있으면 훅·결과는 예명으로, 입력 장면에서 본명을 소개한다(2026-10-13)
+    who = stage or full_en
+    lines['hook'] = [f"What's {who}'s Korean name?", {'text': "Let's find out!", 'mood': 'bright'}]   # 마지막 한마디는 신나게(민우님 2026-10-12)
+    if stage:
+        lines['input'] = f"{stage}'s real name is {full_en}. So let's type that in."
+    lines['result'] = [f"The Korean name for {stage or first} is\u2026", ko(d['full_hangul'], prev='이 사람의 한국 이름은', fx=KO_NAME_FX)]
     if n_s:
         lines['names'] = ["In Korea, the last name comes first. So", ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0),
                           'is the last name, and', ko(given_ko, prev='이름은'), 'is the first.']
@@ -702,7 +783,7 @@ def build_lines(d, first, last, args):
         lines['meaning'] = ["And it has a meaning:", pcs[0]] + pcs[1:]
         lines['meaning'][-1] = lines['meaning'][-1].rstrip('.,') + '.'
     # 뒷면: 성씨 한 줄(있을 때만) → 글자별 대표 뜻.  합친 뜻은 meaning 장면에서 이미 말했다.
-    back = ["Here's how."]
+    back = ["Let me show you why it means that."]
     sl = surname_line(d)
     if n_s and sl:
         back += ["The last name", ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0), sl]
@@ -716,7 +797,7 @@ def build_lines(d, first, last, args):
     if args.back_tail:
         back.append(args.back_tail)
     lines['back'] = back
-    lines['why'] = {'text': args.why_line or "Want yours? Drop a name below, or try it. Link in bio. Thank you!", 'mood': 'bright'}   # mood=bright: 밝고 활기찬 테이크를 고른다
+    lines['why'] = {'text': args.why_line or "Curious why this name? Check the link in bio to see how it was chosen, and try your own name too. Thank you!", 'mood': 'bright'}   # mood=bright: 밝고 활기찬 테이크를 고른다. 댓글 유도는 접음(민우님 2026-10-11: 자기 이름을 댓글에 달 사람은 없다)
     return lines
 
 
@@ -791,6 +872,9 @@ def caption_lines(cues, skip=('why',), max_words=7):
                 x = y
         sents, cur = [], []                                    # 문장 단위로 자른다
         for w in words:
+            # 말줄임표 뒤의 뜸(이름 공개 직전)은 자막도 거기서 끊는다 — 한 줄에 이름까지 미리 보이면 김이 샌다
+            if cur and re.search(r'(\u2026|\.\.\.)$', cur[-1][0]) and w[1] - cur[-1][2] > 0.3:
+                sents.append(cur); cur = []
             cur.append(w)
             if re.search(r'[.!?]["\u201d\u2019\']?$', w[0]):
                 sents.append(cur); cur = []
@@ -818,12 +902,12 @@ def build_script(name, sex, args):
     if args.hook_media:
         ext = os.path.splitext(args.hook_media)[1].lower()
         media = {'kind': 'video' if ext in ('.mp4', '.webm', '.mov') else 'image', 'ext': ext,
-                 'caption': args.hook_caption or f"{first} {last.strip()}'s Korean name?".replace("  ", " "), 'credit': args.hook_credit}
+                 'caption': args.hook_caption or f"{(args.stage_name or '').strip() or (first + ' ' + last.strip())}'s Korean name?".replace("  ", " "), 'credit': args.hook_credit}
     script = {
         'ep': f'Korean name · {name}',
         'hook': {'eyebrow': 'What is', 'big': f'{name}’s', 'sub': 'Korean name?', 'media': media},
         'rom': d['full_rom'], 'nSurname': len(d['surname'] or '') if d.get('surname') else 0,
-        'outro': {'big': args.outro_big or 'Want yours?', 'sub': args.outro_sub or 'Drop a name below, or try it. Link in bio.', 'hand': 'Thank you! \U0001F517'},
+        'outro': {'big': args.outro_big or 'Why this name?', 'sub': args.outro_sub or 'See how it was chosen, and try your own name. Link in bio.', 'hand': 'Thank you! \U0001F517'},
         'given': d['given'], 'hanja': d['hanja'], 'full': d['full_hangul'],
     }
     return script, d, first, last.strip()
@@ -857,7 +941,8 @@ async def record(name, sex_key, P, workdir):
     q = {'names': f'{name}:{sex_key}', 'hold': P['hold'], 'sayat': P['sayat'], 'saydur': f'{P["saydur"]:.2f}',
          'back': P['back'], 'reason': P['reason'], 'reason2': P['reason2'], 'rviews': P['rviews'], 'type': P['type'],
          'filled': P['filled'], 'typesec': P['typesec'], 'typepre': P['typepre'], 'backend': 1 if P.get('backend') else 0,
-         'say': 0, 'gap': 0.4, 'intro': f'{name}?', 'card': P['hook'], 'outro': 'What’s your name?', 'zoom': 3}
+         'say': 0, 'gap': 0.4, 'intro': f'{name}?', 'card': P['hook'], 'outro': 'What’s your name?', 'zoom': 3,
+         'direct': 1 if P.get('direct') else 0, 'veil': ','.join(f'{v:.3f}' for v in (P.get('veil') or []))}
     url = f'{BASE_URL}/demo?' + urllib.parse.urlencode(q)
     events, frames = [], []
     fdir = os.path.join(workdir, 'cap'); os.makedirs(fdir, exist_ok=True)
@@ -930,22 +1015,34 @@ async def render_overlay(script, T, cues, layout, n_frames, workdir, hook_media)
         await pg.evaluate('([s, t, c, l]) => window.setup(s, t, c, l)', [script, T, cues, layout])
         await asyncio.sleep(0.3)
         hook_end = T['type'] - 0.2
+        out_h = os.path.join(workdir, 'hl'); os.makedirs(out_h, exist_ok=True)
         prev_sig, prev_path, shots = None, None, 0
+        prev_sig_h, prev_path_h, shots_h = None, None, 0
         for i in range(n_frames):
             t = i / FPS
             if hook_media and script['hook']['media']['kind'] == 'video' and t < hook_end + 0.5:
                 await pg.evaluate('t => window.seekHook(t)', t)
-            sig = await pg.evaluate('t => window.render(t)', t)
+            # ① 일반 오버레이(투명 PNG → overlay)
+            sig = await pg.evaluate('t => window.render(t, "main")', t)
             path = os.path.join(out, f'{i:05d}.png')
             if sig == prev_sig and prev_path:
                 os.link(prev_path, path)                 # 화면이 그대로면 찍지 않는다(뒷면·이유 화면은 오버레이가 비어 있다)
             else:
                 await pg.screenshot(path=path, omit_background=True); shots += 1
             prev_sig, prev_path = sig, path
+            # ② 형광펜 레이어(흰 바탕 PNG → multiply): 형광펜이 없는 프레임은 흰 그림 하나를 공유
+            sig_h = await pg.evaluate('t => window.render(t, "hl")', t)
+            path_h = os.path.join(out_h, f'{i:05d}.png')
+            if sig_h == prev_sig_h and prev_path_h:
+                os.link(prev_path_h, path_h)
+            else:
+                await pg.screenshot(path=path_h, omit_background=False); shots_h += 1
+            prev_sig_h, prev_path_h = sig_h, path_h
             if i % 300 == 0:
-                print(f'  오버레이 프레임 {i}/{n_frames} (찍은 것 {shots})')
+                print(f'  오버레이 프레임 {i}/{n_frames} (찍은 것 {shots} + 형광펜 {shots_h})')
+        await pg.evaluate('t => window.render(t, "main")', 0)
         await b.close()
-    return out
+    return out, out_h
 
 
 # ───────────────────────────── main
@@ -958,6 +1055,7 @@ def main():
     ap.add_argument('--pull', action='store_true', help='운영 서버에서 변환 결과·캐시를 받아 온다(사전 밖 이름). 영상은 안 만든다')
     ap.add_argument('--hook-media', default='', help='훅 장면 사진/영상 파일(9:16 으로 크롭)')
     ap.add_argument('--hook-caption', default='', help='훅 캡션 = 첫 나레이션 (기본: What\'s X\'s Korean name?)')
+    ap.add_argument('--stage-name', default='', help='예명(예: "Lady Gaga"). --name 은 본명. 훅·결과는 예명으로 말하고 입력 장면에서 본명을 소개한다')
     ap.add_argument('--hook-credit', default='', help='사진 출처 한 줄 (CC 표기)')
     ap.add_argument('--hook-secs', type=float, default=1.3, help='훅 화면 초(나레이션은 입력 장면으로 이어진다)')
     ap.add_argument('--typesec', type=float, default=1.5, help='타이핑 시작→제출 초')
@@ -994,7 +1092,7 @@ def main():
                            '목록([…])은 한 문장을 여러 소리로 나눈 것 — {"text","lang":"ko-KR","frame":…} 부분은 한국어로 읽히고(frame 은 말하지 않는 앞말 — "frame — text — 이렇게 읽어요." 문장 전체를 한국어로 읽힌 뒤 가운데만 씁니다), 그 순간에 효과(브레이스·형광펜)가 붙습니다.',
                            '줄을 지우면 그 장면은 나레이션 없이 짧게 지나갑니다. "audio": "파일경로" 를 주면 TTS 대신 그 소리를 씁니다.',
                            '장면 순서: 훅(캡션만) → input(타이핑) → result(앞면, 이름 발음+밑줄) → names(성/이름 브레이스) → meaning(형광펜) → back(뒷면: 성씨·글자별 뜻·합친 뜻) → why(마지막 화면)'],
-                   'name': args.name, 'hook_media': args.hook_media, 'hook_credit': args.hook_credit, 'en_voice': args.en_voice or EN_VOICE, 'tempo_scene': dict(TEMPO_BY_SCENE),
+                   'name': args.name, 'stage_name': args.stage_name, 'hook_media': args.hook_media, 'hook_credit': args.hook_credit, 'en_voice': args.en_voice or EN_VOICE, 'tempo_scene': dict(TEMPO_BY_SCENE),
                    'hook_caption': script['hook']['media']['caption'] if script['hook'].get('media') else f"{args.name.split(':')[0]}'s Korean name?",
                    'lines': lines}
             json.dump(doc, open(args.script, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
@@ -1039,17 +1137,47 @@ def main():
     saydur = say_part[1]
 
     # 장면 길이 = 나레이션 길이
-    hook = args.hook_secs
-    typing = 0.25 + 0.5 + 0.07 * len(name.replace(' ', '')) + 0.2       # 타이핑에 드는 대략의 초
-    typepre = max(0.3, nd['input'] - typing - 0.2)                    # "let's type the name in" 과 함께 타이핑 끝나게
-    sayat = 0.05 + nd['result'] + 1.0                                 # (발음은 result 안에 있다 — 데모의 발음 자리는 비워 둔다)
-    t_names = 0.05 + nd['result'] + 0.35
+    direct = 'input' not in lines                                     # 입력 장면 없는 대본(2026-10-08): 훅 → 결과 카드로 바로. 예명이면 입력 장면에서 본명 소개(2026-10-13)
+    HOOK_SILENT, RESULT_AT, INPUT_AT = 0.5, 0.2, 0.1                  # 훅 무음(초) / 카드가 뜬 뒤 나레이션 시작  (2026-10-12: 결과까지 기다림 절반으로)
+    if 'hook' in N:
+        # 훅 사진은 첫 마디("What's X's Korean name?")까지만. "Let's find out!" 은 다음 카드가 뜨는 위로 이어진다(기다림을 절반으로, 2026-10-12).
+        first_part = N['hook']['parts'][0][1] if N['hook'].get('parts') else nd.get('hook', 0)
+        hook = max(0.3, HOOK_SILENT + first_part + 0.1)
+        hook_end = HOOK_SILENT + nd.get('hook', 0)                   # 훅 나레이션이 끝나는 시각
+        card_est = hook + 0.55                                        # 다음 카드가 뜨는 시각 어림(인트로 0.3 + 로드 ~0.25)
+        after_hook = max(0.1, hook_end - card_est + 0.1)              # 다음 나레이션은 훅 나레이션이 끝난 뒤에
+        RESULT_AT = max(RESULT_AT, after_hook); INPUT_AT = after_hook
+    else:
+        hook = args.hook_secs
+    if direct:
+        typing, typepre = 0.0, 0.0
+        r_at = RESULT_AT
+    else:
+        typing = 0.25 + 0.5 + 0.07 * len(name.replace(' ', '')) + 0.2   # 타이핑에 드는 대략의 초
+        typepre = max(0.3, INPUT_AT + nd['input'] - typing - 0.2)     # "let's type that in" 과 함께 타이핑 끝나게
+        r_at = 0.5                                                    # 결과 카드는 0.7s 돌아 들어온다 — 그 뒤에 나레이션
+    # 이름 글자가 나타나는 시각(결과 카드 기준): result 나레이션 속 한국어 조각의 소리 구간을 글자 수로 나눈 자리(오버레이의 음절 밑줄과 같은 계산)
+    veil = []
+    if True:
+        tt, gaps = r_at, N['result'].get('gaps') or []
+        for j, ((path, dd, v0, v1), sp) in enumerate(zip(N['result']['parts'], lines['result'])):
+            if isinstance(sp, dict) and sp.get('lang'):
+                n_syl = max(1, len(re.findall(r'[가-힣]', sp['text']))); slot = (v1 - v0) / n_syl
+                veil = [max(0.0, tt + v0 + i * slot - 0.10) for i in range(n_syl)]
+                break
+            tt += dd + (gaps[j] if j < len(gaps) else 0)
+    sayat = r_at + nd['result'] + 1.0                                 # (발음은 result 안에 있다 — 데모의 발음 자리는 비워 둔다)
+    t_names = r_at + nd['result'] + 0.35
     t_meaning = t_names + nd.get('names', 0) + 0.3
     hold = t_meaning + nd.get('meaning', 0) + 0.6
     back = 0.9 + nd['back'] + 0.5
     P = {'hook': hook, 'typepre': int(typepre * 1000), 'typesec': 0, 'sayat': -1, 'saydur': 0.01,
          'hold': hold, 'back': back, 'reason': 0, 'reason2': 0, 'rviews': 1, 'backend': 1,
-         'type': args.type, 'filled': args.filled, 'tail': max(args.why_secs, nd['why'] + 0.5)}
+         'type': args.type, 'filled': args.filled, 'tail': max(args.why_secs, nd['why'] + 0.5),
+         'direct': direct, 'veil': veil}
+    script['sticky'] = False; script['reveal'] = True                 # 포스트잇은 접음(2026-10-11) — 글자가 발음에 맞춰 나타난다
+    if direct:
+        script['ep'] = ''                                             # 회차 필은 입력 장면용
 
     workdir = os.path.join(os.path.dirname(os.path.abspath(args.out)) or '.', '_rec'); os.makedirs(workdir, exist_ok=True)
     frames, events = asyncio.run(record(name, sex_key, P, workdir))
@@ -1058,7 +1186,9 @@ def main():
     t_zero = ev['start'] + 0.9
     T = {k: v - t_zero for k, v in ev.items()}
     T['saydur'] = saydur
-    T['card'] = T['type'] - typepre                                    # 입력 카드가 뜬 시각(훅이 걷히는 때)
+    if direct:                                                        # 입력 장면이 없다: 결과 카드가 뜨는 순간 훅이 걷힌다
+        T['type'] = T['submit'] = T['result']
+    T['card'] = T['result'] - 0.05 if direct else T['type'] - typepre   # 입력 카드가 뜬 시각(훅이 걷히는 때)
     total = max(frames[-1][0], ev.get('outro', frames[-1][0]) + P['tail']) - t_zero
     print(f'프레임 {len(frames)}개, 박자(초): ' + ', '.join(f'{k}={v:.2f}' for k, v in T.items() if not k.startswith('layout')) + f'  길이 {total:.1f}s')
 
@@ -1076,8 +1206,9 @@ def main():
     cues = {}
     def put(k, t, **kw):
         if k in N: cues[k] = cue(k, t, **kw)
-    put('input', T['card'] + 0.1)
-    put('result', R + 0.05); put('names', R + t_names); put('meaning', R + t_meaning)
+    put('hook', HOOK_SILENT)                                          # 훅: 사진 위 1초 무음 뒤 한마디
+    put('input', T['card'] + INPUT_AT)
+    put('result', R + r_at); put('names', R + t_names); put('meaning', R + t_meaning)
     if 'result' in cues:                                              # 음절 밑줄: 이름 발음 구간
         kp = next((p for p in cues['result']['parts'] if p['ko']), None)
         if kp:
@@ -1097,12 +1228,12 @@ def main():
             cues['back']['snDur'] = max(1.0, (b_['t'] + b_['v1']) - (a_['t'] + a_['v0']))
     put('why', T['outro'] + 0.2)
     script['backKeys'] = []
-    script['captions'] = [] if args.no_captions else caption_lines(cues)
+    script['captions'] = [] if args.no_captions else caption_lines(cues, skip=('why', 'hook'))   # 훅 캡션 카드가 이미 글을 보여준다
     for cp in script['captions']:                                      # 장면별 자막 높이(화면 속 내용을 덜 가리는 자리)
         cp['y'] = CAP_Y.get(cp.pop('scene'), 1290)
 
     seq, n = lay_out_frames(frames, t_zero, total, workdir)
-    ov = asyncio.run(render_overlay(script, T, cues, layout, n, workdir, args.hook_media))
+    ov, hl = asyncio.run(render_overlay(script, T, cues, layout, n, workdir, args.hook_media))
 
     # ① 소리 먼저 — 큐마다 adelay 로 제자리에 놓고 섞는다. (영상 인코딩과 한 번에 하면 amix 뒤의
     #    오디오 타임스탬프가 깨져 소리가 몇 초 만에 끊기는 일이 있었다 → 두 단계로 나눈다)
@@ -1120,10 +1251,13 @@ def main():
     cmd += ['-filter_complex', fc, '-map', '[a]', '-t', f'{n / FPS:.3f}', '-c:a', 'aac', '-b:a', '160k', '-ar', '44100', mix_path]
     subprocess.run(cmd, check=True)
     # ② 영상(앱 화면 + 오버레이) + 소리
+    # 형광펜은 곱하기(multiply)로 — 종이만 노랗게 물들고 글자는 검게 남는다. 그 위에 일반 오버레이를 알파로 얹는다.
     cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-framerate', str(FPS), '-i', os.path.join(seq, '%05d.jpg'),
+           '-framerate', str(FPS), '-i', os.path.join(hl, '%05d.png'),
            '-framerate', str(FPS), '-i', os.path.join(ov, '%05d.png'), '-i', mix_path,
-           '-filter_complex', '[0:v]format=rgba[base];[base][1:v]overlay=0:0:format=auto:eof_action=endall,format=yuv420p[v]',
-           '-map', '[v]', '-map', '2:a', '-c:a', 'copy',
+           '-filter_complex', '[0:v]format=gbrp[b];[1:v]format=gbrp[h];[b][h]blend=all_mode=multiply:shortest=1,format=rgba[m];'
+                              '[m][2:v]overlay=0:0:format=auto:eof_action=endall,format=yuv420p[v]',
+           '-map', '[v]', '-map', '3:a', '-c:a', 'copy',
            '-t', f'{n / FPS:.3f}', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-r', str(FPS),
            '-g', str(FPS), '-keyint_min', str(FPS), '-sc_threshold', '0', '-bf', '0', '-profile:v', 'main', '-level', '4.0',
            '-movflags', '+faststart', args.out]

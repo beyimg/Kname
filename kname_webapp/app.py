@@ -2000,6 +2000,10 @@ def demo_page():
         'typepre': int(_num('typepre', 0, 0, 30000)),  # 카드가 뜬 뒤 타이핑 시작까지 ms(0 이면 500)
         'rviews': int(_num('rviews', 2, 1, 2)),    # 변환 이유 화면 수(1 이면 첫 화면만)
         'backend': request.args.get('backend', '0') == '1',   # 뒷면에서 끝낸다(앞면으로 안 돌아감)
+        'direct': request.args.get('direct', '0') == '1',     # 입력 장면 없이 결과 카드로 바로(영상 v17)
+        # direct: 결과 카드의 이름 글자가 나타나는 시각(초, 쉼표 목록 — 글자 순서). 비어 있으면 처음부터 보인다
+        'veil': [max(0.0, min(20.0, float(x))) for x in (request.args.get('veil') or '').split(',')
+                 if x.strip().replace('.', '', 1).isdigit()],
         'sayat': _num('sayat', -1, -1, 40),        # 앞면이 뜬 뒤 몇 초에 발음할지(-1 이면 앞면 다음에)
         'say': request.args.get('say', '1') != '0',
         'gap': _num('gap', 0.6, 0, 20),            # 이름 사이 쉬는 초 (자막을 얹을 때는 길게)

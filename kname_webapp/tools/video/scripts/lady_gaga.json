@@ -6,17 +6,26 @@
   "장면 순서: 훅(캡션만) → input(타이핑) → result(앞면, 이름 발음+밑줄) → names(성/이름 브레이스) → meaning(형광펜) → back(뒷면: 성씨·글자별 뜻·합친 뜻) → why(마지막 화면)"
  ],
  "name": "Stefani Germanotta:f",
+ "stage_name": "Lady Gaga",
  "hook_media": "/home/claude/work/photos/gaga.jpg",
  "hook_credit": "Photo: Carlos M. Vazquez II / DoD · CC BY 2.0 · Wikimedia Commons",
  "en_voice": "danbi",
  "tempo_scene": {
-  "input": 1.1
+  "input": 1.1,
+  "hook": 1.0
  },
  "hook_caption": "Lady Gaga's Korean name?",
  "lines": {
-  "input": "Lady Gaga's real name is Stefani Germanotta. Let's turn her into a Korean name.",
+  "hook": [
+   "What's Lady Gaga's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "input": "Lady Gaga's real name is Stefani Germanotta. So let's type that in.",
   "result": [
-   "Gaga becomes",
+   "The Korean name for Lady Gaga is…",
    {
     "text": "정서하",
     "lang": "ko-KR",
@@ -51,7 +60,7 @@
    "someone auspicious and noble as a lotus."
   ],
   "back": [
-   "Here's how.",
+   "Let me show you why it means that.",
    "The last name",
    {
     "text": "정",
@@ -62,7 +71,7 @@
     "full": "정서하",
     "idx": 0
    },
-   "is the family name of actor Jung Hae-in.",
+   "means solemn. It’s also the family name of actor Jung Hae-in.",
    "In the first name,",
    {
     "text": "서",
@@ -87,7 +96,7 @@
    "means a lotus."
   ],
   "why": {
-   "text": "Want yours? Drop a name below, or try it. Link in bio. Thank you!",
+   "text": "Curious why this name? Check the link in bio to see how it was chosen, and try your own name too. Thank you!",
    "mood": "bright"
   }
  }

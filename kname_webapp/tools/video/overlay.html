@@ -57,6 +57,16 @@
   .lab{font-family:var(--hand);font-size:40px;fill:var(--marker);font-style:italic;}
   /* 형광펜: 줄 위로 굵고 반투명하게 긋는다 — 끝이 둥글고 살짝 흔들려 손으로 그은 느낌 */
   .hl{stroke:var(--hl);stroke-linecap:round;fill:none;}
+  /* 형광펜 레이어(#hlL): 따로 찍어 영상에 **곱하기(multiply)** 로 얹는다 — 종이는 노랗게 물들고 글자는 검게 남는다(진짜 형광펜).
+     반투명 노랑을 그냥 얹으면 글자가 누렇게 떠서 가짜 티가 난다. 질감은 SVG 필터(잉크 줄무늬 + 가장자리 번짐). */
+  body.hlmode{background:#fff;}
+  body.hlmode .layer:not(#hlL){display:none !important;}
+  .hlk{stroke:#ffe14a;stroke-linecap:round;fill:none;}
+  .hlk2{stroke:#ffd93a;stroke-linecap:round;fill:none;}
+  .lab{fill:#6e6e6e;}
+  /* 포스트잇: 결과 이름 위에 붙었다가 "OOO이야" 순간 아래에서 위로 말리며 떼어진다 — 캔버스에 띠 단위로 그린다(페이지 컬) */
+  #sticky{position:absolute;inset:0;}
+  #noteCv{position:absolute;left:0;top:0;width:1080px;height:1920px;}
 </style>
 </head>
 <body>
@@ -67,7 +77,12 @@
 </div>
 <div class="layer" id="hookMedia"><div class="media" id="hmImg"></div><div class="shade"></div><div class="capbox"><div class="cap" id="hmCap"></div><div class="credit" id="hmCredit"></div></div></div>
 <div class="layer" id="ep"><div class="pill" id="epTx"></div></div>
+<div class="layer draw" id="hlL"><svg id="svgH" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920">
+  <defs id="hlDefs"></defs>
+  <g id="hF"></g><g id="hB"></g><g id="hR"></g>
+</svg></div>
 <div class="layer draw" id="drawF"><svg id="svgF" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"></svg></div>
+<div class="layer" id="sticky"><canvas id="noteCv" width="1080" height="1920"></canvas></div>
 <div class="layer draw" id="drawB"><svg id="svgB" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"></svg></div>
 <div class="layer draw" id="drawR"><svg id="svgR" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"></svg></div>
 <div class="layer" id="capL"><div class="capbox" id="capTxt"></div></div>
@@ -133,9 +148,42 @@
     svg.appendChild(path); return { el: path, len: len };
   }
   function underline(svg, r, pad){ r = scaled(r); var y = r[1] + r[3] + (pad === undefined ? 3 : pad); return mkStroke(svg, r[0] + 4, y, r[0] + r[2] - 4, y, 'ul', null, 2.5); }
-  function highlight(svg, r){ r = scaled(r); var y = r[1] + r[3] * .55; return mkStroke(svg, r[0] - 8, y, r[0] + r[2] + 8, y, 'hl', Math.max(24, r[3] * .92), 1.6); }
+  // 형광펜 질감 필터: 긋는 방향(가로)의 잉크 줄무늬 + 가장자리 번짐. 획마다 그 획 둘레만 계산하도록 좁은 userSpace 영역을 준다
+  // (가로선은 바운딩박스 높이가 0 이라 기본 영역이 사라지고, 전체 화면 영역으로 하면 획마다 1080×1920 노이즈를 계산해 너무 느리다).
+  var nFilt = 0;
+  function texFilter(x1, y1, x2, y2, width){
+    var id = 'hlTex' + (nFilt++), m = width * 1.2;
+    var f = el('filter', { id: id, filterUnits: 'userSpaceOnUse', x: Math.min(x1, x2) - m, y: Math.min(y1, y2) - m,
+                           width: Math.abs(x2 - x1) + 2 * m, height: Math.abs(y2 - y1) + 2 * m, 'color-interpolation-filters': 'sRGB' });
+    f.appendChild(el('feTurbulence', { type: 'fractalNoise', baseFrequency: '0.012 0.42', numOctaves: 3, seed: 11 + nFilt * 3, result: 'streak' }));
+    f.appendChild(el('feColorMatrix', { 'in': 'streak', type: 'matrix', values: '0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1.5 0 0 0 -0.12', result: 'mask' }));
+    f.appendChild(el('feComposite', { 'in': 'SourceGraphic', in2: 'mask', operator: 'in', result: 'inked' }));
+    f.appendChild(el('feTurbulence', { type: 'fractalNoise', baseFrequency: '0.55 0.07', numOctaves: 2, seed: 4 + nFilt, result: 'edge' }));
+    f.appendChild(el('feDisplacementMap', { 'in': 'inked', in2: 'edge', scale: 6, xChannelSelector: 'R', yChannelSelector: 'G' }));
+    $('hlDefs').appendChild(f);
+    return 'url(#' + id + ')';
+  }
+  // 형광펜 한 획: 본획(질감 필터) + 살짝 어긋난 덧획 — 겹친 자리가 곱하기로 더 진해져 손으로 두 번 문지른 느낌
+  function marker(group, x1, y1, x2, y2, width){
+    var tilt = (x2 - x1) * .004 * (((Math.round(x1) * 7) % 3) - 1);  // 끝이 1~2px 처지거나 올라간다
+    var filt = texFilter(x1, y1, x2, y2 + tilt, width);
+    var a = mkStroke(group, x1, y1, x2, y2 + tilt, 'hlk', width, 2.4); a.el.setAttribute('filter', filt);
+    var b = mkStroke(group, x1 + width * .35, y1 + width * .12, x2 - width * .25, y2 + tilt + width * .1, 'hlk2', width * .78, 1.8);
+    b.el.setAttribute('filter', filt); b.el.setAttribute('stroke-opacity', '.55');
+    return { els: [a.el, b.el], lens: [a.len, b.len], len: a.len };
+  }
+  function highlight(group, r){ r = scaled(r); var y = r[1] + r[3] * .55; return marker(group, r[0] - 8, y, r[0] + r[2] + 8, y, Math.max(26, r[3] * .96)); }
+  function hlUnder(group, r1, r2, pad, width){                        // 두 상자(그룹의 첫 글자·끝 글자) 아래 형광펜 밑줄
+    var a = scaled(r1), b = scaled(r2); var y = Math.max(a[1] + a[3], b[1] + b[3]) + pad;
+    return marker(group, a[0] - 6, y, b[0] + b[2] + 6, y, width);
+  }
   // 진행도 p(0..1)에 맞춰 그린다. 시작 전이면 숨김
-  function drawTo(item, p, sigArr){ if(!item) return; item.el.style.opacity = p > 0 ? 1 : 0; item.el.setAttribute('stroke-dashoffset', item.len * (1 - clamp(p))); if(sigArr) sigArr.push(p > 0 ? q(clamp(p)) : -1); }
+  function drawTo(item, p, sigArr){
+    if(!item) return;
+    if(item.els){ item.els.forEach(function(e, i){ var pp = clamp(p - i * .07); e.style.opacity = pp > 0 ? 1 : 0; e.setAttribute('stroke-dashoffset', item.lens[i] * (1 - pp)); }); }
+    else { item.el.style.opacity = p > 0 ? 1 : 0; item.el.setAttribute('stroke-dashoffset', item.len * (1 - clamp(p))); }
+    if(sigArr) sigArr.push(p > 0 ? q(clamp(p)) : -1);
+  }
   // 여러 줄을 차례로 긋는다: 전체 [t0, t0+dur] 을 줄 길이 비례로 나눈다
   function sweep(items, t, t0, dur, sigArr){
     var total = items.reduce(function(a, it){ return a + it.len; }, 0) || 1, acc = 0;
@@ -145,7 +193,108 @@
     });
   }
 
-  var F = { ul: [], braces: [], labels: [], hl: [] }, B = { rows: [], surname: [] }, Rn = { hangul: null, chips: [], intro: [] };
+  var F = { ul: [], braces: [], labels: [], hl: [], nameUl: [] }, B = { rows: [], surname: [] }, Rn = { hangul: null, chips: [], intro: [] };
+  var NOTE = null;                                                   // 포스트잇 자리(렌더 px) {x,y,w,h,tilt}
+  // ── 포스트잇 종이(오프스크린): 앞면(결·접착 띠·물음표) / 뒷면(민무늬, 조금 밝음)
+  var PAPER = null;
+  function grain(ctx, w, h, amt){                                    // 종이 결: 미세한 밝기 노이즈 + 가로 섬유
+    var img = ctx.getImageData(0, 0, w, h), d = img.data, seed = 7;
+    var rnd = function(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    for(var y = 0; y < h; y++){
+      var fiber = (rnd() - .5) * amt * .3;
+      for(var x = 0; x < w; x++){
+        var i = (y * w + x) * 4, n = (rnd() - .5) * amt + fiber;
+        d[i] += n; d[i + 1] += n; d[i + 2] += n * .8;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  function buildNote(N){
+    var w = Math.round(N.w), h = Math.round(N.h);
+    var f = document.createElement('canvas'); f.width = w; f.height = h; var c = f.getContext('2d');
+    var g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#fff4a8'); g.addColorStop(.5, '#ffee96'); g.addColorStop(1, '#fde583');
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+    grain(c, w, h, 14);
+    var sh = c.createLinearGradient(0, 0, 0, h * .16); sh.addColorStop(0, 'rgba(120,90,0,.13)'); sh.addColorStop(1, 'rgba(120,90,0,0)');   // 접착 띠
+    c.fillStyle = sh; c.fillRect(0, 0, w, h * .16);
+    var gl = c.createRadialGradient(w * .3, h * .2, 10, w * .3, h * .2, w * .9); gl.addColorStop(0, 'rgba(255,255,255,.22)'); gl.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = gl; c.fillRect(0, 0, w, h);
+    c.save(); c.translate(w / 2, h / 2 + 6); c.rotate(-6 * Math.PI / 180);
+    c.font = '400 ' + Math.round(h * .5) + 'px ' + getComputedStyle(document.documentElement).getPropertyValue('--hand');
+    c.fillStyle = 'rgba(40,40,40,.9)'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('?', 0, 0); c.restore();
+    var b = document.createElement('canvas'); b.width = w; b.height = h; var cb = b.getContext('2d');
+    var gb = cb.createLinearGradient(0, 0, 0, h); gb.addColorStop(0, '#fff8c2'); gb.addColorStop(1, '#fff1a6');
+    cb.fillStyle = gb; cb.fillRect(0, 0, w, h); grain(cb, w, h, 10);
+    var sb = cb.createLinearGradient(0, 0, 0, h * .16); sb.addColorStop(0, 'rgba(150,120,20,.22)'); sb.addColorStop(1, 'rgba(150,120,20,0)');   // 뒷면 접착 띠(살짝 반들거림)
+    cb.fillStyle = sb; cb.fillRect(0, 0, w, h * .16);
+    PAPER = { front: f, back: b, w: w, h: h };
+  }
+  var ease = function(p){ p = clamp(p); return p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; };   // easeInOutCubic
+  var PEEL_ANG = 9 * Math.PI / 180;                                  // 오른쪽 아래 모서리부터 비스듬히 떼어진다(사람 손)
+  // 종이를 떼는 방향으로 회전시킨 틀(frame) 그림: 띠는 이 틀의 가로줄이다
+  function framed(src, w, h, ang){
+    var Fw = Math.ceil(w * Math.cos(ang) + h * Math.sin(ang)), Fh = Math.ceil(h * Math.cos(ang) + w * Math.sin(ang));
+    var c = document.createElement('canvas'); c.width = Fw; c.height = Fh; var x = c.getContext('2d');
+    x.translate(Fw / 2, Fh / 2); x.rotate(-ang); x.drawImage(src, -w / 2, -h / 2);
+    return { cv: c, w: Fw, h: Fh };
+  }
+  // 포스트잇 한 장면: slap(붙는 진행 0..1) · peel(떼는 진행 0..1, 아래→위로 말린다) · lift(떨어져 나가는 진행 0..1)
+  function drawNote(slap, peel, lift){
+    var cv = $('noteCv'), ctx = cv.getContext('2d'); ctx.clearRect(0, 0, 1080, 1920);
+    if(!PAPER || !NOTE) return;
+    if(!PAPER.fr){ PAPER.fr = framed(PAPER.front, PAPER.w, PAPER.h, PEEL_ANG); PAPER.bk = framed(PAPER.back, PAPER.w, PAPER.h, PEEL_ANG); }
+    var w = PAPER.w, h = PAPER.h, Fw = PAPER.fr.w, Fh = PAPER.fr.h, cx = NOTE.x + w / 2, cy = NOTE.y + h / 2;
+    var alpha = 1 - clamp((lift - .5) / .5), le = lift * lift;
+    var sc = 1 + .12 * (1 - slap) + .05 * le;                        // 붙을 때 살짝 크게, 떨어질 땐 카메라 쪽으로
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.translate(cx, cy - 300 * le); ctx.rotate(NOTE.tilt - .035 * le); ctx.scale(sc, sc);
+    ctx.rotate(PEEL_ANG);                                            // 이제부터 '위'가 떼는 방향
+    var pl = ease(peel), r = h * (.12 + .10 * pl);                   // 말림 반지름: 떼어갈수록 느슨해진다
+    var yL = Fh * (1 - pl);                                          // 접힌 선(틀 좌표, 0=위)
+    ctx.save(); ctx.translate(-Fw / 2, -Fh / 2);
+    if(peel < 1){
+      // 평평하게 붙은 부분의 그림자(종이 모양대로, 접힌 선 위쪽만)
+      ctx.save(); ctx.beginPath(); ctx.rect(-40, -40, Fw + 80, yL + 40); ctx.clip();
+      ctx.shadowColor = 'rgba(60,40,0,.26)'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 12; ctx.fillStyle = '#ffee96';
+      ctx.translate(Fw / 2, Fh / 2); ctx.rotate(-PEEL_ANG); ctx.fillRect(-w / 2, -h / 2, w, h); ctx.restore();
+      if(pl > 0){
+        // 말려 떠 있는 자리의 그림자(카드 위) — 접힌 선 아래로 부드럽게
+        var g1 = ctx.createLinearGradient(0, yL, 0, yL + r * 1.9); g1.addColorStop(0, 'rgba(50,35,0,.30)'); g1.addColorStop(.45, 'rgba(50,35,0,.12)'); g1.addColorStop(1, 'rgba(50,35,0,0)');
+        ctx.save(); ctx.filter = 'blur(10px)'; ctx.fillStyle = g1; ctx.fillRect(-20, yL - 4, Fw + 40, r * 1.9); ctx.restore();
+        // 접혀 넘어온 부분(2r 높이)이 평평한 부분 위에 드리우는 그림자
+        var g2 = ctx.createLinearGradient(0, yL, 0, yL - r * 1.6); g2.addColorStop(0, 'rgba(50,35,0,.22)'); g2.addColorStop(1, 'rgba(50,35,0,0)');
+        ctx.save(); ctx.filter = 'blur(8px)'; ctx.fillStyle = g2; ctx.fillRect(-10, Math.max(0, yL - r * 1.6), Fw + 20, Math.min(yL, r * 1.6) + 2); ctx.restore();
+      }
+    }
+    // 띠(1px)마다 위치를 원통에 감는다: 접힌 선 아래 d 만큼 떨어진 띠는 각도 θ=d/r 로 위로 말린다
+    var strip = 1, lastBright = null;
+    for(var v = 0; v < Fh; v += strip){
+      var sh = Math.min(strip, Fh - v), img = PAPER.fr.cv, y, k = 1, bright = 1, thick = sh;
+      if(v < yL){ y = v; }
+      else {
+        var d = v - yL, th = d / r;
+        if(th <= Math.PI){ y = yL + r * Math.sin(th); } else { y = yL - (d - Math.PI * r); }
+        // 띠 두께는 조금 겹치게(1.6px 이상) — 딱 맞추면 안티에일리어싱 틈으로 아래 글자가 비친다
+        // (소수점 자리에 놓인 띠는 가장자리 줄이 반투명이라, 1.6px 로는 겹쳐도 5~10% 비친다 → 넉넉히 3px)
+        if(th < Math.PI / 2){ bright = .70 + .30 * Math.cos(th); thick = Math.max(3, 3 * sh * Math.cos(th)); }   // 앞면이 일어서며 어두워지고 얇아진다
+        else { img = PAPER.bk.cv; var cz = -Math.cos(th); bright = th <= Math.PI ? .80 + .20 * cz : 1; thick = th <= Math.PI ? Math.max(3, 3 * sh * cz) : sh + 2; }
+        var z = th <= Math.PI ? r * (1 - Math.cos(th)) : 2 * r;
+        k = 1 + .035 * z / (2 * r);                                   // 떠오른 만큼 살짝 커진다(원근)
+      }
+      if(y < -Fh) continue;
+      var br = Math.round(bright * 50) / 50;                          // 필터 문자열은 바뀔 때만
+      if(br !== lastBright){ ctx.filter = br < 1 ? 'brightness(' + br.toFixed(2) + ')' : 'none'; lastBright = br; }
+      ctx.drawImage(img, 0, v, Fw, sh, (Fw - Fw * k) / 2, y, Fw * k, thick);
+    }
+    ctx.filter = 'none';
+    // 말린 능선의 하이라이트(종이가 가장 높이 솟아 빛을 받는 자리)
+    if(pl > 0 && peel < 1){
+      var yc = yL + r * .55, hg = ctx.createLinearGradient(0, yc - r * .3, 0, yc + r * .3);
+      hg.addColorStop(0, 'rgba(255,255,255,0)'); hg.addColorStop(.5, 'rgba(255,255,255,.30)'); hg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.save(); ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = hg; ctx.fillRect(0, yc - r * .3, Fw, r * .6); ctx.restore();
+    }
+    ctx.restore(); ctx.restore();
+  }
 
   window.setup = function(script, timeline, cues, layout){
     S = script; T = timeline; C = cues || {}; L = layout || {};
@@ -171,9 +320,10 @@
 
     // ── 앞면: 음절 밑줄, 성/이름 브레이스, 한 줄 뜻 형광펜
     var svg = $('svgF'); while(svg.firstChild) svg.removeChild(svg.firstChild);
+    ['hF', 'hB', 'hR', 'hlDefs'].forEach(function(id){ var g = $(id); while(g.firstChild) g.removeChild(g.firstChild); });
     var lf = L.layout;
     if(lf && lf.kr && lf.kr.length){
-      (lf.meaningLines && lf.meaningLines.length ? lf.meaningLines : (lf.meaning ? [lf.meaning] : [])).forEach(function(r){ F.hl.push(highlight(svg, r)); });
+      (lf.meaningLines && lf.meaningLines.length ? lf.meaningLines : (lf.meaning ? [lf.meaning] : [])).forEach(function(r){ F.hl.push(highlight($('hF'), r)); });
       F.ul = lf.kr.map(function(r){ return underline(svg, r, 3); });
       var boxes = lf.kr.map(scaled), nS = S.nSurname || 0, groups = [];
       if(nS > 0) groups.push({ from: 0, to: nS - 1, label: 'last name' });
@@ -181,25 +331,32 @@
       var yB = Math.min.apply(null, boxes.map(function(b){ return b[1]; })) - 22;
       groups.forEach(function(g, i){
         var x1 = boxes[g.from][0] - 6, x2 = boxes[g.to][0] + boxes[g.to][2] + 6;
-        var p = el('path', { d: brace(x1, x2, yB), 'class': 'brace' });
-        var len = (x2 - x1) * 1.3 + 80; p.setAttribute('stroke-dasharray', len); p.setAttribute('stroke-dashoffset', len); p.style.opacity = 0;
-        svg.appendChild(p);
-        var tx = el('text', { x: (x1 + x2) / 2, y: yB - 26, 'text-anchor': 'middle', 'class': 'lab',
-                              transform: 'rotate(' + (i ? 1.5 : -1.5) + ' ' + (x1 + x2) / 2 + ' ' + (yB - 26) + ')' });
+        // 성/이름: 글자 아래 노란 형광펜 밑줄(곱하기 레이어) + 위에 손글씨 라벨
+        F.nameUl.push(hlUnder($('hF'), lf.kr[g.from], lf.kr[g.to], 20, 28));
+        var tx = el('text', { x: (x1 + x2) / 2, y: yB - 20, 'text-anchor': 'middle', 'class': 'lab',
+                              transform: 'rotate(' + (i ? 1.5 : -1.5) + ' ' + (x1 + x2) / 2 + ' ' + (yB - 20) + ')' });
         tx.textContent = g.label; tx.style.opacity = 0; svg.appendChild(tx);
-        F.braces.push({ el: p, len: len }); F.labels.push(tx);
+        F.labels.push(tx);
       });
+      // 포스트잇: 한글 이름부터 로마자 줄까지 덮는다(살짝 비스듬히)
+      if(S.sticky){
+        var xs1 = Math.min.apply(null, boxes.map(function(b){ return b[0]; })), xs2 = Math.max.apply(null, boxes.map(function(b){ return b[0] + b[2]; }));
+        var top = Math.min.apply(null, boxes.map(function(b){ return b[1]; })), rom = scaled(lf.rom), bot = rom ? rom[1] + rom[3] : Math.max.apply(null, boxes.map(function(b){ return b[1] + b[3]; }));
+        var w = Math.max(xs2 - xs1 + 150, (bot - top) * 1.35), h = bot - top + 86;
+        NOTE = { x: (xs1 + xs2) / 2 - w / 2, y: top - 40, w: w, h: h, tilt: -2.4 * Math.PI / 180 };
+        buildNote(NOTE);
+      }
     }
     // ── 뒷면: 글자별 뜻 행 형광펜
     svg = $('svgB'); while(svg.firstChild) svg.removeChild(svg.firstChild);
     var lb = L.layout_back;
-    if(lb && lb.rows) B.rows = lb.rows.map(function(r){ return highlight(svg, r); });
-    B.surname = (lb && lb.surnameLines) ? lb.surnameLines.map(function(r){ return highlight(svg, r); }) : [];
+    if(lb && lb.rows) B.rows = lb.rows.map(function(r){ return highlight($('hB'), r); });
+    B.surname = (lb && lb.surnameLines) ? lb.surnameLines.map(function(r){ return highlight($('hB'), r); }) : [];
     // ── 이유 화면: 테일러 밑줄, 고른 음절 밑줄, 'We carried…' 형광펜
     svg = $('svgR'); while(svg.firstChild) svg.removeChild(svg.firstChild);
     var lr = L.layout_reason;
     if(lr){
-      if(lr.introLines) Rn.intro = lr.introLines.map(function(r){ return highlight(svg, r); });
+      if(lr.introLines) Rn.intro = lr.introLines.map(function(r){ return highlight($('hR'), r); });
       if(lr.hangul) Rn.hangul = underline(svg, lr.hangul, 2);
       if(lr.chips) Rn.chips = lr.chips.map(function(r){ return underline(svg, r, 2); });
     }
@@ -215,8 +372,10 @@
       hookVideo.addEventListener('seeked', f, { once: true }); hookVideo.currentTime = tt; setTimeout(f, 800); });
   };
 
-  window.render = function(t){
-    var v, sig = [];
+  window.render = function(t, mode){
+    var v, sig = [], hsig = [];
+    document.body.classList.toggle('hlmode', mode === 'hl');
+    setLayer($('hlL'), mode === 'hl' ? 1 : 0);
     // ── 훅
     var hookEnd = (T.card !== undefined) ? T.card + .05 : T.type - .2;   // 입력 카드가 뜨면 훅이 걷힌다
     if(S.hook.media){
@@ -225,7 +384,7 @@
       if(v > 0){
         var p = clamp((t + 1) / (hookEnd + 1));
         $('hmImg').style.transform = 'scale(' + (1 + .09 * p) + ')';
-        words($('hmCap'), t, (C.hook ? C.hook.t - .05 : .1), .07, 26);
+        words($('hmCap'), t, .12, .07, 26);                                 // 캡션은 바로, 나레이션은 1초 뒤(무음 비트)
         sig.push('hm', q(v), q(p), q(t));
       }
     } else {
@@ -239,11 +398,12 @@
     // ── 앞면 그림
     var frontEnd = (T.back || (T.result + 60)) - .05;
     v = vis(t, T.result + .8, frontEnd, .01, .2);
-    setLayer($('drawF'), v);
+    setLayer($('drawF'), v); $('hF').style.opacity = v; hsig.push('F', q(v));
     if(v > 0){
       sig.push('F', q(v));
       var sl = C.slow || C.say, n = F.ul.length;                    // 이름을 읽는 동안 음절마다 밑줄
-      F.ul.forEach(function(u, i){
+      if(S.sticky || S.reveal) n = 0;                                // 포스트잇·나타나기 연출에선 음절 밑줄을 긋지 않는다(드러나는 것 자체가 효과)
+      ((S.sticky || S.reveal) ? [] : F.ul).forEach(function(u, i){
         var a, d;
         if(sl && sl.segs && sl.segs[i]){ a = sl.t + sl.segs[i][0]; d = Math.max(.2, (sl.segs[i][1] - sl.segs[i][0]) * .9); }
         else if(sl){ var v0 = sl.v0 || 0, v1 = sl.v1 || sl.dur, slot = (v1 - v0) / Math.max(1, n); a = sl.t + v0 + i * slot; d = Math.max(.15, slot * .9); }
@@ -253,37 +413,50 @@
       // 성/이름 브레이스: 한국어 세그먼트("서.", "태이.")를 말하는 순간에 그린다
       var koParts = C.names ? C.names.parts.filter(function(p){ return /[가-힣]/.test(p.file || '') || p.ko; }) : [];
       var starts = (C.names && C.names.koStarts) ? C.names.koStarts : [];
-      F.braces.forEach(function(b, i){
+      F.nameUl.forEach(function(b, i){
         var a = starts[i] !== undefined ? starts[i] : (C.names ? C.names.t + i * 1.5 : T.say + 2 + i);
-        var p = (t - a) / .45, lp = easeOut((t - a - .25) / .3);
-        drawTo(b, p, sig); F.labels[i].style.opacity = lp; sig.push(q(lp));
+        var p = (t - a) / .5, lp = easeOut((t - a - .2) / .3);
+        drawTo(b, p, hsig); F.labels[i].style.opacity = lp; sig.push(q(lp));
       });
       // 한 줄 뜻 형광펜: 목소리가 실제로 시작되는 순간부터 문장 길이에 맞춰
       if(C.meaning){ var m0 = C.meaning.hlAt !== undefined ? C.meaning.hlAt : C.meaning.t + (C.meaning.v0 || 0);
                      var md = C.meaning.hlDur !== undefined ? C.meaning.hlDur : (C.meaning.dur - (C.meaning.v0 || 0));
-                     sweep(F.hl, t, m0, Math.max(.8, md * .92), sig); }
+                     sweep(F.hl, t, m0, Math.max(.8, md * .92), hsig); }
     }
+    // ── 포스트잇: 카드가 뜨고 잠시 뒤 탁 붙었다가, 이름을 말하는 순간 위로 들려 떨어진다
+    if(S.sticky && NOTE && C.say){
+      // 붙기(0.16s) → 이름 소리 0.45s 전부터 0.75s 동안 아래에서 위로 말리며 떼어진다 → 0.35s 동안 위로 들려 사라진다
+      var on = T.result + (S.stickyAt || .2), peel0 = C.say.t + (C.say.v0 || 0) - .45, pd = .75, ld = .35;
+      var sv = 0;
+      if(t >= on && t < peel0 + pd + ld){
+        var slap = easeOut((t - on) / .16), pp = clamp((t - peel0) / pd), lf = clamp((t - peel0 - pd) / ld);
+        sv = 1;
+        if(mode !== 'hl') drawNote(Math.min(1, slap), pp, lf);
+        sig.push('nt', q(slap), Math.round(pp * 400), q(lf));
+      }
+      setLayer($('sticky'), sv);
+    } else setLayer($('sticky'), 0);
     // ── 뒷면 그림: "Tae means a star." 때 태 행, "And I means…" 때 이 행
     var backEnd = (T.front || T.outro || (T.back + 60)) - .05;
     v = vis(t, T.back + .9, backEnd, .01, .2);
-    setLayer($('drawB'), v);
+    setLayer($('drawB'), v); $('hB').style.opacity = v; hsig.push('B', q(v));
     if(v > 0){
       sig.push('B', q(v));
       (S.backKeys || []).forEach(function(k, i){
         var c = C[k]; if(!c || !B.rows[i]) return;
         var a = c.t + (c.v0 || 0);
-        drawTo(B.rows[i], (t - a) / Math.max(.5, (c.dur - (c.v0 || 0)) * .75), sig);
+        drawTo(B.rows[i], (t - a) / Math.max(.5, (c.dur - (c.v0 || 0)) * .75), hsig);
       });
       if(C.back && C.back.koStarts){                                 // 한 문장 대본: 한국어 세그먼트 순서 = [성], 글자1, 글자2…
         var ks = C.back.koStarts, off = (C.back.hasSn !== undefined ? C.back.hasSn : (S.nSurname > 0)) && B.surname.length ? 1 : 0;
-        if(off) sweep(B.surname, t, ks[0], Math.max(1.6, C.back.snDur || 1.6), sig);
-        B.rows.forEach(function(r, i){ var a = ks[i + off]; if(a !== undefined) drawTo(r, (t - a) / .6, sig); });
+        if(off) sweep(B.surname, t, ks[0], Math.max(1.6, C.back.snDur || 1.6), hsig);
+        B.rows.forEach(function(r, i){ var a = ks[i + off]; if(a !== undefined) drawTo(r, (t - a) / .6, hsig); });
       }
     }
     // ── 이유 화면 그림
     var rEnd = (T.reason2 || (T.reason1 + 60)) - .05;
     v = vis(t, T.reason1 + .75, rEnd, .01, .2);
-    setLayer($('drawR'), v);
+    setLayer($('drawR'), v); $('hR').style.opacity = v; hsig.push('R', q(v));
     if(v > 0){
       sig.push('R', q(v));
       var a1 = C.reason1a, b1 = C.reason1b;
@@ -291,7 +464,7 @@
       if(b1){
         var tc = b1.t + b1.dur * .45;                                      // "we chose these syllables: Tae and I"
         Rn.chips.forEach(function(u, i){ drawTo(u, (t - tc - i * .3) / .35, sig); });
-        sweep(Rn.intro, t, b1.t + .1, Math.max(.8, b1.dur * .8), sig);
+        sweep(Rn.intro, t, b1.t + .1, Math.max(.8, b1.dur * .8), hsig);
       }
     }
     // ── 영어 자막: 나레이션 문장 조각을 소리 나는 동안
@@ -312,7 +485,7 @@
     v = vis(t, T.outro, T.outro + 60, .35, 1);
     setLayer($('outro'), v);
     if(v > 0){ words($('outBig'), t, T.outro + .1, 0, 34); words($('outSub'), t, T.outro + .55, .06, 18); words($('outHand'), t, T.outro + 1.1, 0, 30); sig.push('ot', q(v), q(Math.min(t - T.outro, 2))); }
-    return sig.join(',');
+    return (mode === 'hl' ? hsig : sig).join(',');
   };
 })();
 </script>
