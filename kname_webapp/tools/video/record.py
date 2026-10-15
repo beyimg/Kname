@@ -81,13 +81,13 @@ KO_VOICE = os.environ.get('KNAME_KO_VOICE', 'ko-KR-Chirp3-HD-Aoede')   # 한국�
 #   Matilda XrExE9yKIg1WjnnlVkGX (미국, 따뜻함)        Lily pFZP5JQG7iQjIQuC4Bku (영국)
 EN_VOICES = {'jessica': 'cgSgspJ2msm6clMCkdW9', 'laura': 'FGY2WhTYpPnrIDTdsKH5', 'sarah': 'EXAVITQu4vr4xnSDxMaL',
              'matilda': 'XrExE9yKIg1WjnnlVkGX', 'lily': 'pFZP5JQG7iQjIQuC4Bku', 'danbi': ''}
-TEMPO_BY_SCENE = {'input': 1.1, 'hook': 1.0}                          # 장면별 영어 배속(나머지는 --tempo). 훅은 원속도(기다림을 줄인다)
+TEMPO_BY_SCENE = {'input': 1.1, 'hook': 1.0, 'result': 1.0}           # 장면별 영어 배속(나머지는 --tempo). 훅·결과 문장은 원속도(이름까지 기다림을 줄인다, 2026-10-14)
 EN_VOICE = os.environ.get('KNAME_EN_VOICE', 'danbi')          # 기본: 한국어와 같은 목소리(민우님 결정 2026-10-04)
 ENGINE = 'google'                                                      # 서버가 알려준다: google | elevenlabs
 GAP = 0.12                                                            # (구버전 호환)
 CAP_Y = {'back': 1440}                                                            # 장면 → 자막 상단 y(px). 기본 1290
 GAP_IN, GAP_COMMA, GAP_END = 0.08, 0.2, 0.42                          # 문장 안 조각 사이 / 쉼표·대시 뒤 / 문장이 끝난 뒤 쉼(초)
-GAP_ELLIPSIS = 0.35                                                   # "…is…" 처럼 뜸 들이는 조각 뒤(이름 공개 직전). 0.7 → 0.35 (2026-10-12)
+GAP_ELLIPSIS = 0.2                                                    # "…is…" 처럼 뜸 들이는 조각 뒤(이름 공개 직전). 0.7 → 0.35 → 0.2 (2026-10-14)
 
 
 def part_texts(spec):
@@ -98,8 +98,9 @@ def part_texts(spec):
 def part_gaps(spec):
     """한 장면의 조각 사이 쉼 — 문장이 끝나는(.!?) 조각 뒤는 길게, 문장 중간은 짧게."""
     t = part_texts(spec)
-    return [GAP_ELLIPSIS if re.search(r'(\u2026|\.\.\.)\s*$', x) else
-            GAP_END if re.search(r'[.!?]["\u201d\u2019\']?\s*$', x) else (GAP_COMMA if re.search(r'[,;:\u2014]\s*$', x) else GAP_IN) for x in t[:-1]]
+    ends = [isinstance(p, dict) and bool(p.get('end')) for p in spec][:-1]   # 한국어 조각이 문장 끝이면(유명인 이름) 긴 쉼
+    return [GAP_END if e else GAP_ELLIPSIS if re.search(r'(\u2026|\.\.\.)\s*$', x) else
+            GAP_END if re.search(r'[.!?]["\u201d\u2019\']?\s*$', x) else (GAP_COMMA if re.search(r'[,;:\u2014]\s*$', x) else GAP_IN) for x, e in zip(t[:-1], ends)]
 
 
 def en_context(spec):
@@ -115,9 +116,10 @@ def en_context(spec):
 
 _ROM_D = None                                                       # build_lines 가 현재 변환 결과를 넣는다
 KO_FRAMES = ['{p} — {t} — 이렇게 읽어요.', '{p} — {t} — 이렇게 불러요.']   # 테이크 2개 → 톤이 고른 쪽
-KO_FRAMES_SYL = KO_FRAMES + ['{p} — {t} — 라고 읽어요.', '{p} — {t} — 이렇게 발음해요.']   # 한 글자는 테이크 4개(짧게 잘리는 일이 잦다)
+KO_FRAMES_SYL = KO_FRAMES + ['{p} — {t} — 라고 읽어요.', '{p} — {t} — 이렇게 발음해요.',
+                             '{p} — {t} — 이렇게 읽습니다.', '{p}, {t}, 이렇게 읽어요.']   # 한 글자는 테이크 6개(짧게 잘리는 일이 잦다) — 가장 길게 읽힌 것을 고른다
 KO_SYL_STRETCH = 1.45                                                 # 한 글자 조각 길이 배수(음높이 유지). 1.1 → 1.21 → 1.45 (민우님 2026-10-13: 1.2배 더)
-KO_SYL_FROM_FULL = True                                               # 낱글자는 이름 전체 발음에서 잘라 쓴다(False 면 문장 틀로 따로 합성)
+KO_SYL_FROM_FULL = False                                              # 낱글자를 이름 전체 발음에서 잘라 쓰면(True) 잘린 소리가 뭉개져 안 들린다(민우님 2026-10-14, 정서하) → 글자마다 문장 틀로 따로 읽힌다
 KO_SYL_MIN = 0.34                                                     # 한 글자 소리 길이 최소(초) — Danbi 는 낱글자를 0.12~0.2s 로 짧게 읽는다
 
 
@@ -128,7 +130,7 @@ KO_MATCH_GAIN = (0.5, 2.5)                                            # 소리 �
 KO_WORD_STRETCH = 1.2                                                 # 두 글자 이상 한국어 조각(성/이름 소개의 '서하' 등) 길이 배수 — 결과 이름(fx)은 제외
 
 
-def ko(text, prev='한국 이름은', nxt=None, full=None, idx=None, fx=None):
+def ko(text, prev='한국 이름은', nxt=None, full=None, idx=None, fx=None, stretch=None):
     """한국어로 읽을 세그먼트. ElevenLabs 는 글자만 주거나 숨은 문맥(prev/next)만 주면 영어식·높은 톤으로
     읽는 일이 잦다 → **한국어 문장 전체**('성은 — 서 — 이렇게 읽어요.')를 읽힌 뒤 가운데(— … —)만 잘라 쓴다.
     frame = 앞에 붙는(말하지 않는) 한국어 문맥."""
@@ -142,6 +144,8 @@ def ko(text, prev='한국 이름은', nxt=None, full=None, idx=None, fx=None):
             d['idx'] = idx if idx is not None else full.index(text)
     if fx:
         d['fx'] = dict(fx)                                     # 잘라 낸 뒤 rubberband 로 속도·음높이를 바꾼다
+    if stretch is not None:
+        d['stretch'] = float(stretch)                          # 길이 배수를 직접 지정(1.0 = 원래대로, 최소 길이도 안 건다)
     return d
 
 
@@ -385,7 +389,7 @@ def ko_synthesize(sp, ndir):
 
 def _ko_synthesize(sp, ndir):
     text, frame = sp['text'], sp['frame']
-    if sp.get('full') and len(text) == 1:
+    if sp.get('full') and len(text) == 1 and KO_SYL_FROM_FULL:       # (옛 대본의 full/idx 는 KO_SYL_FROM_FULL 이 꺼져 있으면 무시)
         fullp = ko_synthesize({'text': sp['full'], 'frame': '이 사람의 한국 이름은', 'voice': sp.get('voice')}, ndir)
         if fullp:
             key = hashlib.sha1(f"{sp['full']}|{sp['idx']}|{KO_SYL_STRETCH}|{KO_SYL_MIN}".encode('utf-8')).hexdigest()[:16]
@@ -399,7 +403,7 @@ def _ko_synthesize(sp, ndir):
                 print(f'  ko [{text}] {ln * stretch:.2f}s ← {sp["full"]} 전체 발음의 {int(sp["idx"]) + 1}번째 글자')
                 return final
     takes = [f.format(p=frame, t=text) for f in (KO_FRAMES_SYL if len(re.findall(r'[가-힣]', text)) == 1 else KO_FRAMES)]
-    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text + f'|s{KO_SYL_STRETCH}|m{KO_SYL_MIN}|w{1.0 if sp.get("fx") else KO_WORD_STRETCH}').encode('utf-8')).hexdigest()[:16] + '.mp3')
+    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text + f'|s{KO_SYL_STRETCH}|m{KO_SYL_MIN}|w{1.0 if sp.get("fx") else KO_WORD_STRETCH}|x{sp.get("stretch")}').encode('utf-8')).hexdigest()[:16] + '.mp3')
     if os.path.exists(final):
         return final
     paths = [os.path.join(ndir, hashlib.sha1((t + '|ko-KR|full').encode('utf-8')).hexdigest()[:16] + '.mp3') for t in takes]
@@ -425,17 +429,21 @@ def _ko_synthesize(sp, ndir):
             continue
         mid, whole = _pitch_mean(p, a, b), _pitch_mean(p)
         score = abs((mid or 0) - (whole or 0)) if (mid and whole) else 0
-        if n_syl == 1 and b - a < 0.18:
-            score += 60                                      # 한 글자가 너무 짧게 잘린 테이크는 뒤로
+        if n_syl == 1:
+            score += 60 if b - a < 0.18 else 0               # 한 글자가 너무 짧게 잘린 테이크는 뒤로
+            score -= 120 * (b - a)                           # 같은 값이면 길게 읽힌 테이크(0.1s 당 12Hz 어치)를 앞에 — 늘려도 덜 뭉개진다(2026-10-14)
         cands.append((score, p, a, b))
     if not cands:
         return None
     cands.sort()
     score, p, a, b = cands[0]
     cut = cut_clip(p, a, b)
-    stretch = KO_SYL_STRETCH if n_syl == 1 else (1.0 if sp.get('fx') else KO_WORD_STRETCH)   # 한 글자는 길게(2026-10-05), 성/이름 소개의 두 글자도 1.2배(2026-10-13). 결과 이름은 fx 가 따로 느리게
-    if n_syl == 1 and (b - a) * stretch < KO_SYL_MIN:
-        stretch = min(1.5, KO_SYL_MIN / (b - a))               # 그래도 KO_SYL_MIN 이 안 되면 더 늘린다(최대 1.5배)
+    if sp.get('stretch') is not None:
+        stretch = float(sp['stretch'])                         # 대본이 정한 길이 배수(뒷면 낱글자 1.0 = 원래대로, 민우님 2026-10-14)
+    else:
+        stretch = KO_SYL_STRETCH if n_syl == 1 else (1.0 if sp.get('fx') else KO_WORD_STRETCH)   # 한 글자는 길게(2026-10-05), 성/이름 소개의 두 글자도 1.2배(2026-10-13). 결과 이름은 fx 가 따로 느리게
+        if n_syl == 1 and (b - a) * stretch < KO_SYL_MIN:
+            stretch = min(2.0, KO_SYL_MIN / (b - a))           # 그래도 KO_SYL_MIN 이 안 되면 더 늘린다(최대 2배 — atempo 는 0.5 아래로 못 간다)
     if stretch != 1.0:
         slow = cut[:-4] + f'_s{int(stretch * 100)}.mp3'
         if not os.path.exists(slow):
@@ -732,9 +740,20 @@ def surname_line(d):
         return None
     try:
         from surname_notes import spoken_line
-        return spoken_line(sn) or None
+        parts = spoken_line(sn)
     except Exception:
         return None
+    if not parts:
+        return None
+    out = []
+    for x in parts:
+        if isinstance(x, dict) and x.get('ko'):
+            kd = ko(x['ko'], prev='이 사람의 이름은')                   # 유명인 이름은 한국어 발음으로(민우님 2026-10-13)
+            kd['end'] = bool(x.get('end')); kd['nohl'] = True          # 문장 끝 쉼 / 뒷면 형광펜 박자에서 제외
+            out.append(kd)
+        else:
+            out.append(x)
+    return out
 
 
 def phrase_split(text, min_words=8):
@@ -770,11 +789,12 @@ def build_lines(d, first, last, args):
     stage = (getattr(args, 'stage_name', '') or '').strip()         # 예명(Lady Gaga). 있으면 훅·결과는 예명으로, 입력 장면에서 본명을 소개한다(2026-10-13)
     who = stage or full_en
     lines['hook'] = [f"What's {who}'s Korean name?", {'text': "Let's find out!", 'mood': 'bright'}]   # 마지막 한마디는 신나게(민우님 2026-10-12)
-    if stage:
-        lines['input'] = f"{stage}'s real name is {full_en}. So let's type that in."
-    lines['result'] = [f"The Korean name for {stage or first} is\u2026", ko(d['full_hangul'], prev='이 사람의 한국 이름은', fx=KO_NAME_FX)]
+    # 예명이면 결과 화면에서 본명을 먼저 소개한다(입력 장면은 없앰 — 시간 단축, 민우님 2026-10-14)
+    pron = {'f': 'Her', 'm': 'His'}.get(getattr(args, 'sex_key', 'f'), 'The')
+    lines['result'] = ([f"{stage}'s real name is {full_en}.", f"{pron} Korean name is\u2026"] if stage else [f"{first}'s Korean name is\u2026"]) + \
+                      [ko(d['full_hangul'], prev='이 사람의 한국 이름은', fx=KO_NAME_FX)]   # 짧게(2026-10-14): "The Korean name for X is…" → "X's Korean name is…"
     if n_s:
-        lines['names'] = ["In Korea, the last name comes first. So", ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0),
+        lines['names'] = ["In Korea, the last name comes first. So", ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0, stretch=KO_WORD_STRETCH),
                           'is the last name, and', ko(given_ko, prev='이름은'), 'is the first.']
     else:
         lines['names'] = ["In Korea, the last name comes first.", ko(given_ko, prev='이름은'), 'is the first name.']
@@ -786,13 +806,13 @@ def build_lines(d, first, last, args):
     back = ["Let me show you why it means that."]
     sl = surname_line(d)
     if n_s and sl:
-        back += ["The last name", ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0), sl]
+        back += ["The last name", ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0, stretch=1.0)] + (sl if isinstance(sl, list) else [sl])   # 뒷면은 원래 길이
     hl = d['hanja_lines']
     for i, h in enumerate(hl):
         lead = "In the first name," if (i == 0 and n_s and sl) else ("and" if i == len(hl) - 1 and len(hl) > 1 else "")
         if lead:
             back.append(lead)
-        back += [ko(h['syl'], prev='이 글자는', full=d['full_hangul'], idx=n_s + i),
+        back += [ko(h['syl'], prev='이 글자는', full=d['full_hangul'], idx=n_s + i, stretch=1.0),   # 뒷면 낱글자는 원래 길이(민우님 2026-10-14)
                  f"means {primary_gloss(h['gloss'], h.get('hanja'))}" + ("," if i < len(hl) - 1 else ".")]
     if args.back_tail:
         back.append(args.back_tail)
@@ -859,7 +879,7 @@ def caption_lines(cues, skip=('why',), max_words=7):
         words = []                                            # (단어, 시작, 끝)
         for p in c['parts']:
             a, b = p['t'] + p['v0'], p['t'] + p['v1']
-            toks = [p['text']] if p['ko'] else [w for w in p['text'].split() if w]
+            toks = [p['text'] + ('.' if p.get('end') else '')] if p['ko'] else [w for w in p['text'].split() if w]   # 문장 끝 한국어(유명인 이름)는 자막도 거기서 끊는다
             if not toks:
                 continue
             wts = [max(1, len(w)) + 1 for w in toks]; tot = sum(wts); x = a
@@ -1084,6 +1104,7 @@ def main():
     probe_engine()
     script, d, first, last = build_script(name, SEX.get(sex_key, '여'), args)
     print(f'{name} → {script["full"]} ({script["hanja"]}, {script["rom"]})')
+    args.sex_key = sex_key
     lines = build_lines(d, first, last, args)
     if args.script:
         if not os.path.exists(args.script):
@@ -1163,7 +1184,7 @@ def main():
         for j, ((path, dd, v0, v1), sp) in enumerate(zip(N['result']['parts'], lines['result'])):
             if isinstance(sp, dict) and sp.get('lang'):
                 n_syl = max(1, len(re.findall(r'[가-힣]', sp['text']))); slot = (v1 - v0) / n_syl
-                veil = [max(0.0, tt + v0 + i * slot - 0.10) for i in range(n_syl)]
+                veil = [max(0.0, tt + v0 + i * slot - 0.20) for i in range(n_syl)]   # 글자는 소리보다 0.2s 먼저 떠오른다(0.42s 전환이라 소리 때 또렷해진다)
                 break
             tt += dd + (gaps[j] if j < len(gaps) else 0)
     sayat = r_at + nd['result'] + 1.0                                 # (발음은 result 안에 있다 — 데모의 발음 자리는 비워 둔다)
@@ -1197,10 +1218,11 @@ def main():
         gaps = N[k].get('gaps') or []
         for j, ((path, dd, v0, v1), sp) in enumerate(zip(N[k]['parts'], (lines[k] if isinstance(lines[k], list) else [lines[k]]))):
             parts.append({'t': tt, 'dur': dd, 'file': path, 'v0': v0, 'v1': v1, 'ko': isinstance(sp, dict) and bool(sp.get('lang')),
+                          'nohl': isinstance(sp, dict) and bool(sp.get('nohl')), 'end': isinstance(sp, dict) and bool(sp.get('end')),
                           'text': (sp.get('text', '') if isinstance(sp, dict) else sp)})
             tt += dd + (gaps[j] if j < len(gaps) else 0)
         c = {'t': t, 'dur': nd[k], 'v0': N[k]['v0'], 'parts': parts,
-             'koStarts': [p['t'] + p['v0'] for p in parts if p['ko']]}
+             'koStarts': [p['t'] + p['v0'] for p in parts if p['ko'] and not p.get('nohl')]}   # 유명인 이름(nohl)은 형광펜 박자에서 뺀다
         c.update(kw); return c
     R = T['result']
     cues = {}
@@ -1220,11 +1242,15 @@ def main():
     put('back', T['back'] + 0.9)
     if 'back' in cues:                                                # 뒷면 형광펜: 성씨 문장이 있을 때만 성씨 줄을 칠하고, 문장이 읽히는 시간만큼 천천히 쓸어간다
         bp = cues['back']['parts']
-        ko_i = [i for i, p_ in enumerate(bp) if p_['ko']]
+        ko_i = [i for i, p_ in enumerate(bp) if p_['ko'] and not p_.get('nohl')]
         has_sn = len(ko_i) == len(d['hanja_lines']) + 1
         cues['back']['hasSn'] = has_sn
-        if has_sn and ko_i[0] + 1 < len(bp):
-            a_, b_ = bp[ko_i[0]], bp[ko_i[0] + 1]
+        if has_sn and len(ko_i) > 1:
+            # 성씨 문단 형광펜: 성씨 글자를 말할 때부터 첫 글자 뜻 직전("In the first name," 앞)까지
+            a_ = bp[ko_i[0]]; end_i = ko_i[1] - 1
+            while end_i > ko_i[0] and bp[end_i]['text'].strip().lower().startswith('in the first name'):
+                end_i -= 1
+            b_ = bp[end_i]
             cues['back']['snDur'] = max(1.0, (b_['t'] + b_['v1']) - (a_['t'] + a_['v0']))
     put('why', T['outro'] + 0.2)
     script['backKeys'] = []

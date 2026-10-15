@@ -71,7 +71,7 @@
     // direct+veil: 결과 카드의 이름(한글·한자·로마자)을 veil 초 동안 보이지 않게 둔다(자리는 그대로).
     // 오버레이가 그 자리에 포스트잇을 붙였다가 떼면서 이름을 드러낸다 — 그 전에 이름이 비치면 안 된다.
     var path = ''; try { path = doc.location.pathname; } catch(e){}
-    if(CFG.veil && CFG.veil.length && path.indexOf('/n/') === 0){
+    if(CFG.veil && CFG.veil.length && path.indexOf('/n/') === 0 && !doc.getElementById('kveil')){   // (서버가 이미 넣었으면 건너뜀)
       // 이름은 처음에 없다가 글자마다 발음에 맞춰 떠오르며 나타난다(2026-10-11). 로마자 줄은 마지막 글자와 함께.
       var vs = doc.createElement('style'); vs.id = 'kveil';
       vs.textContent = '.face-front .kn-col,.face-front .romanized{opacity:0;transform:translateY(10px);transition:opacity .42s ease-out,transform .42s ease-out}' +
@@ -170,7 +170,8 @@
     if(CFG.direct){                                        // 입력 장면 없이 결과 카드로 바로 (2026-10-08 대본)
       var parts0 = item.name.split(' '), f0 = parts0[0], l0 = parts0.slice(1).join(' ');
       var pd = waitLoad('/n/');
-      stage.src = '/n/' + encodeURIComponent(f0) + (l0 ? '/' + encodeURIComponent(l0) : '') + '?g=' + item.g;
+      // veil=1: 결과 페이지가 처음부터 이름을 숨긴 채 그려진다(폴링으로 스타일을 넣으면 첫 프레임에 이름이 비칠 수 있다)
+      stage.src = '/n/' + encodeURIComponent(f0) + (l0 ? '/' + encodeURIComponent(l0) : '') + '?g=' + item.g + ((CFG.veil && CFG.veil.length) ? '&veil=1' : '');
       return pd.then(function(){ return afterResult(item); });
     }
     var p = waitLoad('/');

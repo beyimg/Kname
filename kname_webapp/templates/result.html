@@ -33,6 +33,10 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='notoserifkr.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% if request.args.get('veil') %}
+<!-- 영상용(/demo): 이름 글자를 처음엔 보이지 않게. 페이지가 그려지기 전에 들어가야 첫 프레임에 이름이 비치지 않는다(2026-10-15, Selena 편에서 비침) -->
+<style id="kveil">.face-front .kn-col,.face-front .romanized{opacity:0;transform:translateY(10px);transition:opacity .42s ease-out,transform .42s ease-out}.face-front .kn-col.kshow,.face-front .romanized.kshow{opacity:1;transform:none}</style>
+{% endif %}
 </head>
 <body>
 <div class="wrap">

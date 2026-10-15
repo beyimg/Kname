@@ -12,7 +12,8 @@
  "en_voice": "danbi",
  "tempo_scene": {
   "input": 1.1,
-  "hook": 1.0
+  "hook": 1.0,
+  "result": 1.0
  },
  "hook_caption": "Lady Gaga's Korean name?",
  "lines": {
@@ -23,9 +24,9 @@
     "mood": "bright"
    }
   ],
-  "input": "Lady Gaga's real name is Stefani Germanotta. So let's type that in.",
   "result": [
-   "The Korean name for Lady Gaga is…",
+   "Lady Gaga's real name is Stefani Germanotta.",
+   "Her Korean name is…",
    {
     "text": "정서하",
     "lang": "ko-KR",
@@ -42,8 +43,7 @@
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Jung",
     "frame": "성은",
-    "full": "정서하",
-    "idx": 0
+    "stretch": 1.2
    },
    "is the last name, and",
    {
@@ -68,10 +68,19 @@
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Jung",
     "frame": "성은",
-    "full": "정서하",
-    "idx": 0
+    "stretch": 1.0
    },
-   "means solemn. It’s also the family name of actor Jung Hae-in.",
+   "means solemn.",
+   "It’s also the family name of actor",
+   {
+    "text": "정해인",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jung-Hae-In",
+    "frame": "이 사람의 이름은",
+    "end": true,
+    "nohl": true
+   },
    "In the first name,",
    {
     "text": "서",
@@ -79,8 +88,7 @@
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Seo",
     "frame": "이 글자는",
-    "full": "정서하",
-    "idx": 1
+    "stretch": 1.0
    },
    "means good omen,",
    "and",
@@ -90,8 +98,7 @@
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Ha",
     "frame": "이 글자는",
-    "full": "정서하",
-    "idx": 2
+    "stretch": 1.0
    },
    "means a lotus."
   ],

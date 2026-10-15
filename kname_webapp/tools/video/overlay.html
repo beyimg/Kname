@@ -377,7 +377,7 @@
     document.body.classList.toggle('hlmode', mode === 'hl');
     setLayer($('hlL'), mode === 'hl' ? 1 : 0);
     // ── 훅
-    var hookEnd = (T.card !== undefined) ? T.card + .05 : T.type - .2;   // 입력 카드가 뜨면 훅이 걷힌다
+    var hookEnd = (T.card !== undefined) ? T.card + .3 : T.type - .2;    // 카드가 뜨면 훅이 걷힌다. 카드가 그려지기까지 ~0.15s 빈 종이가 비치므로 0.3s 뒤에 걷힌다(2026-10-14)
     if(S.hook.media){
       v = vis(t, T.start - 1, hookEnd, .01, .4);
       setLayer($('hookMedia'), v); setLayer($('hook'), 0);

@@ -12,7 +12,8 @@
  "en_voice": "danbi",
  "tempo_scene": {
   "input": 1.1,
-  "hook": 1.0
+  "hook": 1.0,
+  "result": 1.0
  },
  "hook_caption": "Selena Gomez's Korean name?",
  "lines": {
@@ -24,7 +25,7 @@
    }
   ],
   "result": [
-   "The Korean name for Selena is…",
+   "Selena's Korean name is…",
    {
     "text": "고세나",
     "lang": "ko-KR",
@@ -41,8 +42,7 @@
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Ko",
     "frame": "성은",
-    "full": "고세나",
-    "idx": 0
+    "stretch": 1.2
    },
    "is the last name, and",
    {
@@ -67,10 +67,19 @@
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Ko",
     "frame": "성은",
-    "full": "고세나",
-    "idx": 0
+    "stretch": 1.0
    },
-   "means high. It’s also the family name of actress Go Youn-jung.",
+   "means high.",
+   "It’s also the family name of actress",
+   {
+    "text": "고윤정",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ko-Yun-Jeong",
+    "frame": "이 사람의 이름은",
+    "end": true,
+    "nohl": true
+   },
    "In the first name,",
    {
     "text": "세",
@@ -78,8 +87,7 @@
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Se",
     "frame": "이 글자는",
-    "full": "고세나",
-    "idx": 1
+    "stretch": 1.0
    },
    "means years,",
    "and",
@@ -89,8 +97,7 @@
     "voice": "ko-KR-Chirp3-HD-Aoede",
     "rom": "Na",
     "frame": "이 글자는",
-    "full": "고세나",
-    "idx": 2
+    "stretch": 1.0
    },
    "means graceful."
   ],
