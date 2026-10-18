@@ -193,7 +193,7 @@
     });
   }
 
-  var F = { ul: [], braces: [], labels: [], hl: [], nameUl: [] }, B = { rows: [], surname: [] }, Rn = { hangul: null, chips: [], intro: [] };
+  var F = { ul: [], braces: [], labels: [], hl: [], nameUl: [] }, B = { rows: [], surname: [], msents: [] }, Rn = { hangul: null, chips: [], intro: [] };
   var NOTE = null;                                                   // 포스트잇 자리(렌더 px) {x,y,w,h,tilt}
   // ── 포스트잇 종이(오프스크린): 앞면(결·접착 띠·물음표) / 뒷면(민무늬, 조금 밝음)
   var PAPER = null;
@@ -351,7 +351,9 @@
     svg = $('svgB'); while(svg.firstChild) svg.removeChild(svg.firstChild);
     var lb = L.layout_back;
     if(lb && lb.rows) B.rows = lb.rows.map(function(r){ return highlight($('hB'), r); });
-    B.surname = (lb && lb.surnameLines) ? lb.surnameLines.map(function(r){ return highlight($('hB'), r); }) : [];
+    var snL = lb ? ((lb.surnameFirst && lb.surnameFirst.length) ? lb.surnameFirst : lb.surnameLines) : null;   // 성씨 문단은 첫 문장(뜻)만 칠한다(2026-10-17)
+    B.surname = snL ? snL.map(function(r){ return highlight($('hB'), r); }) : [];
+    B.msents = (lb && lb.meaningSents) ? lb.meaningSents.map(function(s){ return { text: s.text, hl: s.lines.map(function(r){ return highlight($('hB'), r); }) }; }) : [];
     // ── 이유 화면: 테일러 밑줄, 고른 음절 밑줄, 'We carried…' 형광펜
     svg = $('svgR'); while(svg.firstChild) svg.removeChild(svg.firstChild);
     var lr = L.layout_reason;
@@ -451,6 +453,13 @@
         var ks = C.back.koStarts, off = (C.back.hasSn !== undefined ? C.back.hasSn : (S.nSurname > 0)) && B.surname.length ? 1 : 0;
         if(off) sweep(B.surname, t, ks[0], Math.max(1.6, C.back.snDur || 1.6), hsig);
         B.rows.forEach(function(r, i){ var a = ks[i + off]; if(a !== undefined) drawTo(r, (t - a) / .6, hsig); });
+      }
+      if(C.back && C.back.tail && B.msents.length){                   // 설명문의 "It pictures…" 문장·마지막 문장: 읽는 동안 그 문장을 쓸어 칠한다(2026-10-17)
+        var norm = function(x){ return (x || '').replace(/\s+/g, ' ').trim(); };
+        C.back.tail.forEach(function(it){
+          var ms = null; for(var i = 0; i < B.msents.length; i++){ if(norm(B.msents[i].text) === norm(it.text)){ ms = B.msents[i]; break; } }
+          if(ms && ms.hl.length) sweep(ms.hl, t, it.t, Math.max(1.0, (it.dur || 1.5) * .9), hsig);
+        });
       }
     }
     // ── 이유 화면 그림

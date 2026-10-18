@@ -1,0 +1,113 @@
+{
+ "_설명": [
+  "키(input, result …)는 장면과 효과의 자리입니다. 키는 두고 문장만 고치세요.",
+  "목록([…])은 한 문장을 여러 소리로 나눈 것 — {\"text\",\"lang\":\"ko-KR\",\"frame\":…} 부분은 한국어로 읽히고(frame 은 말하지 않는 앞말 — \"frame — text — 이렇게 읽어요.\" 문장 전체를 한국어로 읽힌 뒤 가운데만 씁니다), 그 순간에 효과(브레이스·형광펜)가 붙습니다.",
+  "줄을 지우면 그 장면은 나레이션 없이 짧게 지나갑니다. \"audio\": \"파일경로\" 를 주면 TTS 대신 그 소리를 씁니다.",
+  "장면 순서: 훅(캡션만) → input(타이핑) → result(앞면, 이름 발음+밑줄) → names(성/이름 브레이스) → meaning(형광펜) → back(뒷면: 성씨·글자별 뜻·합친 뜻) → why(마지막 화면)"
+ ],
+ "name": "Chris Martin:m",
+ "stage_name": "",
+ "hook_media": "/home/claude/work/photos/chris.jpg",
+ "hook_credit": "Photo: Raph_PH · CC BY 2.0 · Wikimedia Commons",
+ "en_voice": "danbi",
+ "tempo_scene": {
+  "input": 1.1,
+  "hook": 1.0,
+  "result": 1.0
+ },
+ "hook_caption": "Chris Martin's Korean name?",
+ "lines": {
+  "hook": [
+   "What's Chris Martin's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   {
+    "text": "Chris's Korean name is",
+    "pause": 0.2
+   },
+   {
+    "text": "문근우",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Moon-Geun-U",
+    "frame": "이 사람의 한국 이름은"
+   }
+  ],
+  "names": [
+   "In Korea, the last name comes first. So",
+   {
+    "text": "문",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Moon",
+    "frame": "성은",
+    "stretch": 1.2
+   },
+   "is the last name, and",
+   {
+    "text": "근우",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Geun-U",
+    "frame": "이름은"
+   },
+   "is the first."
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone clean as water,",
+   "and bright as the dawn."
+  ],
+  "back": [
+   "Let me show you why it means that.",
+   "The last name",
+   {
+    "text": "문",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Moon",
+    "frame": "성은",
+    "stretch": 1.0
+   },
+   "means writing.",
+   "It’s also the family name of actress",
+   {
+    "text": "문가영",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Moon-Ga-Yeong",
+    "frame": "이 사람의 이름은",
+    "end": true,
+    "nohl": true
+   },
+   "In the first name,",
+   {
+    "text": "근",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Geun",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means clear,",
+   "and",
+   {
+    "text": "우",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "U",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means morning sun."
+  ],
+  "why": {
+   "text": "Curious why this name? Check the link in bio to see how it was chosen, and try your own name too. Thank you!",
+   "mood": "bright"
+  }
+ }
+}

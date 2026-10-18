@@ -1,0 +1,104 @@
+{
+ "_설명": [
+  "키(input, result …)는 장면과 효과의 자리입니다. 키는 두고 문장만 고치세요.",
+  "목록([…])은 한 문장을 여러 소리로 나눈 것 — {\"text\",\"lang\":\"ko-KR\",\"frame\":…} 부분은 한국어로 읽히고(frame 은 말하지 않는 앞말 — \"frame — text — 이렇게 읽어요.\" 문장 전체를 한국어로 읽힌 뒤 가운데만 씁니다), 그 순간에 효과(브레이스·형광펜)가 붙습니다.",
+  "줄을 지우면 그 장면은 나레이션 없이 짧게 지나갑니다. \"audio\": \"파일경로\" 를 주면 TTS 대신 그 소리를 씁니다.",
+  "장면 순서: 훅(캡션만) → input(타이핑) → result(앞면, 이름 발음+밑줄) → names(성/이름 브레이스) → meaning(형광펜) → back(뒷면: 성씨·글자별 뜻·합친 뜻) → why(마지막 화면)"
+ ],
+ "name": "Belcalis Almanzar:f",
+ "stage_name": "Cardi B",
+ "hook_media": "/home/claude/work/photos/cardi.jpg",
+ "hook_credit": "Photo: Chris Allmeid · CC BY-SA 4.0 · Wikimedia Commons",
+ "en_voice": "danbi",
+ "tempo_scene": {
+  "input": 1.1,
+  "hook": 1.0,
+  "result": 1.0
+ },
+ "hook_caption": "Cardi B's Korean name?",
+ "lines": {
+  "hook": [
+   "What's Cardi B's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   "Cardi B's real name is Belcalis Almanzar.",
+   {
+    "text": "Her Korean name is",
+    "pause": 0.2
+   },
+   {
+    "text": "안빛나",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ahn-Bit-Na",
+    "frame": "이 사람의 한국 이름은"
+   }
+  ],
+  "names": [
+   "In Korea, the last name comes first. So",
+   {
+    "text": "안",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ahn",
+    "frame": "성은",
+    "stretch": 1.2
+   },
+   "is the last name, and",
+   {
+    "text": "빛나",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Bit-Na",
+    "frame": "이름은"
+   },
+   "is the first."
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone who shines brightly wherever they are."
+  ],
+  "back": [
+   "Let me show you why it means that.",
+   "The last name",
+   {
+    "text": "안",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ahn",
+    "frame": "성은",
+    "stretch": 1.0
+   },
+   "means peace.",
+   "It’s also the family name of IVE's",
+   {
+    "text": "안유진",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ahn-Yu-Jin",
+    "frame": "이 사람의 이름은",
+    "end": true,
+    "nohl": true
+   },
+   "And the first name",
+   {
+    "text": "빛나",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Bit-Na",
+    "frame": "이름은",
+    "stretch": 1.2,
+    "nohl": true
+   },
+   "is a pure Korean word that means to shine."
+  ],
+  "why": {
+   "text": "Curious why this name? Check the link in bio to see how it was chosen, and try your own name too. Thank you!",
+   "mood": "bright"
+  }
+ }
+}

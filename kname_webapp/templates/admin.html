@@ -138,6 +138,7 @@
       <div class="v">{{ op.new_today }} <small>/ {{ op.daily_max }}</small></div>
       {% set nb = (100 * op.new_today / op.daily_max) if op.daily_max else 0 %}
       <div class="bar {{ 'warn' if nb > 80 else '' }}"><span style="width:{{ nb if nb<100 else 100 }}%"></span></div>
+      <div class="sub">IP당 하루 {{ op.ip_daily_max }}건까지{% if src.events.ip_limit %} · 30일간 상한 도달 {{ src.events.ip_limit }}회{% endif %}</div>
     </div>
     <div class="card">
       <div class="k">예상 비용(추정)</div>

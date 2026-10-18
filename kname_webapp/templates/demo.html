@@ -108,10 +108,44 @@
              meaningLines: lineRects(doc, doc.querySelector('.face-front .meaning')),
              card: rectOf(doc.querySelector('#shareCard')) };
   }
+  // 글 속 [from, to) 글자 구간의 줄 상자들(문장 단위 형광펜용). 텍스트 노드 여러 개에 걸쳐도 된다.
+  function charRangeRects(doc, el, from, to){
+    if(!el) return [];
+    var walker = doc.createTreeWalker(el, 4 /* SHOW_TEXT */), node, pos = 0, range = doc.createRange(), s = false;
+    while((node = walker.nextNode())){
+      var len = node.nodeValue.length;
+      if(!s && from < pos + len){ range.setStart(node, Math.max(0, from - pos)); s = true; }
+      if(s && to <= pos + len){ range.setEnd(node, Math.max(0, to - pos)); break; }
+      pos += len;
+    }
+    if(!s) return [];
+    var out = [], last = null;
+    Array.prototype.forEach.call(range.getClientRects(), function(b){
+      if(b.width < 2 || b.height < 2) return;
+      if(last && Math.abs(b.top - last[1]) < b.height * .5){
+        var x1 = Math.min(last[0], b.left), x2 = Math.max(last[0] + last[2], b.right);
+        last[0] = x1; last[2] = x2 - x1; last[3] = Math.max(last[3], b.height);
+      } else { last = [b.left, b.top, b.width, b.height]; out.push(last); }
+    });
+    return out;
+  }
+  // 문단을 문장으로 나눠 문장마다 {text, lines} — 문장 끝(.!?+닫는 따옴표) 뒤 공백+대문자에서만 나눈다(record.py meaning_tail 과 같은 규칙)
+  function sentenceRects(doc, el){
+    if(!el) return [];
+    var txt = el.textContent, out = [], re = /[.!?]["\u201d\u2019]?(?=\s+[A-Z0-9\uAC00-\uD7A3])/g, start = 0, m;
+    var push = function(a, b){ var t = txt.slice(a, b).replace(/\s+/g, ' ').trim(); if(t) out.push({ text: t, lines: charRangeRects(doc, el, a, b) }); };
+    while((m = re.exec(txt))){ push(start, m.index + m[0].length); start = m.index + m[0].length; }
+    push(start, txt.length);
+    return out;
+  }
   function layoutBack(doc){                                         // 뒷면: 성씨 문단, 글자별 뜻 행
+    var sn = doc.querySelector('.face-back .back-surname:not(.back-nudge)');
+    var snSents = sentenceRects(doc, sn);
     return { rows: rectsOf(doc, '.face-back .bg-row'),
-             surnameLines: lineRects(doc, doc.querySelector('.face-back .back-surname:not(.back-nudge)')),
-             meaningLines: lineRects(doc, doc.querySelector('.face-back .back-meaning')) };
+             surnameLines: lineRects(doc, sn),
+             surnameFirst: snSents.length ? snSents[0].lines : [],                       // 첫 문장(뜻)만 — 나레이션이 유명인을 말하지 않는다(2026-10-17)
+             meaningLines: lineRects(doc, doc.querySelector('.face-back .back-meaning')),
+             meaningSents: sentenceRects(doc, doc.querySelector('.face-back .back-meaning:not(.meaning-pending)')) };
   }
   function layoutReason(doc){                                       // Why this name 첫 화면
     var steps = doc.querySelectorAll('.cr-step');

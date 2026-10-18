@@ -117,3 +117,65 @@ class DailyBudget:
         """지금 세고 있는 '하루'의 날짜(현지 기준). 알림을 하루 단위로
         묶을 때 쓴다 — app.py 의 budget-exhausted 보고 참고."""
         return self._today()
+
+
+class PerIpDailyBudget:
+    """IP 하나가 하루에 '새 이름'을 몇 건까지 만들 수 있는지 상한.
+
+    DailyBudget 이 서비스 전체의 하루 상한이라면, 이것은 한 사람 몫의 상한이다.
+    한 사람이 철자를 바꿔 가며 수십 번 돌리는 경우(10/17 실측 35건)를 막는다 —
+    철자가 다르면 결과가 같아도 매번 LLM 비용이 들기 때문이다.
+
+    사전·캐시에 있는 이름은 세지 않는다(비용 0). 그래서 상한에 걸린 뒤에도
+    이미 아는 이름은 계속 변환된다.
+
+    CACHE_DIR 의 JSON 파일로 세므로 워커가 여럿이어도 하나로 센다(DailyBudget 과
+    같은 방식). 날짜(현지, 기본 KST)가 바뀌면 통째로 리셋된다.
+    IP 는 그날 안에서만 파일에 남고, 다음 날 지워진다.
+    """
+
+    def __init__(self, path: str, daily_max: int = 4):
+        self.path = path
+        self.daily_max = daily_max
+        self._lock = threading.Lock()
+
+    _today = staticmethod(DailyBudget._today)
+
+    def _load(self) -> dict:
+        try:
+            with open(self.path, encoding='utf-8') as f:
+                d = json.load(f)
+        except Exception:
+            d = {}
+        if d.get('date') != self._today():
+            d = {'date': self._today(), 'ips': {}}
+        if not isinstance(d.get('ips'), dict):
+            d['ips'] = {}
+        return d
+
+    def count(self, ip: str) -> int:
+        """이 IP 가 오늘 만든 새 이름 수."""
+        if self.daily_max <= 0 or not ip:
+            return 0
+        with self._lock:
+            return int(self._load()['ips'].get(ip, 0))
+
+    def allow(self, ip: str) -> bool:
+        """이 IP 가 오늘 새 이름을 하나 더 만들어도 되면 True."""
+        if self.daily_max <= 0 or not ip:
+            return True
+        return self.count(ip) < self.daily_max
+
+    def record(self, ip: str, n: int = 1) -> None:
+        if self.daily_max <= 0 or not ip:
+            return
+        with self._lock:
+            d = self._load()
+            d['ips'][ip] = int(d['ips'].get(ip, 0)) + n
+            try:
+                tmp = self.path + '.tmp'
+                with open(tmp, 'w', encoding='utf-8') as f:
+                    json.dump(d, f)
+                os.replace(tmp, self.path)
+            except Exception:
+                pass

@@ -234,7 +234,7 @@ SURNAME_CELEB_EN = {
 }
 
 TOP4 = {                                                               # 1~4위만 순위를 말한다(민우님 2026-10-13). (카드용, 영상용)
-    '김': ("It is Korea's most common surname, held by about 21.5% of the population — roughly one in five Koreans.", "And it’s Korea’s most common family name — about one in five people."),
+    '김': ("It is Korea's most common surname, held by about 21.5% of the population — roughly one in five Koreans.", "And it’s Korea’s most common family name, about one in five people."),
     '이': ("It is Korea's second most common surname, at about 14.7% of the population.", "And it’s Korea’s second most common family name."),
     '박': ("It is Korea's third most common surname, at about 8.4%.", "And it’s Korea’s third most common family name."),
     '최': ("It is Korea's fourth most common surname, at about 4.7%.", "And it’s Korea’s fourth most common family name."),
@@ -301,9 +301,14 @@ def card_text(surname, rom, hanja):
     return f'{head}: ' + ' '.join(parts) if parts else f'{head}.'
 
 
-def spoken_line(surname):
-    """영상용: 'The last name 문' 뒤에 붙는 조각 목록. 뜻 → 유명인(한글은 {'ko':…}) → 순위(4위까지). 뜻은 첫 번째 것만 읽는다('writing, literature' → 'writing')."""
-    m, c = meaning_of(surname), celeb_spoken(surname)
+SPOKEN_CELEB = False                                                   # 영상 나레이션에서 유명인은 뺀다(민우님 2026-10-17: 뜻을 기본으로, 1~4위만 순위). 카드(card_text)는 그대로
+
+
+def spoken_line(surname, celeb=None):
+    """영상용: 'The last name 문' 뒤에 붙는 조각 목록. 뜻 → (유명인, 기본 꺼짐) → 순위(4위까지). 뜻은 첫 번째 것만 읽는다('writing, literature' → 'writing')."""
+    if celeb is None:
+        celeb = SPOKEN_CELEB
+    m, c = meaning_of(surname), (celeb_spoken(surname) if celeb else None)
     m_sp = m.split(' — ')[0].split(' (')[0].split(',')[0].strip('“” ') if m else ''
     out = []
     if surname in COMPOUND:

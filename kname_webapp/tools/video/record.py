@@ -99,8 +99,9 @@ def part_gaps(spec):
     """한 장면의 조각 사이 쉼 — 문장이 끝나는(.!?) 조각 뒤는 길게, 문장 중간은 짧게."""
     t = part_texts(spec)
     ends = [isinstance(p, dict) and bool(p.get('end')) for p in spec][:-1]   # 한국어 조각이 문장 끝이면(유명인 이름) 긴 쉼
-    return [GAP_END if e else GAP_ELLIPSIS if re.search(r'(\u2026|\.\.\.)\s*$', x) else
-            GAP_END if re.search(r'[.!?]["\u201d\u2019\']?\s*$', x) else (GAP_COMMA if re.search(r'[,;:\u2014]\s*$', x) else GAP_IN) for x, e in zip(t[:-1], ends)]
+    pauses = [(p.get('pause') if isinstance(p, dict) else None) for p in spec][:-1]   # 조각이 직접 정한 뜸(이름 공개 직전 — 말줄임표 대신, 2026-10-16)
+    return [GAP_END if e else float(pz) if pz is not None else GAP_ELLIPSIS if re.search(r'(\u2026|\.\.\.)\s*$', x) else
+            GAP_END if re.search(r'[.!?]["\u201d\u2019\']?\s*$', x) else (GAP_COMMA if re.search(r'[,;:\u2014]\s*$', x) else GAP_IN) for x, e, pz in zip(t[:-1], ends, pauses)]
 
 
 def en_context(spec):
@@ -115,9 +116,9 @@ def en_context(spec):
 
 
 _ROM_D = None                                                       # build_lines 가 현재 변환 결과를 넣는다
-KO_FRAMES = ['{p} — {t} — 이렇게 읽어요.', '{p} — {t} — 이렇게 불러요.']   # 테이크 2개 → 톤이 고른 쪽
-KO_FRAMES_SYL = KO_FRAMES + ['{p} — {t} — 라고 읽어요.', '{p} — {t} — 이렇게 발음해요.',
-                             '{p} — {t} — 이렇게 읽습니다.', '{p}, {t}, 이렇게 읽어요.']   # 한 글자는 테이크 6개(짧게 잘리는 일이 잦다) — 가장 길게 읽힌 것을 고른다
+KO_FRAMES = ['{p}. {t}. 이렇게 읽어요.', '{p}. {t}. 이렇게 불러요.', '{p} — {t} — 이렇게 읽어요.']   # 마침표 틀 우선(2026-10-16): 대시 틀은 가끔 글자를 덧붙여 읽는다('— 서 —' → '에서'). 대시 틀 하나는 쉼이 안 생길 때의 예비
+KO_FRAMES_SYL = KO_FRAMES + ['{p}. {t}. 이렇게 발음해요.', '{p}. {t}. 이렇게 읽습니다.',
+                             '{p} — {t} — 이렇게 불러요.']   # 한 글자는 테이크 6개(짧게 잘리는 일이 잦다) — 가장 길게 읽힌 것을 고른다. '— 라고 읽어요'·쉼표 틀은 뺐다(덧붙여 읽음 / 쉼이 안 생김)
 KO_SYL_STRETCH = 1.45                                                 # 한 글자 조각 길이 배수(음높이 유지). 1.1 → 1.21 → 1.45 (민우님 2026-10-13: 1.2배 더)
 KO_SYL_FROM_FULL = False                                              # 낱글자를 이름 전체 발음에서 잘라 쓰면(True) 잘린 소리가 뭉개져 안 들린다(민우님 2026-10-14, 정서하) → 글자마다 문장 틀로 따로 읽힌다
 KO_SYL_MIN = 0.34                                                     # 한 글자 소리 길이 최소(초) — Danbi 는 낱글자를 0.12~0.2s 로 짧게 읽는다
@@ -403,7 +404,7 @@ def _ko_synthesize(sp, ndir):
                 print(f'  ko [{text}] {ln * stretch:.2f}s ← {sp["full"]} 전체 발음의 {int(sp["idx"]) + 1}번째 글자')
                 return final
     takes = [f.format(p=frame, t=text) for f in (KO_FRAMES_SYL if len(re.findall(r'[가-힣]', text)) == 1 else KO_FRAMES)]
-    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text + f'|s{KO_SYL_STRETCH}|m{KO_SYL_MIN}|w{1.0 if sp.get("fx") else KO_WORD_STRETCH}|x{sp.get("stretch")}').encode('utf-8')).hexdigest()[:16] + '.mp3')
+    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text + f'|s{KO_SYL_STRETCH}|m{KO_SYL_MIN}|w{1.0 if sp.get("fx") else KO_WORD_STRETCH}|x{sp.get("stretch")}|g06|v2').encode('utf-8')).hexdigest()[:16] + '.mp3')
     if os.path.exists(final):
         return final
     paths = [os.path.join(ndir, hashlib.sha1((t + '|ko-KR|full').encode('utf-8')).hexdigest()[:16] + '.mp3') for t in takes]
@@ -427,17 +428,30 @@ def _ko_synthesize(sp, ndir):
         a, b = segs[1][0], segs[-2][1]                      # 앞말 / 가운데(목표) / 뒷말
         if b - a < 0.1 * n_syl:
             continue
+        if n_syl == 1 and onset_prevoiced(p, a, b, text):
+            print(f'  (테이크 버림 — {text} 앞에 다른 소리가 붙음, 예: 에서) {os.path.basename(p)}')
+            continue
         mid, whole = _pitch_mean(p, a, b), _pitch_mean(p)
         score = abs((mid or 0) - (whole or 0)) if (mid and whole) else 0
         if n_syl == 1:
             score += 60 if b - a < 0.18 else 0               # 한 글자가 너무 짧게 잘린 테이크는 뒤로
             score -= 120 * (b - a)                           # 같은 값이면 길게 읽힌 테이크(0.1s 당 12Hz 어치)를 앞에 — 늘려도 덜 뭉개진다(2026-10-14)
         cands.append((score, p, a, b))
+    if len(cands) >= 2:
+        # 다른 테이크보다 1.6배 넘게 긴 가운데 토막은 글자가 덧붙은 것(에서·서어 …) — 버린다(2026-10-16, Ed Sheeran 의 서)
+        ref = sorted(c[3] - c[2] for c in cands)[len(cands) // 2 if len(cands) >= 3 else 0]
+        keep = [c for c in cands if c[3] - c[2] <= 1.6 * ref]
+        for c in cands:
+            if c not in keep:
+                print(f'  (테이크 버림 — {text} 가 {c[3] - c[2]:.2f}s 로 다른 테이크({ref:.2f}s)보다 너무 길다) {os.path.basename(c[1])}')
+        cands = keep
     if not cands:
         return None
     cands.sort()
     score, p, a, b = cands[0]
     cut = cut_clip(p, a, b)
+    if n_syl > 1:
+        cut = tighten_gaps(cut)                                  # 글자 사이 긴 쉼 → 0.06s (2026-10-16)
     if sp.get('stretch') is not None:
         stretch = float(sp['stretch'])                         # 대본이 정한 길이 배수(뒷면 낱글자 1.0 = 원래대로, 민우님 2026-10-14)
     else:
@@ -556,6 +570,8 @@ def fetch_narration(lines, tempo=1.0, takes=1, tempo_by=None):
             if not os.path.exists(fast):
                 subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', path, '-af', f'atempo={tp:.3f}', '-c:a', 'libmp3lame', '-b:a', '96k', fast], check=True)
             path = fast
+        if os.path.exists(path) and not sp.get('lang', '').startswith('ko') and not sp.get('audio'):
+            path = trim_tail_blip(path, f' [{k}] {sp["text"][:40]}', sp['text'])  # "…" 조각 끝 잡소리 제거 (2026-10-16)
         v0, v1 = voiced_span(path)
         out.setdefault(k, {'parts': []})['parts'].append((path, dur(path), v0, v1))
     if KO_MATCH and TOKEN:
@@ -660,6 +676,92 @@ def respace(path, segs, gap=0.42, lead=0.25, pad=0.06):
     return out, (segs2 if len(segs2) == len(segs) else new_segs)
 
 
+_CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'
+_NOISY_ONSET = set('ㅅㅆㅈㅉㅊㅋㅌㅍㅎ')
+
+
+def onset_prevoiced(path, a, b, syl):
+    """한 글자 토막 [a,b] 가 글자의 첫소리로 시작하는지 본다(2026-10-16). 첫소리가 ㅅ·ㅈ·ㅊ·ㅎ 같은 마찰·거센소리면 토막은
+    잡음(영교차 많음)으로 시작해야 한다 — 그 앞에 모음 같은 유성음이 45ms 넘게 붙어 있으면 TTS 가 '에서' 처럼 글자를 덧붙여 읽은 것.
+    (Ed Sheeran 의 성 '서' 가 '성은 — 서 — 라고 읽어요' 틀에서 '에서' 로 읽혔다.) 유성 첫소리(ㄴ·ㅁ·ㄹ·ㅇ·ㄱ·ㄷ·ㅂ)는 판단하지 않는다."""
+    ch = [c for c in syl if '가' <= c <= '힣']
+    if not ch:
+        return False
+    cho = _CHO[(ord(ch[0]) - 0xAC00) // 588]
+    if cho not in _NOISY_ONSET:
+        return False
+    try:
+        import numpy as np
+        raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', path, '-f', 'f32le', '-ac', '1', '-ar', '22050', '-'], capture_output=True).stdout
+        x = np.frombuffer(raw, dtype=np.float32); sr = 22050
+        voiced_run = 0
+        for t in np.arange(a, min(b, a + 0.25), 0.015):
+            s = x[int(t * sr):int((t + 0.015) * sr)]
+            if len(s) < 10:
+                break
+            rms = 20 * np.log10(np.sqrt(np.mean(s ** 2)) + 1e-9)
+            zc = np.mean(np.abs(np.diff(np.sign(s)))) / 2 * sr
+            if rms > -45 and zc >= 4000:
+                return False                                   # 잡음(첫소리)에 닿았다 — 그 앞 유성음이 짧으면 정상
+            if rms > -40 and zc < 4000:
+                voiced_run += 1
+                if voiced_run >= 3:                            # 45ms 넘는 유성음이 첫소리보다 먼저
+                    return True
+    except Exception:
+        return False
+    return False
+
+
+def trim_tail_blip(path, tag='', text=''):
+    """말줄임표("…")로 끝나는 영어 조각 끝에 붙는 잡소리를 잘라 낸다(2026-10-16, Chris Martin·Ed Sheeran 의 "…name is…" 뒤
+    0.2초 쉬고 0.1~0.2초짜리 말소리 크기의 소리가 붙어 있어 이어지는 한국 이름이 '문, 문근우' 처럼 더듬는 것으로 들렸다 —
+    TTS 가 말줄임표 뒤를 이어 말하려다 만 소리). 마지막 소리 구간이 짧고(<0.25s) 그 앞에 0.15s 이상 쉼이 있고 본문보다 훨씬
+    짧으면 본문 끝에서 자른다. 말줄임표가 아닌 조각에는 손대지 않는다 — "…the last name, and" 의 'and' 처럼 쉼 뒤의 짧은
+    진짜 낱말이 잘린다(Ed Sheeran 에서 겪음). 해당 없으면 원본 경로 그대로."""
+    if not re.search(r'(…|\.\.\.)\s*$', text or ''):
+        return path
+    segs = voiced_segments(path, 0.12)
+    if len(segs) < 2:
+        return path
+    (pa, pb), (la, lb) = segs[-2], segs[-1]
+    if not (lb - la < 0.25 and la - pb >= 0.15 and (lb - la) < 0.35 * (pb - pa)):
+        return path
+    out = path[:-4] + '_ct.mp3'
+    if not os.path.exists(out):
+        end = pb + 0.10
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', path, '-af',
+                        f'atrim=0:{end:.3f},asetpts=PTS-STARTPTS,afade=t=out:st={end - 0.06:.3f}:d=0.06',
+                        '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '96k', out], check=True)
+    print(f'  (끝 잡소리 {lb - la:.2f}s 잘라 냄{tag}) {os.path.basename(path)}')
+    return out
+
+
+def tighten_gaps(path, max_gap=0.08, keep=0.06):
+    """클립 안의 쉼이 max_gap 보다 길면 keep 으로 줄인다(2026-10-16). 문장 틀 "— 문근우 —" 로 읽히면 글자 사이를
+    0.1s 넘게 띄어 '문, 근우' 처럼 들린다 — 자연스러운 이름 발음의 폐쇄음 길이(0.06s 안팎)로 당긴다. 쉼이 없으면 원본 그대로."""
+    out = subprocess.run(['ffmpeg', '-v', 'info', '-i', path, '-af', f'silencedetect=n=-36dB:d={max_gap}', '-f', 'null', '-'],
+                         capture_output=True, text=True).stderr
+    total = dur(path)
+    starts = [float(x) for x in re.findall(r'silence_start: ([0-9.]+)', out)]
+    ends = [float(x) for x in re.findall(r'silence_end: ([0-9.]+)', out)]
+    sil = [(a, b) for a, b in zip(starts, ends) if a > 0.03 and b < total - 0.12]      # 앞뒤 여백은 두고 안쪽 쉼만(끝의 mp3 패딩은 silence_end 로 잡히므로 제외)
+    if not sil:
+        return path
+    res = path[:-4] + f'_g{int(keep * 100)}.mp3'
+    if not os.path.exists(res):
+        half = keep / 2
+        pieces, cur = [], 0.0
+        for a, b in sil:
+            pieces.append((cur, a + half)); cur = b - half
+        pieces.append((cur, total))
+        filt = ';'.join(f'[0:a]atrim={a:.3f}:{b:.3f},asetpts=PTS-STARTPTS[p{i}]' for i, (a, b) in enumerate(pieces))
+        filt += ';' + ''.join(f'[p{i}]' for i in range(len(pieces))) + f'concat=n={len(pieces)}:v=0:a=1[out]'
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', path, '-filter_complex', filt, '-map', '[out]',
+                        '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '96k', res], check=True)
+    print(f'  (글자 사이 쉼 {", ".join(f"{b - a:.2f}" for a, b in sil)}s → {keep:.2f}s) {os.path.basename(path)}')
+    return res
+
+
 def cut_clip(path, a, b, pre=0.05, post=0.12):
     """클립에서 [a,b] 소리 구간만 잘라 짧은 mp3 로(앞뒤 여유 포함)."""
     out = path[:-4] + f'_cut{int(a * 100):04d}.mp3'
@@ -732,6 +834,28 @@ def primary_gloss(gloss, hanja=None):
     return words[0] if words else str(gloss or '').strip(' ,')
 
 
+def meaning_tail(text):
+    """뒷면 설명문(meaning_en)에서 영상 뒷면 끝에 읽을 두 문장(민우님 2026-10-17): 글자별 뜻을 말한 뒤
+    "It pictures someone wise who stands tall like a mountain." 같은 그림 문장과, 문단 마지막의 분위기 문장
+    ("Wisdom and height meet in a polished, quintessentially modern name."). 가운데의 유행·친척 이름·유명인 문장은 읽지 않는다.
+    순우리말 이름 문단은 'It carries, directly, the wish for …' 처럼 It 로 시작하는 두 번째 문장을 그림 문장으로 본다."""
+    text = re.sub(r'\s+', ' ', text or '').strip()
+    if not text:
+        return []
+    sents = [x.strip() for x in re.split(r'(?<=[.!?]["\u201d\u2019])\s+(?=[A-Z0-9가-힣])|(?<=[.!?])\s+(?=[A-Z0-9가-힣])', text) if x.strip()]   # 문장 끝 + 공백 + 대문자에서만 나눈다("shine on!" — 처럼 따옴표 안 느낌표는 안 나눔)
+    sents = [x for x in sents if re.search(r'[A-Za-z]', x)]
+    if len(sents) < 2:
+        return []
+    pic = next((x for x in sents[1:] if re.match(r'It (pictures|paints|evokes|suggests|describes|carries|holds|captures|conveys|speaks|portrays|calls|brings)\b', x)), None)
+    last = sents[-1]
+    out = []
+    if pic:
+        out.append(pic)
+    if last and last != pic and len(last.split()) >= 4:
+        out.append(last)
+    return out
+
+
 def surname_line(d):
     """성씨 뒤에 붙일 한 문장(주어 'The last name 고' 뒤). 없으면 None.
     2026-10-12 규칙(민우님): 한자 뜻 → 같은 성의 유명인(본명 확인된 사람만) → 1~3위만 순위. data/surname_notes.py."""
@@ -791,8 +915,9 @@ def build_lines(d, first, last, args):
     lines['hook'] = [f"What's {who}'s Korean name?", {'text': "Let's find out!", 'mood': 'bright'}]   # 마지막 한마디는 신나게(민우님 2026-10-12)
     # 예명이면 결과 화면에서 본명을 먼저 소개한다(입력 장면은 없앰 — 시간 단축, 민우님 2026-10-14)
     pron = {'f': 'Her', 'm': 'His'}.get(getattr(args, 'sex_key', 'f'), 'The')
-    lines['result'] = ([f"{stage}'s real name is {full_en}.", f"{pron} Korean name is\u2026"] if stage else [f"{first}'s Korean name is\u2026"]) + \
-                      [ko(d['full_hangul'], prev='이 사람의 한국 이름은', fx=KO_NAME_FX)]   # 짧게(2026-10-14): "The Korean name for X is…" → "X's Korean name is…"
+    is_line = {'text': f"{pron if stage else first + chr(39) + 's'} Korean name is", 'pause': GAP_ELLIPSIS}   # 말줄임표 없이(2026-10-16: "…" 뒤에 TTS 가 잡소리를 붙인다) — 뜸은 pause 로
+    lines['result'] = ([f"{stage}'s real name is {full_en}.", is_line] if stage else [is_line]) + \
+                      [ko(d['full_hangul'], prev='이 사람의 한국 이름은', fx=KO_NAME_FX)]   # 짧게(2026-10-14): "The Korean name for X is…" → "X's Korean name is"
     if n_s:
         lines['names'] = ["In Korea, the last name comes first. So", ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0, stretch=KO_WORD_STRETCH),
                           'is the last name, and', ko(given_ko, prev='이름은'), 'is the first.']
@@ -814,6 +939,13 @@ def build_lines(d, first, last, args):
             back.append(lead)
         back += [ko(h['syl'], prev='이 글자는', full=d['full_hangul'], idx=n_s + i, stretch=1.0),   # 뒷면 낱글자는 원래 길이(민우님 2026-10-14)
                  f"means {primary_gloss(h['gloss'], h.get('hanja'))}" + ("," if i < len(hl) - 1 else ".")]
+    if not hl and d.get('is_native'):
+        # 순우리말 이름(빛나 등): 한자가 없으니 뜻을 한 줄로 — 설명문의 'native Korean name meaning "to shine"' 에서 뽑는다
+        m = re.search(r'native Korean (?:name|word)(?: meaning| for)?\s*"([^"]+)"', d.get('meaning_en') or '')
+        nm = m.group(1).strip().rstrip('.,;') if m else None
+        back += ["And the first name", dict(ko(given_ko, prev='이름은', stretch=KO_WORD_STRETCH), nohl=True),
+                 f"is a pure Korean word that means {nm}." if nm else "is a pure Korean word, not from Chinese characters."]
+    back += [{'text': x, 'mtail': True} for x in meaning_tail(d.get('meaning_en') or '')]   # "It pictures …" 문장 + 마지막 분위기 문장(민우님 2026-10-17). mtail: 뒷면 설명문의 그 문장을 형광펜으로
     if args.back_tail:
         back.append(args.back_tail)
     lines['back'] = back
@@ -890,11 +1022,13 @@ def caption_lines(cues, skip=('why',), max_words=7):
                 else:
                     words.append((w, x, y))
                 x = y
+            if p.get('pause') and words:
+                words[-1] = words[-1] + ('pause',)             # 뜸을 두는 조각의 마지막 낱말 — 자막은 여기서 끊는다
         sents, cur = [], []                                    # 문장 단위로 자른다
         for w in words:
             # 말줄임표 뒤의 뜸(이름 공개 직전)은 자막도 거기서 끊는다 — 한 줄에 이름까지 미리 보이면 김이 샌다
-            if cur and re.search(r'(\u2026|\.\.\.)$', cur[-1][0]) and w[1] - cur[-1][2] > 0.3:
-                sents.append(cur); cur = []
+            if cur and (len(cur[-1]) > 3 or re.search(r'(\u2026|\.\.\.)$', cur[-1][0])) and (len(cur[-1]) > 3 or w[1] - cur[-1][2] > 0.3 or re.search(r'[가-힣]', w[0])):
+                sents.append(cur); cur = []                   # 뜸이 짧아도(0.2s) 다음이 한국어 이름이면 끊는다(2026-10-15, Cardi B 에서 이름이 미리 보임)
             cur.append(w)
             if re.search(r'[.!?]["\u201d\u2019\']?$', w[0]):
                 sents.append(cur); cur = []
@@ -1121,7 +1255,16 @@ def main():
             return
         doc = json.load(open(args.script, encoding='utf-8'))
         if doc.get('lines'):
-            keep = {k: v for k, v in doc['lines'].items() if v not in (None, '', [])}
+            # 대본에 있는 장면만 덮어쓰고, 없는 장면은 코드(build_lines)의 현재 문구를 쓴다(2026-10-17) — 장면을 빼려면 null 로.
+            keep = {k: v for k, v in doc['lines'].items() if v not in ('', [])}
+            keep = {**lines, **keep}
+            keep = {k: v for k, v in keep.items() if v is not None}
+            for k, v in keep.items():                         # 옛 대본의 "…is…" → 말줄임표 없이 pause 로(2026-10-16: "…" 뒤에 TTS 가 잡소리를 붙인다)
+                if isinstance(v, list):
+                    for i, p in enumerate(v):
+                        if isinstance(p, str) and re.search(r'(…|\.\.\.)\s*$', p):
+                            v[i] = {'text': re.sub(r'\s*(…|\.\.\.)\s*$', '', p), 'pause': GAP_ELLIPSIS}
+                            print(f'  (대본 [{k}] 말줄임표 제거: {v[i]["text"]!r} + 뜸 {GAP_ELLIPSIS}s)')
             lines = keep
         args.hook_media = doc.get('hook_media') or args.hook_media
         args.en_voice = args.en_voice or doc.get('en_voice') or ''
@@ -1219,6 +1362,7 @@ def main():
         for j, ((path, dd, v0, v1), sp) in enumerate(zip(N[k]['parts'], (lines[k] if isinstance(lines[k], list) else [lines[k]]))):
             parts.append({'t': tt, 'dur': dd, 'file': path, 'v0': v0, 'v1': v1, 'ko': isinstance(sp, dict) and bool(sp.get('lang')),
                           'nohl': isinstance(sp, dict) and bool(sp.get('nohl')), 'end': isinstance(sp, dict) and bool(sp.get('end')),
+                          'pause': isinstance(sp, dict) and sp.get('pause') is not None, 'mtail': isinstance(sp, dict) and bool(sp.get('mtail')),
                           'text': (sp.get('text', '') if isinstance(sp, dict) else sp)})
             tt += dd + (gaps[j] if j < len(gaps) else 0)
         c = {'t': t, 'dur': nd[k], 'v0': N[k]['v0'], 'parts': parts,
@@ -1245,13 +1389,15 @@ def main():
         ko_i = [i for i, p_ in enumerate(bp) if p_['ko'] and not p_.get('nohl')]
         has_sn = len(ko_i) == len(d['hanja_lines']) + 1
         cues['back']['hasSn'] = has_sn
-        if has_sn and len(ko_i) > 1:
-            # 성씨 문단 형광펜: 성씨 글자를 말할 때부터 첫 글자 뜻 직전("In the first name," 앞)까지
-            a_ = bp[ko_i[0]]; end_i = ko_i[1] - 1
-            while end_i > ko_i[0] and bp[end_i]['text'].strip().lower().startswith('in the first name'):
-                end_i -= 1
+        if has_sn:
+            # 성씨 문단 형광펜: 성씨 글자를 말할 때부터 이름 설명("In the first name," / "And the first name") 직전까지
+            a_ = bp[ko_i[0]]; end_i = len(bp) - 1
+            for j in range(ko_i[0] + 1, len(bp)):
+                if re.match(r'(in|and) the first name', bp[j]['text'].strip().lower()):
+                    end_i = j - 1; break
             b_ = bp[end_i]
             cues['back']['snDur'] = max(1.0, (b_['t'] + b_['v1']) - (a_['t'] + a_['v0']))
+        cues['back']['tail'] = [{'t': p_['t'] + p_['v0'], 'dur': max(0.5, p_['v1'] - p_['v0']), 'text': p_['text']} for p_ in bp if p_.get('mtail')]   # 설명문 문장 형광펜(2026-10-17)
     put('why', T['outro'] + 0.2)
     script['backKeys'] = []
     script['captions'] = [] if args.no_captions else caption_lines(cues, skip=('why', 'hook'))   # 훅 캡션 카드가 이미 글을 보여준다

@@ -1578,7 +1578,7 @@ def convert_name(first_en, last_en, sex, allow_llm=True):
 
 # ---------------------------------------------------------------- 라우트
 # ---------------------------------------------------------------- 배포 안전장치
-from guardrails import RateLimiter, DailyBudget
+from guardrails import RateLimiter, DailyBudget, PerIpDailyBudget
 
 # 환경변수로 조절 (없으면 아래 기본값)
 RATE = RateLimiter(
@@ -1589,15 +1589,31 @@ BUDGET = DailyBudget(
     os.path.join(CACHE_DIR, 'daily_budget.json'),
     daily_max=int(os.environ.get('DAILY_NEW_NAME_MAX', 1500)),
 )
+# 한 사람(IP)이 하루에 만들 수 있는 새 이름 수. 베타 동안 과금 상한의 핵심.
+# 철자만 바꿔 수십 번 돌리는 경우를 막는다(철자가 다르면 결과가 같아도 매번 비용).
+# 사전·캐시에 있는 이름은 세지 않으므로 상한에 걸려도 아는 이름은 계속 된다.
+IP_BUDGET = PerIpDailyBudget(
+    os.path.join(CACHE_DIR, 'ip_budget.json'),
+    daily_max=int(os.environ.get('IP_DAILY_NEW_MAX', 4)),
+)
 # 발음(TTS) 하루 생성 상한 — 봇이 발음을 무한 생성하는 것 방지
 TTS_BUDGET = DailyBudget(
     os.path.join(CACHE_DIR, 'tts_budget.json'),
     daily_max=int(os.environ.get('TTS_DAILY_MAX', 1000)),
 )
 
-_BUSY_RATE = ("You&rsquo;re going a little fast — please wait a moment and try again.")
-_BUSY_BUDGET = ("We&rsquo;re getting a lot of requests right now. "
+# 주의: index.html 의 {{ error }} 는 자동 이스케이프된다. HTML 엔티티(&rsquo;)를 쓰면
+# 화면에 '&rsquo;' 가 글자 그대로 찍히므로 유니코드 문자를 직접 쓴다.
+_BUSY_RATE = ("You’re going a little fast — please wait a moment and try again.")
+_BUSY_BUDGET = ("We’re getting a lot of requests right now. "
                 "Please try again later, or try a more common name.")
+# IP 하루 상한. 영어 사용자용 문구 — 베타라서 제한이 있다는 것, 몇 번까지인지,
+# 아는 이름은 계속 된다는 것, 내일 다시 올 수 있다는 것을 한 번에 말한다.
+def _busy_ip_msg():
+    n = IP_BUDGET.daily_max
+    return (f"We’re in beta, so each visitor can create up to {n} new names a day "
+            f"— and you’ve used today’s {n}. Names we already know still "
+            f"work, or come back tomorrow for more.")
 
 
 def _country_of_request():
@@ -2132,6 +2148,13 @@ def result():
         _report_budget_exhausted()
         return render_template('index.html', error=_BUSY_BUDGET,
                                first_name=first_en, last_name=last_en, sex=sex), 503
+    # ③ 한 사람 몫: 새 이름인데 이 IP 가 오늘 상한을 다 썼으면 안내하고 멈춘다
+    _ip = _client_ip()
+    if is_new and not IP_BUDGET.allow(_ip):
+        STATS.record_event('ip_limit', _source_cookie(), '')
+        return render_template('index.html', error=_busy_ip_msg(),
+                               first_name=first_en, last_name=last_en, sex=sex,
+                               countries=_COUNTRIES), 429
 
     _t0 = _time.time()
     data = convert_name(first_en, last_en, sex)
@@ -2144,6 +2167,7 @@ def result():
                                countries=_COUNTRIES, country=_picked)
     if is_new:
         BUDGET.record()          # 새 이름 1건 소비 기록
+        IP_BUDGET.record(_ip)    # 이 사람 몫에서도 1건
     # POST 뒤 고정 주소로 이동(PRG). 주소창의 주소가 곧 공유 링크가 되고, 새로고침해도
     # 재변환되지 않는다. 단, 음차가 규칙 폴백으로 나와 캐시에 남지 않은 경우(LLM 실패)는
     # GET 이 다시 만들 수 없으므로 예전처럼 여기서 바로 그린다.
@@ -2187,6 +2211,15 @@ def api_convert():
         return jsonify({'error': 'busy',
                         'message': 'High traffic right now — try again later '
                                    'or use a more common name.'}), 503
+    _ip = _client_ip()
+    if is_new and not IP_BUDGET.allow(_ip):
+        STATS.record_event('ip_limit', _source_cookie(), '')
+        n = IP_BUDGET.daily_max
+        return jsonify({'error': 'ip_limit',
+                        'message': f'We\u2019re in beta, so each visitor can create up to '
+                                   f'{n} new names a day \u2014 and you\u2019ve used today\u2019s {n}. '
+                                   f'Names we already know still work, or come back '
+                                   f'tomorrow for more.'}), 429
     _t0 = _time.time()
     data = convert_name(first_en, last_en, sex)
     _api_picked, _api_geo = _country_of_request()
@@ -2194,6 +2227,7 @@ def api_convert():
               ms=(_time.time() - _t0) * 1000)
     if 'error' not in data and is_new:
         BUDGET.record()
+        IP_BUDGET.record(_ip)
     status = 400 if 'error' in data else 200
     return jsonify(data), status
 
@@ -2867,6 +2901,7 @@ def admin():
         'gen_recovered': getattr(MEANING_EN, 'retry_recovered', 0),
         'new_today': s.get('new_today', 0),
         'daily_max': daily_max,
+        'ip_daily_max': IP_BUDGET.daily_max,
         'cache_entries': cache_entries,
         'est_per': est_per,
         'est_today': round(s.get('new_today', 0) * est_per, 2),
