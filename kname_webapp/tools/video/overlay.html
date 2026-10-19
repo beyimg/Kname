@@ -352,6 +352,9 @@
     var lb = L.layout_back;
     if(lb && lb.rows) B.rows = lb.rows.map(function(r){ return highlight($('hB'), r); });
     var snL = lb ? ((lb.surnameFirst && lb.surnameFirst.length) ? lb.surnameFirst : lb.surnameLines) : null;   // 성씨 문단은 첫 문장(뜻)만 칠한다(2026-10-17)
+    if(lb && lb.surnameSents && C.back && C.back.snRank){              // 순위를 말하면 "most common" 문장도 이어서 칠한다
+      lb.surnameSents.forEach(function(sn, i){ if(i > 0 && /most common/i.test(sn.text)) snL = snL.concat(sn.lines); });
+    }
     B.surname = snL ? snL.map(function(r){ return highlight($('hB'), r); }) : [];
     B.msents = (lb && lb.meaningSents) ? lb.meaningSents.map(function(s){ return { text: s.text, hl: s.lines.map(function(r){ return highlight($('hB'), r); }) }; }) : [];
     // ── 이유 화면: 테일러 밑줄, 고른 음절 밑줄, 'We carried…' 형광펜

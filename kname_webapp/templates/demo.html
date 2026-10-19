@@ -144,6 +144,7 @@
     return { rows: rectsOf(doc, '.face-back .bg-row'),
              surnameLines: lineRects(doc, sn),
              surnameFirst: snSents.length ? snSents[0].lines : [],                       // 첫 문장(뜻)만 — 나레이션이 유명인을 말하지 않는다(2026-10-17)
+             surnameSents: snSents,                                                       // 문장마다 {text, lines} — 순위 문장(most common)도 칠할 때
              meaningLines: lineRects(doc, doc.querySelector('.face-back .back-meaning')),
              meaningSents: sentenceRects(doc, doc.querySelector('.face-back .back-meaning:not(.meaning-pending)')) };
   }

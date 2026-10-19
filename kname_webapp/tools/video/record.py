@@ -119,6 +119,9 @@ _ROM_D = None                                                       # build_line
 KO_FRAMES = ['{p}. {t}. 이렇게 읽어요.', '{p}. {t}. 이렇게 불러요.', '{p} — {t} — 이렇게 읽어요.']   # 마침표 틀 우선(2026-10-16): 대시 틀은 가끔 글자를 덧붙여 읽는다('— 서 —' → '에서'). 대시 틀 하나는 쉼이 안 생길 때의 예비
 KO_FRAMES_SYL = KO_FRAMES + ['{p}. {t}. 이렇게 발음해요.', '{p}. {t}. 이렇게 읽습니다.',
                              '{p} — {t} — 이렇게 불러요.']   # 한 글자는 테이크 6개(짧게 잘리는 일이 잦다) — 가장 길게 읽힌 것을 고른다. '— 라고 읽어요'·쉼표 틀은 뺐다(덧붙여 읽음 / 쉼이 안 생김)
+KO_FRAMES_SYL_MORE = ['{p} <break time="0.5s" /> {t}. <break time="0.5s" /> 이렇게 읽어요.', '{p}. {t}! 이렇게 읽어요.',
+                      '{p}. {t}, 하고 읽어요.']   # 기본 테이크가 전부 듣기 검사(ASR)에 떨어졌을 때만 더 받는 틀(2026-10-18). <break> 는 ElevenLabs 가 쉼으로 읽는다
+KO_ASR_DIR = os.environ.get('KNAME_ASR_DIR', '/home/claude/work/asr/sherpa-onnx-zipformer-korean-2024-06-24')   # 한국어 음성인식 모델(sherpa-onnx zipformer). 없으면 듣기 검사 없이 전처럼 고른다
 KO_SYL_STRETCH = 1.45                                                 # 한 글자 조각 길이 배수(음높이 유지). 1.1 → 1.21 → 1.45 (민우님 2026-10-13: 1.2배 더)
 KO_SYL_FROM_FULL = False                                              # 낱글자를 이름 전체 발음에서 잘라 쓰면(True) 잘린 소리가 뭉개져 안 들린다(민우님 2026-10-14, 정서하) → 글자마다 문장 틀로 따로 읽힌다
 KO_SYL_MIN = 0.34                                                     # 한 글자 소리 길이 최소(초) — Danbi 는 낱글자를 0.12~0.2s 로 짧게 읽는다
@@ -368,6 +371,43 @@ def en_best_takes(jobs, ndir, takes, extra=6):
               f" ← 원본 폭 {base[2]['rng']:.1f} 끝 {base[2]['fall']:+.1f})")
 
 
+_ASR = None
+
+
+def asr_check(path, target):
+    """잘라 낸 한국어 조각을 음성인식기로 '들어 보고' 목표 글자로 들리는지. True/False, 인식기가 없으면 None.
+    2026-10-18(민우님, Halsey 박예린의 린): 테이크마다 '린'이 '링'으로, '하'가 '아'로 들리는 것이 있어 음높이·길이만으로는
+    못 거른다 → 글자 하나는 1회 + 3회 반복(0.4s 쉼)으로 두 번 듣고 둘 다 맞아야 통과.
+    (두 글자 이상은 연음 때문에 쓰지 않는다 — _ko_synthesize 가 낱글자에만 건다.)"""
+    global _ASR
+    if _ASR is None:
+        _ASR = False
+        try:
+            import sherpa_onnx, numpy as np
+            if os.path.isdir(KO_ASR_DIR):
+                _ASR = sherpa_onnx.OfflineRecognizer.from_transducer(
+                    encoder=os.path.join(KO_ASR_DIR, 'encoder-epoch-99-avg-1.int8.onnx'), decoder=os.path.join(KO_ASR_DIR, 'decoder-epoch-99-avg-1.onnx'),
+                    joiner=os.path.join(KO_ASR_DIR, 'joiner-epoch-99-avg-1.int8.onnx'), tokens=os.path.join(KO_ASR_DIR, 'tokens.txt'),
+                    num_threads=4, decoding_method='greedy_search')
+                print(f'  듣기 검사(ASR) 켜짐: {KO_ASR_DIR}')
+        except Exception as e:
+            print(f'  듣기 검사(ASR) 없음: {type(e).__name__}: {e}')
+    if not _ASR:
+        return None
+    import numpy as np
+    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', path, '-f', 'f32le', '-ac', '1', '-ar', '16000', '-'], capture_output=True).stdout
+    x = np.frombuffer(raw, np.float32); g = np.zeros(int(16000 * 0.4), np.float32)
+    norm = lambda t: re.sub(r'[^가-힣]', '', t)
+    tgt = norm(target)
+    def hear(y):
+        st = _ASR.create_stream(); st.accept_waveform(16000, y); _ASR.decode_stream(st); return norm(st.result.text)
+    heard = [hear(np.concatenate([g, x, g]))]
+    if len(tgt) == 1:
+        heard.append(hear(np.concatenate([g, x, g, x, g, x, g])))
+    ok = heard[0] == tgt and (len(tgt) > 1 or heard[1] in (tgt, tgt * 2, tgt * 3))
+    return ok, heard
+
+
 def ko_synthesize(sp, ndir):
     """frame 이 있는 한국어 세그먼트: 문장 전체를 테이크별로 받아 가운데 소리 구간만 잘라 낸 mp3 경로.
     테이크가 여럿이면 문장 전체의 음높이와 가장 가까운(톤이 튀지 않는) 테이크를 고른다.
@@ -404,50 +444,88 @@ def _ko_synthesize(sp, ndir):
                 print(f'  ko [{text}] {ln * stretch:.2f}s ← {sp["full"]} 전체 발음의 {int(sp["idx"]) + 1}번째 글자')
                 return final
     takes = [f.format(p=frame, t=text) for f in (KO_FRAMES_SYL if len(re.findall(r'[가-힣]', text)) == 1 else KO_FRAMES)]
-    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text + f'|s{KO_SYL_STRETCH}|m{KO_SYL_MIN}|w{1.0 if sp.get("fx") else KO_WORD_STRETCH}|x{sp.get("stretch")}|g06|v2').encode('utf-8')).hexdigest()[:16] + '.mp3')
+    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text + f'|s{KO_SYL_STRETCH}|m{KO_SYL_MIN}|w{1.0 if sp.get("fx") else KO_WORD_STRETCH}|x{sp.get("stretch")}|g06|v2|asr2').encode('utf-8')).hexdigest()[:16] + '.mp3')
     if os.path.exists(final):
         return final
-    paths = [os.path.join(ndir, hashlib.sha1((t + '|ko-KR|full').encode('utf-8')).hexdigest()[:16] + '.mp3') for t in takes]
-    need = [(t, p) for t, p in zip(takes, paths) if not os.path.exists(p)]
-    if need:
-        res = http_json(f'{PROD}/api/narrate', {'lines': [{'text': t, 'lang': 'ko-KR', 'voice': sp.get('voice', KO_VOICE)} for t, _ in need]}, timeout=240)
-        for (t, p), item in zip(need, res.get('items', [])):
-            if item.get('url'):
-                download(item['url'], p)
-            else:
-                print(f'  한국어 합성 실패: {t} — {item.get("error")}')
-    cands = []
     n_syl = max(1, len(re.findall(r'[가-힣]', text)))
-    for p in paths:
-        if not os.path.exists(p):
-            continue
-        segs = voiced_segments(p, 0.12)
-        if len(segs) < 3:
-            print(f'  (한국어 테이크 구간 {len(segs)}개 — 건너뜀) {p}')
-            continue
-        a, b = segs[1][0], segs[-2][1]                      # 앞말 / 가운데(목표) / 뒷말
-        if b - a < 0.1 * n_syl:
-            continue
-        if n_syl == 1 and onset_prevoiced(p, a, b, text):
-            print(f'  (테이크 버림 — {text} 앞에 다른 소리가 붙음, 예: 에서) {os.path.basename(p)}')
-            continue
-        mid, whole = _pitch_mean(p, a, b), _pitch_mean(p)
-        score = abs((mid or 0) - (whole or 0)) if (mid and whole) else 0
-        if n_syl == 1:
-            score += 60 if b - a < 0.18 else 0               # 한 글자가 너무 짧게 잘린 테이크는 뒤로
-            score -= 120 * (b - a)                           # 같은 값이면 길게 읽힌 테이크(0.1s 당 12Hz 어치)를 앞에 — 늘려도 덜 뭉개진다(2026-10-14)
-        cands.append((score, p, a, b))
-    if len(cands) >= 2:
-        # 다른 테이크보다 1.6배 넘게 긴 가운데 토막은 글자가 덧붙은 것(에서·서어 …) — 버린다(2026-10-16, Ed Sheeran 의 서)
-        ref = sorted(c[3] - c[2] for c in cands)[len(cands) // 2 if len(cands) >= 3 else 0]
-        keep = [c for c in cands if c[3] - c[2] <= 1.6 * ref]
+
+    def fetch(takes):
+        paths = [os.path.join(ndir, hashlib.sha1((t + '|ko-KR|full').encode('utf-8')).hexdigest()[:16] + '.mp3') for t in takes]
+        need = [(t, p) for t, p in zip(takes, paths) if not os.path.exists(p)]
+        if need:
+            res = http_json(f'{PROD}/api/narrate', {'lines': [{'text': t, 'lang': 'ko-KR', 'voice': sp.get('voice', KO_VOICE)} for t, _ in need]}, timeout=240)
+            for (t, p), item in zip(need, res.get('items', [])):
+                if item.get('url'):
+                    download(item['url'], p)
+                else:
+                    print(f'  한국어 합성 실패: {t} — {item.get("error")}')
+        return paths
+
+    def candidates(paths):
+        cands = []
+        for p in paths:
+            if not os.path.exists(p):
+                continue
+            segs = voiced_segments(p, 0.12)
+            if len(segs) < 3:
+                print(f'  (한국어 테이크 구간 {len(segs)}개 — 건너뜀) {p}')
+                continue
+            a, b = segs[1][0], segs[-2][1]                      # 앞말 / 가운데(목표) / 뒷말
+            if b - a < 0.1 * n_syl:
+                continue
+            if n_syl == 1 and onset_prevoiced(p, a, b, text):
+                print(f'  (테이크 버림 — {text} 앞에 다른 소리가 붙음, 예: 에서) {os.path.basename(p)}')
+                continue
+            mid, whole = _pitch_mean(p, a, b), _pitch_mean(p)
+            score = abs((mid or 0) - (whole or 0)) if (mid and whole) else 0
+            if n_syl == 1:
+                score += 60 if b - a < 0.18 else 0               # 한 글자가 너무 짧게 잘린 테이크는 뒤로
+                score -= 120 * (b - a)                           # 같은 값이면 길게 읽힌 테이크(0.1s 당 12Hz 어치)를 앞에 — 늘려도 덜 뭉개진다(2026-10-14)
+            cands.append((score, p, a, b))
+        if len(cands) >= 2:
+            # 다른 테이크보다 1.6배 넘게 긴 가운데 토막은 글자가 덧붙은 것(에서·서어 …) — 버린다(2026-10-16, Ed Sheeran 의 서)
+            ref = sorted(c[3] - c[2] for c in cands)[len(cands) // 2 if len(cands) >= 3 else 0]
+            keep = [c for c in cands if c[3] - c[2] <= 1.6 * ref]
+            for c in cands:
+                if c not in keep:
+                    print(f'  (테이크 버림 — {text} 가 {c[3] - c[2]:.2f}s 로 다른 테이크({ref:.2f}s)보다 너무 길다) {os.path.basename(c[1])}')
+            cands = keep
+        cands.sort()
+        return cands
+
+    def heard_ok(cands):
+        """듣기 검사(ASR). 1회·3회 반복 둘 다 틀리게 들리면 버리고, 하나만 틀리면 점수에 +40(음높이 40Hz 어치)만 얹는다 —
+        서/써, 린/링 처럼 인식기도 헷갈리는 쌍이 있어 한 번 틀린 것만으로 음높이가 잘 맞는 테이크를 버리면 톤이 튄다(Ed 의 서).
+        돌려주는 값: 점수 순 후보 목록. 인식기가 없으면 None(검사 없이 진행)."""
+        kept = []
         for c in cands:
-            if c not in keep:
-                print(f'  (테이크 버림 — {text} 가 {c[3] - c[2]:.2f}s 로 다른 테이크({ref:.2f}s)보다 너무 길다) {os.path.basename(c[1])}')
-        cands = keep
+            r = asr_check(cut_clip(c[1], c[2], c[3]), text)
+            if r is None:
+                return None
+            ok, heard = r
+            tgt = re.sub(r'[^가-힣]', '', text)
+            bad = sum(1 for i, h in enumerate(heard) if h != tgt and not (i == 1 and h in (tgt * 2, tgt * 3)))
+            if bad >= len(heard):
+                print(f'  (테이크 버림 — {text} 가 {"/".join(heard)} 로 들림) {os.path.basename(c[1])}')
+                continue
+            if bad:
+                print(f'  (테이크 감점 — {text} 가 {"/".join(heard)} 로 들림) {os.path.basename(c[1])}')
+            kept.append((c[0] + 40 * bad, c[1], c[2], c[3]))
+        kept.sort()
+        return kept
+
+    cands = candidates(fetch(takes))
+    if cands and n_syl == 1:                                   # 듣기 검사는 낱글자만 — 두 글자 이상은 연음(박예린→바계린) 때문에 인식 결과가 글자와 다른 것이 정상
+        good = heard_ok(cands)
+        if good is not None and not good:
+            print(f'  {text}: 기본 테이크 {len(cands)}개가 전부 듣기 검사에 떨어짐 — 틀 {len(KO_FRAMES_SYL_MORE)}개 더 받는다')
+            good = heard_ok(candidates(fetch([f.format(p=frame, t=text) for f in KO_FRAMES_SYL_MORE])))
+        if good:
+            cands = good
+        elif good is not None:
+            print(f'  {text}: 듣기 검사를 통과한 테이크가 없음 — 점수 1위를 그대로 쓴다(직접 들어 볼 것)')
     if not cands:
         return None
-    cands.sort()
     score, p, a, b = cands[0]
     cut = cut_clip(p, a, b)
     if n_syl > 1:
@@ -508,7 +586,7 @@ def fetch_narration(lines, tempo=1.0, takes=1, tempo_by=None):
             if env and ENGINE == 'elevenlabs' and not str(sp.get('lang', '')).startswith('ko') and not sp.get('audio') and not sp.get('voice'):
                 sp = dict(sp, voice=env)
             if ctxs and not str(sp.get('lang', '')).startswith('ko') and not sp.get('audio'):
-                nx = None if _SENT_END.search(sp['text']) else (sp.get('next') or ctxs[i][1] or None)   # 문장이 끝나는 조각엔 뒤 문맥을 주지 않는다 — 안 그러면 끝음이 올라간다
+                nx = None if (_SENT_END.search(sp['text']) or sp.get('pause') is not None) else (sp.get('next') or ctxs[i][1] or None)   # 문장이 끝나는 조각엔 뒤 문맥을 주지 않는다 — 안 그러면 끝음이 올라간다. 뜸(pause) 조각도: 뒤 문맥(로마자 이름)을 주면 TTS 가 그 첫소리를 내다 잘린다(2026-10-17)
                 sp = dict(sp, prev=sp.get('prev') or ctxs[i][0] or None, next=nx)
             if sp.get('audio'):
                 # 대본에 소리 파일을 직접 지정한 줄(다른 TTS 나 녹음) — 44.1kHz mp3 로 맞춰 둔다
@@ -834,25 +912,56 @@ def primary_gloss(gloss, hanja=None):
     return words[0] if words else str(gloss or '').strip(' ,')
 
 
-def meaning_tail(text):
+def meaning_tail(text, ms=None):
     """뒷면 설명문(meaning_en)에서 영상 뒷면 끝에 읽을 두 문장(민우님 2026-10-17): 글자별 뜻을 말한 뒤
-    "It pictures someone wise who stands tall like a mountain." 같은 그림 문장과, 문단 마지막의 분위기 문장
+    ① 그림 문장 "It pictures someone wise who stands tall like a mountain." ② 문단 마지막의 분위기 문장
     ("Wisdom and height meet in a polished, quintessentially modern name."). 가운데의 유행·친척 이름·유명인 문장은 읽지 않는다.
-    순우리말 이름 문단은 'It carries, directly, the wish for …' 처럼 It 로 시작하는 두 번째 문장을 그림 문장으로 본다."""
+    설명문 판이 여러 가지라(옛 판: "It's a boy's name meaning …", 끝이 "… — a confident, trendy impression."·친척 이름·한글 섞임)
+    읽을 문장은 다듬고, 형광펜은 원문 문장(hl)에 긋는다. 돌려주는 값: [{'text': 읽을 문장, 'hl': 원문 문장 또는 None}, …]."""
     text = re.sub(r'\s+', ' ', text or '').strip()
     if not text:
         return []
     sents = [x.strip() for x in re.split(r'(?<=[.!?]["\u201d\u2019])\s+(?=[A-Z0-9가-힣])|(?<=[.!?])\s+(?=[A-Z0-9가-힣])', text) if x.strip()]   # 문장 끝 + 공백 + 대문자에서만 나눈다("shine on!" — 처럼 따옴표 안 느낌표는 안 나눔)
     sents = [x for x in sents if re.search(r'[A-Za-z]', x)]
-    if len(sents) < 2:
-        return []
-    pic = next((x for x in sents[1:] if re.match(r'It (pictures|paints|evokes|suggests|describes|carries|holds|captures|conveys|speaks|portrays|calls|brings)\b', x)), None)
-    last = sents[-1]
+    dirty = lambda x: bool(re.search(r'[가-힣]|\bas in\b|K-pop|\bfans\b|\bcharts?\b', x))   # 한글·친척 이름·유명인·유행 얘기가 섞인 문장
     out = []
-    if pic:
+    # ① 그림 문장
+    pic = None
+    for x in sents[1:]:
+        if re.match(r'It (pictures|paints|evokes|suggests|describes|carries|holds|captures|conveys|portrays)\b', x) and not dirty(x):
+            pic = {'text': x, 'hl': x}; break
+        m = re.match(r"It[\u2019']s an? (?:boy|girl|much-loved|popular)[\u2019']?s? ?name meaning (.+)$", x)
+        if m and not dirty(x):
+            pic = {'text': 'It pictures ' + m.group(1), 'hl': x}; break
+    if not pic and ms:
+        ms_ = ms.strip().rstrip('.')
+        ms_ = ms_[0].lower() + ms_[1:]
+        pic = {'text': f'It pictures {ms_}.', 'hl': next((x for x in sents if ms_.lower()[:25] in x.lower()), None)}
+    # ① 은 읽지 않는다(민우님 2026-10-18): 한 줄 뜻은 앞면 meaning 장면에서 이미 말했다. 마지막 분위기 문장이
+    #    하나도 안 나올 때만(설명문이 한글·유행 얘기로 끝나는 옛 판) 그림 문장으로 대신한다.
+    # ② 마지막 분위기 문장
+    last = sents[-1] if len(sents) >= 2 else None
+    if last:
+        spoken = last
+        if dirty(last) or re.search(r'impression[.!]?$', last):
+            tail = last.split('\u2014')[-1].strip().rstrip('.') if '\u2014' in last else None   # "… — a confident, trendy impression." → 뒤쪽만
+            if tail and not dirty(tail):
+                m2 = re.match(r'(.+?) for (an? .+ impression)$', tail)                   # "wisdom and radiance for a trendy impression" → 주어·동사가 있는 문장으로(2026-10-18, Halsey)
+                if m2:
+                    spoken = f'{m2.group(1)[0].upper()}{m2.group(1)[1:]} come together for {m2.group(2)}.'
+                else:
+                    spoken = ('All in all, it leaves ' + tail + '.') if re.match(r'an? ', tail) else ('All in all, ' + tail + '.')
+            else:
+                spoken = None
+        elif '\u2014' in spoken and len(spoken.split()) > 20:
+            tail = spoken.split('\u2014')[-1].strip().rstrip('.')          # 너무 긴 문장(순우리말 설명문 등)은 대시 뒤쪽만: "… — sound and sense as one, …" (Cardi B 가 12초 걸렸다)
+            spoken = ('All in all, it leaves ' + tail + '.') if re.match(r'an? ', tail) else ('All in all, ' + tail + '.')
+        elif '\u2014' in spoken:
+            spoken = re.sub(r'\s*\u2014\s*', ', ', spoken)                   # 대시는 쉼표로(TTS 가 대시 뒤에서 어색하게 끊는다)
+        if spoken and len(spoken.split()) >= 4:
+            out.append({'text': spoken, 'hl': last})
+    if not out and pic:
         out.append(pic)
-    if last and last != pic and len(last.split()) >= 4:
-        out.append(last)
     return out
 
 
@@ -945,7 +1054,7 @@ def build_lines(d, first, last, args):
         nm = m.group(1).strip().rstrip('.,;') if m else None
         back += ["And the first name", dict(ko(given_ko, prev='이름은', stretch=KO_WORD_STRETCH), nohl=True),
                  f"is a pure Korean word that means {nm}." if nm else "is a pure Korean word, not from Chinese characters."]
-    back += [{'text': x, 'mtail': True} for x in meaning_tail(d.get('meaning_en') or '')]   # "It pictures …" 문장 + 마지막 분위기 문장(민우님 2026-10-17). mtail: 뒷면 설명문의 그 문장을 형광펜으로
+    back += [{'text': x['text'], 'mtail': True, 'hl': x.get('hl')} for x in meaning_tail(d.get('meaning_en') or '', ms_l if ms else None)]   # "It pictures …" 문장 + 마지막 분위기 문장(민우님 2026-10-17). hl: 뒷면 설명문에서 형광펜 그을 원문 문장
     if args.back_tail:
         back.append(args.back_tail)
     lines['back'] = back
@@ -1362,7 +1471,7 @@ def main():
         for j, ((path, dd, v0, v1), sp) in enumerate(zip(N[k]['parts'], (lines[k] if isinstance(lines[k], list) else [lines[k]]))):
             parts.append({'t': tt, 'dur': dd, 'file': path, 'v0': v0, 'v1': v1, 'ko': isinstance(sp, dict) and bool(sp.get('lang')),
                           'nohl': isinstance(sp, dict) and bool(sp.get('nohl')), 'end': isinstance(sp, dict) and bool(sp.get('end')),
-                          'pause': isinstance(sp, dict) and sp.get('pause') is not None, 'mtail': isinstance(sp, dict) and bool(sp.get('mtail')),
+                          'pause': isinstance(sp, dict) and sp.get('pause') is not None, 'mtail': isinstance(sp, dict) and bool(sp.get('mtail')), 'hl': (sp.get('hl') if isinstance(sp, dict) else None),
                           'text': (sp.get('text', '') if isinstance(sp, dict) else sp)})
             tt += dd + (gaps[j] if j < len(gaps) else 0)
         c = {'t': t, 'dur': nd[k], 'v0': N[k]['v0'], 'parts': parts,
@@ -1397,7 +1506,8 @@ def main():
                     end_i = j - 1; break
             b_ = bp[end_i]
             cues['back']['snDur'] = max(1.0, (b_['t'] + b_['v1']) - (a_['t'] + a_['v0']))
-        cues['back']['tail'] = [{'t': p_['t'] + p_['v0'], 'dur': max(0.5, p_['v1'] - p_['v0']), 'text': p_['text']} for p_ in bp if p_.get('mtail')]   # 설명문 문장 형광펜(2026-10-17)
+            cues['back']['snRank'] = any('most common' in bp[j]['text'] for j in range(ko_i[0], end_i + 1))   # 순위 문장을 읽으면 카드의 그 문장도 칠한다(2026-10-17)
+        cues['back']['tail'] = [{'t': p_['t'] + p_['v0'], 'dur': max(0.5, p_['v1'] - p_['v0']), 'text': p_.get('hl') or p_['text']} for p_ in bp if p_.get('mtail') and (p_.get('hl') or p_['text'])]   # 설명문 문장 형광펜(2026-10-17): 원문 문장(hl)에 긋는다
     put('why', T['outro'] + 0.2)
     script['backKeys'] = []
     script['captions'] = [] if args.no_captions else caption_lines(cues, skip=('why', 'hook'))   # 훅 캡션 카드가 이미 글을 보여준다
