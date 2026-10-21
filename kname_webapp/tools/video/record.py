@@ -912,6 +912,67 @@ def primary_gloss(gloss, hanja=None):
     return words[0] if words else str(gloss or '').strip(' ,')
 
 
+def _sentence(t):
+    """읽을 문장의 모양을 보장한다: 첫 글자 대문자, 끝에 마침표(이미 .!? 로 끝나면 그대로), 겹친 공백 정리."""
+    t = re.sub(r'\s+', ' ', t or '').strip()
+    if not t:
+        return t
+    t = t[0].upper() + t[1:]
+    return t if re.search(r'[.!?]["\'\u201d\u2019]?$', t) else t + '.'
+
+
+_VERBS = set("""is are was were be been has have had does do did can could will would may might should must
+come meet give bring make leave stay shine sparkle carry join suggest evoke hold lend signal become blend sit keep add get put
+speak sing mean stand fit wear look seem live grow glow convey capture combine unite invite lean settle rest pull push gather
+glide bounce brim travel cross chime recall read flow bloom carry""".split())   # 명사로도 흔한 말(sound·feel·ring·name·balance·picture·match·echo·place·call·mark)은 뺐다 — "a warm sound" 를 동사로 오인했다(Trevor)
+
+
+def _has_verb(t):
+    """문장에 동사가 있어 보이는가(어림). 없으면 읽지 않는다 — 동사 없는 조각을 소리로 들으면 바로 티가 난다.
+    "it's"·be동사·조동사 → 있음. 동사 목록(3인칭 -s 포함) → 있음(단, 관사·전치사 뒤의 명사형 "a picture"·"of sounds" 는 제외).
+    "it/name/this/that/which + …s" 꼴도 동사로 본다("it glides", "the name sparkles")."""
+    low = re.split(r'\b(?:that|which|who)\b', (t or '').lower())[0]   # 관계절("a name that feels tender") 속 동사는 본동사가 아니다(Coral)
+    if re.search(r"\bit['\u2019]s\b|\b(is|are|was|were|has|have|had|can|could|will|would|may|might|does|do|did|should|must)\b", low):
+        return True
+    w = re.findall(r"[a-z']+", low)
+    for i, x in enumerate(w):
+        prev = w[i - 1] if i else ''
+        stems = {x}
+        if x.endswith('ies'): stems.add(x[:-3] + 'y')
+        if x.endswith('es'): stems.add(x[:-2])
+        if x.endswith('s'): stems.add(x[:-1])
+        if (stems & _VERBS) and prev not in ('a', 'an', 'the', 'of', 'and', 'its', 'their', 'with', 'in', 'to', 'very', 'own'):
+            return True
+        if x.endswith('s') and prev in ('it', 'name', 'this', 'that', 'which', 'one'):
+            return True
+    return False
+
+
+def _closing_from_dash(last, dirty):
+    """대시가 있는 마지막 문장에서 읽을 완전한 문장 하나. 못 만들면 None.
+    · "wisdom and radiance for a trendy impression" → "Wisdom and radiance come together for a trendy impression."
+    · "a confident, trendy impression" / "a soft, modern feel" → "All in all, it leaves a confident, trendy impression."
+    · 그 밖의 꼬리(명사구인지 알 수 없음)는 읽지 않고, 대시 앞쪽이 4~24단어의 깨끗한 문장이면 그것을 읽는다
+      (Cardi B: "The name sparkles from its very sound; just calling it becomes a cheer of "shine on!"")."""
+    if last.count('\u2014') >= 2 and last.count('\u2014') % 2 == 0:            # "… names — drawn from nature's winds — are loved for." 삽입구는 쉼표로(Harmony)
+        flat = re.sub(r'\s*\u2014\s*', ', ', last).strip()
+        return flat if (not dirty(flat) and 4 <= len(flat.split()) <= 26 and _has_verb(flat)) else None
+    head, _, tail = last.rpartition('\u2014')
+    head = head.strip().rstrip(' ;,:')
+    tail = tail.strip().rstrip('.').strip()
+    if tail and not dirty(tail):
+        m2 = re.match(r'(.+?) for (an? .+ (?:impression|feel|air|touch)(?: with [^,]+)?)$', tail)
+        if m2:
+            if re.fullmatch(r"[A-Za-z\-]+ and [A-Za-z\-]+", m2.group(1)):                # "wisdom and radiance" 처럼 명사 둘일 때만 주어로
+                return f'{m2.group(1)} come together for {m2.group(2)}.'
+            return f'All in all, it leaves {m2.group(2)}.'                         # "Two favorites uniting for …" 처럼 모양을 모르는 앞부분은 버린다
+        if re.match(r"an? [a-z][a-z,' \-]* (impression|feel|air|touch|ring)( with [^,]+)?$", tail):
+            return f'All in all, it leaves {tail}.'
+    if head and not dirty(head) and 4 <= len(head.split()) <= 24 and _has_verb(head):
+        return head
+    return None
+
+
 def meaning_tail(text, ms=None):
     """뒷면 설명문(meaning_en)에서 영상 뒷면 끝에 읽을 두 문장(민우님 2026-10-17): 글자별 뜻을 말한 뒤
     ① 그림 문장 "It pictures someone wise who stands tall like a mountain." ② 문단 마지막의 분위기 문장
@@ -929,37 +990,57 @@ def meaning_tail(text, ms=None):
     pic = None
     for x in sents[1:]:
         if re.match(r'It (pictures|paints|evokes|suggests|describes|carries|holds|captures|conveys|portrays)\b', x) and not dirty(x):
-            pic = {'text': x, 'hl': x}; break
+            pic = {'text': re.sub(r'\s*\u2014\s*', ', ', x), 'hl': x}; break
         m = re.match(r"It[\u2019']s an? (?:boy|girl|much-loved|popular)[\u2019']?s? ?name meaning (.+)$", x)
         if m and not dirty(x):
             pic = {'text': 'It pictures ' + m.group(1), 'hl': x}; break
     if not pic and ms:
         ms_ = ms.strip().rstrip('.')
         ms_ = ms_[0].lower() + ms_[1:]
-        pic = {'text': f'It pictures {ms_}.', 'hl': next((x for x in sents if ms_.lower()[:25] in x.lower()), None)}
+        hl_ = next((x for x in sents if ms_.lower()[:25] in x.lower()), None)
+        mn = re.match(r'(.+?) in native Korean$', ms_)
+        if mn:                                                                   # "To be lovely in native Korean" → It means "to be lovely" in native Korean. (Cora)
+            core = re.sub(r'\s*\u2014\s*', ', ', mn.group(1)).strip()
+            core = f'\u201c{core}\u201d' if core.startswith('to ') else core
+            pic = {'text': f'It means {core} in native Korean.', 'hl': hl_}
+        elif re.match(r'an? [a-z\-]* ?name (of|with) ', ms_):                     # "A name of clear crystal and jade radiance" → It's a name of … (Elissa·Madalyn)
+            pic = {'text': f"It's {ms_}.", 'hl': hl_}
+        elif re.match(r'(someone|a |an |the |people |one )', ms_):
+            pic = {'text': f'It pictures {ms_}.', 'hl': hl_}
+        else:                                                                    # 형용사구·동사구("Bright and kind") 는 "It pictures" 뒤에 못 붙는다
+            pic = {'text': f'It means {ms_}.', 'hl': hl_}
+        pic['text'] = re.sub(r'\s*\u2014\s*', ', ', pic['text'])
     # ① 은 읽지 않는다(민우님 2026-10-18): 한 줄 뜻은 앞면 meaning 장면에서 이미 말했다. 마지막 분위기 문장이
     #    하나도 안 나올 때만(설명문이 한글·유행 얘기로 끝나는 옛 판) 그림 문장으로 대신한다.
-    # ② 마지막 분위기 문장
+    # ② 마지막 분위기 문장 — 반드시 **완전한 문장**이어야 한다(민우님 2026-10-21: 문법 오류 절대 금지).
+    #    대시 뒤 꼬리("… — sound and sense as one, with a …")는 대개 동사 없는 명사구라 "All in all, " 만 붙여 읽으면 문장이 안 된다
+    #    (Cardi B 안빛나). 모양을 아는 꼬리만 정해진 틀에 넣고, 모르는 모양이면 대시 앞쪽(문장일 때)을 쓰고, 그것도 안 되면 그림 문장(①)으로.
     last = sents[-1] if len(sents) >= 2 else None
     if last:
-        spoken = last
-        if dirty(last) or re.search(r'impression[.!]?$', last):
-            tail = last.split('\u2014')[-1].strip().rstrip('.') if '\u2014' in last else None   # "… — a confident, trendy impression." → 뒤쪽만
-            if tail and not dirty(tail):
-                m2 = re.match(r'(.+?) for (an? .+ impression)$', tail)                   # "wisdom and radiance for a trendy impression" → 주어·동사가 있는 문장으로(2026-10-18, Halsey)
-                if m2:
-                    spoken = f'{m2.group(1)[0].upper()}{m2.group(1)[1:]} come together for {m2.group(2)}.'
-                else:
-                    spoken = ('All in all, it leaves ' + tail + '.') if re.match(r'an? ', tail) else ('All in all, ' + tail + '.')
+        if dirty(last) or ('\u2014' in last and (len(last.split()) > 20 or re.search(r'impression[.!]?$', last))):
+            spoken = _closing_from_dash(last, dirty) if '\u2014' in last else None
+        elif '\u2014' in last:
+            head, _, tail = last.rpartition('\u2014')
+            tail_ = tail.strip().rstrip('.')
+            if re.match(r"an? [a-z][a-z,' \-]* (impression|feel|air|touch|ring)$", tail_) and _has_verb(head):
+                spoken = re.sub(r'\s*\u2014\s*', ', ', head.strip().rstrip(' ,;')) + f', leaving {tail_}.'   # "… leads — a soft, warm impression" → "… leads, leaving a soft, warm impression."
+            elif _has_verb(tail_) and _has_verb(head) and not re.match(r'(an?|the|its|their) ', tail_):
+                spoken = re.sub(r'\s*\u2014\s*', ', ', head.strip().rstrip(' ,;')) + '. ' + tail_[0].upper() + tail_[1:] + '.'   # 대시 양쪽이 다 절이면 두 문장으로 — 쉼표로 이으면 무종지문(Sloane)
             else:
-                spoken = None
-        elif '\u2014' in spoken and len(spoken.split()) > 20:
-            tail = spoken.split('\u2014')[-1].strip().rstrip('.')          # 너무 긴 문장(순우리말 설명문 등)은 대시 뒤쪽만: "… — sound and sense as one, …" (Cardi B 가 12초 걸렸다)
-            spoken = ('All in all, it leaves ' + tail + '.') if re.match(r'an? ', tail) else ('All in all, ' + tail + '.')
-        elif '\u2014' in spoken:
-            spoken = re.sub(r'\s*\u2014\s*', ', ', spoken)                   # 대시는 쉼표로(TTS 가 대시 뒤에서 어색하게 끊는다)
+                spoken = re.sub(r'\s*\u2014\s*', ', ', last)                   # 짧은 문장의 대시는 쉼표로(TTS 가 대시 뒤에서 어색하게 끊는다)
+        else:
+            spoken = last
+        if spoken and not _has_verb(spoken):
+            m3 = re.match(r"An? ([a-z, \-]*?\bname) (with|of|full of|that|which) (.+?)\.?$", spoken.strip())   # "A name with dependable, traditional gravity." (Gustavo·Keith·Kyle) / "A cozy, timeless name that feels genuinely tender." (Coral)
+            m4 = re.match(r"([A-Z][a-z\-]+ and [a-z\-]+) in easy balance(?:,? (an? .+?))?\.?$", spoken.strip())   # "Wisdom and starlight in easy balance(, a modern name)." (Addie·Cash)
+            if m3:
+                spoken = f"All in all, it's a {m3.group(1)} {m3.group(2)} {m3.group(3)}."
+            elif m4:
+                spoken = f"{m4.group(1)} sit in easy balance" + (f" in {m4.group(2)}." if m4.group(2) else '.')
+            else:
+                spoken = None                                                      # 그 밖의 동사 없는 조각("Flowing with no final consonants, refined and graceful.")은 읽지 않고 ①로
         if spoken and len(spoken.split()) >= 4:
-            out.append({'text': spoken, 'hl': last})
+            out.append({'text': _sentence(spoken), 'hl': last})
     if not out and pic:
         out.append(pic)
     return out
