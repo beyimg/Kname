@@ -1,0 +1,257 @@
+{
+ "lines": {
+  "hook": [
+   "What's Jason Derulo's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   "Jason Derulo's real name is Jason Desrouleaux.",
+   {
+    "text": "His Korean name is",
+    "pause": 0.2
+   },
+   {
+    "text": "정재승",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jung-Jae-Seung",
+    "frame": "이 사람의 한국 이름은"
+   }
+  ],
+  "names": [
+   "In Korea, the last name comes first. So",
+   {
+    "text": "정",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jung",
+    "frame": "성은",
+    "stretch": 1.2
+   },
+   "is the last name, and",
+   {
+    "text": "재승",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jae-Seung",
+    "frame": "이름은"
+   },
+   "is the first."
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone gifted who carries a legacy forward."
+  ],
+  "back": [
+   "Let me show you why it means that.",
+   "The last name",
+   {
+    "text": "정",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jung",
+    "frame": "성은",
+    "stretch": 1.0
+   },
+   "means solemn.",
+   "In the first name,",
+   {
+    "text": "재",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jae",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means talent,",
+   "and",
+   {
+    "text": "승",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seung",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means to carry on.",
+   {
+    "text": "All in all, it's a warm, classic boy’s name.",
+    "mtail": true,
+    "hl": "A warm, classic boy’s name — 재 opens brightly and 승 lands soft and steady, an ending as dependable as in 승우 and 승현."
+   }
+  ],
+  "why": {
+   "text": "Curious why this name? Check the link in bio to see how it was chosen, and try your own name too. Thank you!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 4.052,
+   "t1": 6.426,
+   "text": "Jason Derulo's real name is Jason Desrouleaux.",
+   "y": 1290
+  },
+  {
+   "t0": 6.92,
+   "t1": 8.167,
+   "text": "His Korean name is",
+   "y": 1290
+  },
+  {
+   "t0": 8.269,
+   "t1": 9.276,
+   "text": "정재승",
+   "y": 1290
+  },
+  {
+   "t0": 9.542,
+   "t1": 11.906,
+   "text": "In Korea, the last name comes first.",
+   "y": 1290
+  },
+  {
+   "t0": 11.926,
+   "t1": 13.803,
+   "text": "So 정 is the last name,",
+   "y": 1290
+  },
+  {
+   "t0": 13.823,
+   "t1": 15.792,
+   "text": "and 재승 is the first.",
+   "y": 1290
+  },
+  {
+   "t0": 16.321,
+   "t1": 18.039,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 18.059,
+   "t1": 20.845,
+   "text": "someone gifted who carries a legacy forward.",
+   "y": 1290
+  },
+  {
+   "t0": 22.542,
+   "t1": 24.41,
+   "text": "Let me show you why it means that.",
+   "y": 1440
+  },
+  {
+   "t0": 24.791,
+   "t1": 27.226,
+   "text": "The last name 정 means solemn.",
+   "y": 1440
+  },
+  {
+   "t0": 27.731,
+   "t1": 30.533,
+   "text": "In the first name, 재 means talent,",
+   "y": 1440
+  },
+  {
+   "t0": 30.553,
+   "t1": 32.595,
+   "text": "and 승 means to carry on.",
+   "y": 1440
+  },
+  {
+   "t0": 33.26,
+   "t1": 34.633,
+   "text": "All in all, it's a warm,",
+   "y": 1440
+  },
+  {
+   "t0": 34.653,
+   "t1": 36.107,
+   "text": "classic boy’s name.",
+   "y": 1440
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.5,
+   "dur": 3.424082,
+   "v0": 0.127959,
+   "koStarts": []
+  },
+  "result": {
+   "t": 4.025632757766723,
+   "dur": 5.139184,
+   "v0": 0.0860771,
+   "koStarts": [
+    8.328898757766723
+   ]
+  },
+  "names": {
+   "t": 9.514816757766724,
+   "dur": 6.484898,
+   "v0": 0.0871429,
+   "koStarts": [
+    12.259306757766723,
+    14.195633757766721
+   ]
+  },
+  "meaning": {
+   "t": 16.299714757766722,
+   "dur": 4.7975509999999995,
+   "v0": 0.0815646,
+   "koStarts": [],
+   "hlAt": 18.119306757766722,
+   "hlDur": 2.4460499999999996
+  },
+  "say": {
+   "t": 8.328898757766723,
+   "dur": 0.835918,
+   "v0": 0.0,
+   "v1": 0.667098,
+   "koStarts": []
+  },
+  "back": {
+   "t": 22.60199990272522,
+   "dur": 13.762857,
+   "v0": 0.0,
+   "koStarts": [
+    25.688121902725218,
+    28.921999902725215,
+    30.979958902725215
+   ],
+   "hasSn": true,
+   "snDur": 1.2579139999999995,
+   "snRank": false,
+   "tail": [
+    {
+     "t": 33.31984540272522,
+     "dur": 2.5068275,
+     "text": "A warm, classic boy’s name — 재 opens brightly and 승 lands soft and steady, an ending as dependable as in 승우 and 승현."
+    }
+   ]
+  },
+  "why": {
+   "t": 37.47799987792969,
+   "dur": 7.732245,
+   "v0": 0.0,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.9539997577667236,
+  "layout": 3.805999994277954,
+  "unveil": 8.581999778747559,
+  "back": 21.70199990272522,
+  "layout_back": 22.60699987411499,
+  "done": 36.86999988555908,
+  "outro": 37.27799987792969,
+  "saydur": 1.149388,
+  "type": 2.9539997577667236,
+  "submit": 2.9539997577667236,
+  "card": 2.903999757766724
+ }
+}

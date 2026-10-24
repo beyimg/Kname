@@ -1,0 +1,263 @@
+{
+ "lines": {
+  "hook": [
+   "What's Sia's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   {
+    "text": "Sia's Korean name is",
+    "pause": 0.2
+   },
+   {
+    "text": "박신아",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Park-Sin-A",
+    "frame": "이 사람의 한국 이름은"
+   }
+  ],
+  "names": [
+   "In Korea, the last name comes first. So",
+   {
+    "text": "박",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Park",
+    "frame": "성은",
+    "stretch": 1.2
+   },
+   "is the last name, and",
+   {
+    "text": "신아",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Sin-A",
+    "frame": "이름은"
+   },
+   "is the first."
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone clear and graceful as dawn."
+  ],
+  "back": [
+   "Let me show you why it means that.",
+   "The last name",
+   {
+    "text": "박",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Park",
+    "frame": "성은",
+    "stretch": 1.0
+   },
+   "means simple.",
+   "And it’s Korea’s third most common family name.",
+   "In the first name,",
+   {
+    "text": "신",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Sin",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means dawn,",
+   "and",
+   {
+    "text": "아",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "A",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means refined.",
+   {
+    "text": "All in all, it leaves a clear, graceful impression.",
+    "mtail": true,
+    "hl": "신 lends dawn's freshness; 아 is a beloved soft ending, as in 수아 (Sua) — a clear, graceful impression."
+   }
+  ],
+  "why": {
+   "text": "Curious why this name? Check the link in bio to see how it was chosen, and try your own name too. Thank you!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 3.564,
+   "t1": 4.853,
+   "text": "Sia's Korean name is",
+   "y": 1290
+  },
+  {
+   "t0": 5.018,
+   "t1": 5.985,
+   "text": "박신아",
+   "y": 1290
+  },
+  {
+   "t0": 6.151,
+   "t1": 8.427,
+   "text": "In Korea, the last name comes first.",
+   "y": 1290
+  },
+  {
+   "t0": 8.447,
+   "t1": 10.316,
+   "text": "So 박 is the last name,",
+   "y": 1290
+  },
+  {
+   "t0": 10.336,
+   "t1": 12.18,
+   "text": "and 신아 is the first.",
+   "y": 1290
+  },
+  {
+   "t0": 12.741,
+   "t1": 14.087,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 14.442,
+   "t1": 16.495,
+   "text": "someone clear and graceful as dawn.",
+   "y": 1290
+  },
+  {
+   "t0": 18.17,
+   "t1": 20.038,
+   "text": "Let me show you why it means that.",
+   "y": 1440
+  },
+  {
+   "t0": 20.52,
+   "t1": 22.925,
+   "text": "The last name 박 means simple.",
+   "y": 1440
+  },
+  {
+   "t0": 23.353,
+   "t1": 25.016,
+   "text": "And it’s Korea’s third most common",
+   "y": 1440
+  },
+  {
+   "t0": 25.036,
+   "t1": 26.001,
+   "text": "family name.",
+   "y": 1440
+  },
+  {
+   "t0": 26.539,
+   "t1": 29.512,
+   "text": "In the first name, 신 means dawn,",
+   "y": 1440
+  },
+  {
+   "t0": 29.579,
+   "t1": 31.545,
+   "text": "and 아 means refined.",
+   "y": 1440
+  },
+  {
+   "t0": 32.039,
+   "t1": 33.741,
+   "text": "All in all, it leaves a clear,",
+   "y": 1440
+  },
+  {
+   "t0": 33.761,
+   "t1": 35.267,
+   "text": "graceful impression.",
+   "y": 1440
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.5,
+   "dur": 3.0583679999999998,
+   "v0": 0.10483,
+   "koStarts": []
+  },
+  "result": {
+   "t": 3.623632807357788,
+   "dur": 2.2375510000000003,
+   "v0": 0.0,
+   "koStarts": [
+    5.077510807357788
+   ]
+  },
+  "names": {
+   "t": 6.211183807357788,
+   "dur": 6.17143,
+   "v0": 0.0,
+   "koStarts": [
+    8.772816807357788,
+    10.709143807357787
+   ]
+  },
+  "meaning": {
+   "t": 12.68261380735779,
+   "dur": 4.04,
+   "v0": 0.118163,
+   "koStarts": [],
+   "hlAt": 14.50220580735779,
+   "hlDur": 1.7125899999999987
+  },
+  "say": {
+   "t": 5.077510807357788,
+   "dur": 0.783673,
+   "v0": 0.0,
+   "v1": 0.627664,
+   "koStarts": []
+  },
+  "back": {
+   "t": 18.229999923706053,
+   "dur": 17.291428,
+   "v0": 0.0,
+   "koStarts": [
+    21.446733923706052,
+    28.13081592370605,
+    30.05816292370605
+   ],
+   "hasSn": true,
+   "snDur": 4.274667999999998,
+   "snRank": true,
+   "tail": [
+    {
+     "t": 32.09938692370605,
+     "dur": 2.88794,
+     "text": "신 lends dawn's freshness; 아 is a beloved soft ending, as in 수아 (Sua) — a clear, graceful impression."
+    }
+   ]
+  },
+  "why": {
+   "t": 36.63399977684021,
+   "dur": 7.732245,
+   "v0": 0.0,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.551999807357788,
+  "layout": 3.4099998474121094,
+  "unveil": 5.297999858856201,
+  "back": 17.329999923706055,
+  "layout_back": 18.235999822616577,
+  "done": 36.025999784469604,
+  "outro": 36.43399977684021,
+  "saydur": 1.253878,
+  "type": 2.551999807357788,
+  "submit": 2.551999807357788,
+  "card": 2.5019998073577883
+ }
+}

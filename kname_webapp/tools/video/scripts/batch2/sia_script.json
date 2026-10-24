@@ -1,0 +1,25 @@
+{
+ "_설명": [
+  "장면(lines)은 대본에 없으면 코드(build_lines)의 현재 문구를 쓴다(2026-10-17). 고치려면 \"lines\": {\"result\": [...]} 처럼 장면 하나만 넣어도 된다."
+ ],
+ "name": "Sia Furler:f",
+ "stage_name": "",
+ "hook_media": "/home/claude/work/photos/sia.jpg",
+ "hook_credit": "Photo: Scott Murry · CC BY 2.0 · Wikimedia Commons",
+ "en_voice": "danbi",
+ "tempo_scene": {
+  "input": 1.1,
+  "hook": 1.0,
+  "result": 1.0
+ },
+ "hook_caption": "Sia's Korean name?",
+ "lines": {
+  "hook": [
+   "What's Sia's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ]
+ }
+}

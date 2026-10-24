@@ -1,0 +1,244 @@
+{
+ "lines": {
+  "hook": [
+   "What's Steve Aoki's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   {
+    "text": "Steve's Korean name is",
+    "pause": 0.2
+   },
+   {
+    "text": "안성범",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ahn-Seong-Beom",
+    "frame": "이 사람의 한국 이름은"
+   }
+  ],
+  "names": [
+   "In Korea, the last name comes first. So",
+   {
+    "text": "안",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ahn",
+    "frame": "성은",
+    "stretch": 1.2
+   },
+   "is the last name, and",
+   {
+    "text": "성범",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seong-Beom",
+    "frame": "이름은"
+   },
+   "is the first."
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone whose high virtue reaches far."
+  ],
+  "back": [
+   "Let me show you why it means that.",
+   "The last name",
+   {
+    "text": "안",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ahn",
+    "frame": "성은",
+    "stretch": 1.0
+   },
+   "means peace.",
+   "In the first name,",
+   {
+    "text": "성",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seong",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means holy,",
+   "and",
+   {
+    "text": "범",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Beom",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means broad.",
+   {
+    "text": "All in all, it leaves a dependable impression.",
+    "mtail": true,
+    "hl": "성 symbolizes merit, as in 재성 (Jaeseong); 범 lends a magnanimous, big-hearted nature — a dependable impression."
+   }
+  ],
+  "why": {
+   "text": "Curious why this name? Check the link in bio to see how it was chosen, and try your own name too. Thank you!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 4.033,
+   "t1": 5.447,
+   "text": "Steve's Korean name is",
+   "y": 1290
+  },
+  {
+   "t0": 5.487,
+   "t1": 6.618,
+   "text": "안성범",
+   "y": 1290
+  },
+  {
+   "t0": 6.892,
+   "t1": 9.955,
+   "text": "In Korea, the last name comes first.",
+   "y": 1290
+  },
+  {
+   "t0": 9.975,
+   "t1": 12.056,
+   "text": "So 안 is the last name,",
+   "y": 1290
+  },
+  {
+   "t0": 12.076,
+   "t1": 14.123,
+   "text": "and 성범 is the first.",
+   "y": 1290
+  },
+  {
+   "t0": 14.667,
+   "t1": 15.942,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 16.4,
+   "t1": 19.09,
+   "text": "someone whose high virtue reaches far.",
+   "y": 1290
+  },
+  {
+   "t0": 20.732,
+   "t1": 22.6,
+   "text": "Let me show you why it means that.",
+   "y": 1440
+  },
+  {
+   "t0": 23.093,
+   "t1": 25.487,
+   "text": "The last name 안 means peace.",
+   "y": 1440
+  },
+  {
+   "t0": 26.094,
+   "t1": 28.953,
+   "text": "In the first name, 성 means holy,",
+   "y": 1440
+  },
+  {
+   "t0": 29.082,
+   "t1": 30.824,
+   "text": "and 범 means broad.",
+   "y": 1440
+  },
+  {
+   "t0": 31.334,
+   "t1": 33.985,
+   "text": "All in all, it leaves a dependable impression.",
+   "y": 1440
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.5,
+   "dur": 3.5285719999999996,
+   "v0": 0.109478,
+   "koStarts": []
+  },
+  "result": {
+   "t": 4.092632908447266,
+   "dur": 2.4204090000000003,
+   "v0": 0.0,
+   "koStarts": [
+    5.5465109084472655
+   ]
+  },
+  "names": {
+   "t": 6.863041908447266,
+   "dur": 7.451428000000001,
+   "v0": 0.089229,
+   "koStarts": [
+    10.365082908447267,
+    12.458143908447267
+   ]
+  },
+  "meaning": {
+   "t": 14.614469908447267,
+   "dur": 4.666938,
+   "v0": 0.112222,
+   "koStarts": [],
+   "hlAt": 16.460183908447267,
+   "hlDur": 2.349709999999998
+  },
+  "say": {
+   "t": 5.5465109084472655,
+   "dur": 0.966531,
+   "v0": 0.0,
+   "v1": 0.791973,
+   "koStarts": []
+  },
+  "back": {
+   "t": 20.791999959945677,
+   "dur": 13.423263999999998,
+   "v0": 0.0,
+   "koStarts": [
+    24.060978959945675,
+    27.529957959945673,
+    29.587916959945673
+   ],
+   "hasSn": true,
+   "snDur": 1.1459639999999993,
+   "snRank": false,
+   "tail": [
+    {
+     "t": 31.394039959945673,
+     "dur": 2.31109,
+     "text": "성 symbolizes merit, as in 재성 (Jaeseong); 범 lends a magnanimous, big-hearted nature — a dependable impression."
+    }
+   ]
+  },
+  "why": {
+   "t": 35.32399983406067,
+   "dur": 7.732245,
+   "v0": 0.0,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 3.0209999084472656,
+  "layout": 3.876999855041504,
+  "unveil": 5.883999824523926,
+  "back": 19.89199995994568,
+  "layout_back": 20.7979998588562,
+  "done": 34.71599984169006,
+  "outro": 35.12399983406067,
+  "saydur": 1.253878,
+  "type": 3.0209999084472656,
+  "submit": 3.0209999084472656,
+  "card": 2.970999908447266
+ }
+}

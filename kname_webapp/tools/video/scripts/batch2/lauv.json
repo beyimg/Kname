@@ -1,0 +1,270 @@
+{
+ "lines": {
+  "hook": [
+   "What's Lauv's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   "Lauv's real name is Ari Leff.",
+   {
+    "text": "His Korean name is",
+    "pause": 0.2
+   },
+   {
+    "text": "이아민",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Lee-A-Min",
+    "frame": "이 사람의 한국 이름은"
+   }
+  ],
+  "names": [
+   "In Korea, the last name comes first. So",
+   {
+    "text": "이",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Lee",
+    "frame": "성은",
+    "stretch": 1.2
+   },
+   "is the last name, and",
+   {
+    "text": "아민",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "A-Min",
+    "frame": "이름은"
+   },
+   "is the first."
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone graceful with a sky-wide heart."
+  ],
+  "back": [
+   "Let me show you why it means that.",
+   "The last name",
+   {
+    "text": "이",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Lee",
+    "frame": "성은",
+    "stretch": 1.0
+   },
+   "means a plum tree.",
+   "And it’s Korea’s second most common family name.",
+   "In the first name,",
+   {
+    "text": "아",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "A",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means refined,",
+   "and",
+   {
+    "text": "민",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Min",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means sky.",
+   {
+    "text": "Grace and breadth come together for an international impression.",
+    "mtail": true,
+    "hl": "It's a gender-neutral name meaning someone graceful with a sky-wide heart. \"Amin/Amine\" means \"trustworthy\" in Arabic, so it's natural abroad — grace and breadth for an international impression."
+   }
+  ],
+  "why": {
+   "text": "Curious why this name? Check the link in bio to see how it was chosen, and try your own name too. Thank you!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 3.58,
+   "t1": 5.363,
+   "text": "Lauv's real name is Ari Leff.",
+   "y": 1290
+  },
+  {
+   "t0": 5.9,
+   "t1": 7.133,
+   "text": "His Korean name is",
+   "y": 1290
+  },
+  {
+   "t0": 7.439,
+   "t1": 8.433,
+   "text": "이아민",
+   "y": 1290
+  },
+  {
+   "t0": 8.599,
+   "t1": 11.551,
+   "text": "In Korea, the last name comes first.",
+   "y": 1290
+  },
+  {
+   "t0": 11.571,
+   "t1": 13.435,
+   "text": "So 이 is the last name,",
+   "y": 1290
+  },
+  {
+   "t0": 13.455,
+   "t1": 15.547,
+   "text": "and 아민 is the first.",
+   "y": 1290
+  },
+  {
+   "t0": 15.965,
+   "t1": 17.262,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 17.464,
+   "t1": 19.959,
+   "text": "someone graceful with a sky-wide heart.",
+   "y": 1290
+  },
+  {
+   "t0": 21.683,
+   "t1": 23.551,
+   "text": "Let me show you why it means that.",
+   "y": 1440
+  },
+  {
+   "t0": 24.047,
+   "t1": 26.682,
+   "text": "The last name 이 means a plum tree.",
+   "y": 1440
+  },
+  {
+   "t0": 27.179,
+   "t1": 28.949,
+   "text": "And it’s Korea’s second most common",
+   "y": 1440
+  },
+  {
+   "t0": 28.969,
+   "t1": 29.955,
+   "text": "family name.",
+   "y": 1440
+  },
+  {
+   "t0": 30.575,
+   "t1": 33.687,
+   "text": "In the first name, 아 means refined,",
+   "y": 1440
+  },
+  {
+   "t0": 33.797,
+   "t1": 35.729,
+   "text": "and 민 means sky.",
+   "y": 1440
+  },
+  {
+   "t0": 36.258,
+   "t1": 37.882,
+   "text": "Grace and breadth come together",
+   "y": 1440
+  },
+  {
+   "t0": 37.902,
+   "t1": 39.937,
+   "text": "for an international impression.",
+   "y": 1440
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.5,
+   "dur": 3.0583679999999998,
+   "v0": 0.0824943,
+   "koStarts": []
+  },
+  "result": {
+   "t": 3.639633078201294,
+   "dur": 4.66898,
+   "v0": 0.0,
+   "koStarts": [
+    7.498817078201293
+   ]
+  },
+  "names": {
+   "t": 8.658613078201293,
+   "dur": 6.981225,
+   "v0": 0.0,
+   "koStarts": [
+    11.951674078201293,
+    13.966368078201294
+   ]
+  },
+  "meaning": {
+   "t": 15.939838078201294,
+   "dur": 4.301225,
+   "v0": 0.0856463,
+   "koStarts": [],
+   "hlAt": 17.524328078201293,
+   "hlDur": 2.1548300000000005
+  },
+  "say": {
+   "t": 7.498817078201293,
+   "dur": 0.809796,
+   "v0": 0.0,
+   "v1": 0.6539,
+   "koStarts": []
+  },
+  "back": {
+   "t": 21.742999935150145,
+   "dur": 18.440815,
+   "v0": 0.0,
+   "koStarts": [
+    24.907488935150145,
+    32.19238693515015,
+    34.35483593515015
+   ],
+   "hasSn": true,
+   "snDur": 4.767531999999999,
+   "snRank": true,
+   "tail": [
+    {
+     "t": 36.31769293515015,
+     "dur": 3.33975,
+     "text": "It's a gender-neutral name meaning someone graceful with a sky-wide heart. \"Amin/Amine\" means \"trustworthy\" in Arabic, so it's natural abroad — grace and breadth for an international impression."
+    }
+   ]
+  },
+  "why": {
+   "t": 41.29899997711182,
+   "dur": 7.732245,
+   "v0": 0.0,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.568000078201294,
+  "layout": 3.4189999103546143,
+  "unveil": 7.739000082015991,
+  "back": 20.842999935150146,
+  "layout_back": 21.747999906539917,
+  "done": 40.69099998474121,
+  "outro": 41.098999977111816,
+  "saydur": 1.436735,
+  "type": 2.568000078201294,
+  "submit": 2.568000078201294,
+  "card": 2.518000078201294
+ }
+}

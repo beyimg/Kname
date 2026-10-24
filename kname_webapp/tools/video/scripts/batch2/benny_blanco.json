@@ -1,0 +1,270 @@
+{
+ "lines": {
+  "hook": [
+   "What's Benny Blanco's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   "Benny Blanco's real name is Benjamin Levin.",
+   {
+    "text": "His Korean name is",
+    "pause": 0.2
+   },
+   {
+    "text": "이백준",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Lee-Baek-Jun",
+    "frame": "이 사람의 한국 이름은"
+   }
+  ],
+  "names": [
+   "In Korea, the last name comes first. So",
+   {
+    "text": "이",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Lee",
+    "frame": "성은",
+    "stretch": 1.2
+   },
+   "is the last name, and",
+   {
+    "text": "백준",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Baek-Jun",
+    "frame": "이름은"
+   },
+   "is the first."
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone pure who stands tall like a mountain."
+  ],
+  "back": [
+   "Let me show you why it means that.",
+   "The last name",
+   {
+    "text": "이",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Lee",
+    "frame": "성은",
+    "stretch": 1.0
+   },
+   "means a plum tree.",
+   "And it’s Korea’s second most common family name.",
+   "In the first name,",
+   {
+    "text": "백",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Baek",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means white,",
+   "and",
+   {
+    "text": "준",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jun",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means lofty.",
+   {
+    "text": "All in all, it leaves an intelligent, clean impression.",
+    "mtail": true,
+    "hl": "백 lends purity and nobility; 준 is among the most beloved syllables, as in 민준 (Minjun) — an intelligent, clean impression (also familiar to coders as the \"Baekjoon\" site)."
+   }
+  ],
+  "why": {
+   "text": "Curious why this name? Check the link in bio to see how it was chosen, and try your own name too. Thank you!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 3.878,
+   "t1": 6.042,
+   "text": "Benny Blanco's real name is Benjamin Levin.",
+   "y": 1290
+  },
+  {
+   "t0": 6.628,
+   "t1": 7.809,
+   "text": "His Korean name is",
+   "y": 1290
+  },
+  {
+   "t0": 8.027,
+   "t1": 8.992,
+   "text": "이백준",
+   "y": 1290
+  },
+  {
+   "t0": 9.186,
+   "t1": 11.873,
+   "text": "In Korea, the last name comes first.",
+   "y": 1290
+  },
+  {
+   "t0": 11.893,
+   "t1": 13.779,
+   "text": "So 이 is the last name,",
+   "y": 1290
+  },
+  {
+   "t0": 13.799,
+   "t1": 15.774,
+   "text": "and 백준 is the first.",
+   "y": 1290
+  },
+  {
+   "t0": 16.076,
+   "t1": 17.302,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 17.895,
+   "t1": 20.861,
+   "text": "someone pure who stands tall like a mountain.",
+   "y": 1290
+  },
+  {
+   "t0": 22.537,
+   "t1": 24.405,
+   "text": "Let me show you why it means that.",
+   "y": 1440
+  },
+  {
+   "t0": 24.893,
+   "t1": 27.484,
+   "text": "The last name 이 means a plum tree.",
+   "y": 1440
+  },
+  {
+   "t0": 27.981,
+   "t1": 29.75,
+   "text": "And it’s Korea’s second most common",
+   "y": 1440
+  },
+  {
+   "t0": 29.77,
+   "t1": 30.757,
+   "text": "family name.",
+   "y": 1440
+  },
+  {
+   "t0": 31.271,
+   "t1": 34.075,
+   "text": "In the first name, 백 means white,",
+   "y": 1440
+  },
+  {
+   "t0": 34.366,
+   "t1": 36.177,
+   "text": "and 준 means lofty.",
+   "y": 1440
+  },
+  {
+   "t0": 36.934,
+   "t1": 38.894,
+   "text": "All in all, it leaves an intelligent,",
+   "y": 1440
+  },
+  {
+   "t0": 38.914,
+   "t1": 40.192,
+   "text": "clean impression.",
+   "y": 1440
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.5,
+   "dur": 3.29347,
+   "v0": 0.096576,
+   "koStarts": []
+  },
+  "result": {
+   "t": 3.8356329389648436,
+   "dur": 5.060816,
+   "v0": 0.102721,
+   "koStarts": [
+    8.086652938964844
+   ]
+  },
+  "names": {
+   "t": 9.246448938964843,
+   "dur": 6.589387,
+   "v0": 0.0,
+   "koStarts": [
+    12.252162938964844,
+    14.162366938964844
+   ]
+  },
+  "meaning": {
+   "t": 16.135835938964846,
+   "dur": 4.954286000000001,
+   "v0": 0.0,
+   "koStarts": [],
+   "hlAt": 17.955427938964846,
+   "hlDur": 2.625799999999998
+  },
+  "say": {
+   "t": 8.086652938964844,
+   "dur": 0.809796,
+   "v0": 0.0,
+   "v1": 0.625601,
+   "koStarts": []
+  },
+  "back": {
+   "t": 22.59700002670288,
+   "dur": 17.84,
+   "v0": 0.0,
+   "koStarts": [
+    25.709244026702876,
+    32.811285026702876,
+    34.79087702670288
+   ],
+   "hasSn": true,
+   "snDur": 4.767531999999999,
+   "snRank": true,
+   "tail": [
+    {
+     "t": 36.99380232670288,
+     "dur": 2.9184167,
+     "text": "백 lends purity and nobility; 준 is among the most beloved syllables, as in 민준 (Minjun) — an intelligent, clean impression (also familiar to coders as the \"Baekjoon\" site)."
+    }
+   ]
+  },
+  "why": {
+   "t": 41.551999998092654,
+   "dur": 7.732245,
+   "v0": 0.0,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.7639999389648438,
+  "layout": 3.617000102996826,
+  "unveil": 8.312000036239624,
+  "back": 21.69700002670288,
+  "layout_back": 22.6010000705719,
+  "done": 40.9449999332428,
+  "outro": 41.35199999809265,
+  "saydur": 1.28,
+  "type": 2.7639999389648438,
+  "submit": 2.7639999389648438,
+  "card": 2.713999938964844
+ }
+}

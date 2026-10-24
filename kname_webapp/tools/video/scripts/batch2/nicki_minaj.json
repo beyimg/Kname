@@ -1,0 +1,269 @@
+{
+ "lines": {
+  "hook": [
+   "What's Nicki Minaj's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   "Nicki Minaj's real name is Onika Maraj.",
+   {
+    "text": "Her Korean name is",
+    "pause": 0.2
+   },
+   {
+    "text": "문온유",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Moon-On-Yu",
+    "frame": "이 사람의 한국 이름은"
+   }
+  ],
+  "names": [
+   "In Korea, the last name comes first. So",
+   {
+    "text": "문",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Moon",
+    "frame": "성은",
+    "stretch": 1.2
+   },
+   "is the last name, and",
+   {
+    "text": "온유",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "On-Yu",
+    "frame": "이름은"
+   },
+   "is the first."
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone warm who excels."
+  ],
+  "back": [
+   "Let me show you why it means that.",
+   "The last name",
+   {
+    "text": "문",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Moon",
+    "frame": "성은",
+    "stretch": 1.0
+   },
+   "means writing.",
+   "In the first name,",
+   {
+    "text": "온",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "On",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means warm,",
+   "and",
+   {
+    "text": "유",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Yu",
+    "frame": "이 글자는",
+    "stretch": 1.0
+   },
+   "means to excel.",
+   {
+    "text": "Familiar too from the Beatitudes' \"blessed are the meek,\" it's a warm, beloved name whose kindness comes through directly.",
+    "mtail": true,
+    "hl": "Familiar too from the Beatitudes' \"blessed are the meek,\" it's a warm, beloved name whose kindness comes through directly."
+   }
+  ],
+  "why": {
+   "text": "Curious why this name? Check the link in bio to see how it was chosen, and try your own name too. Thank you!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 3.928,
+   "t1": 6.011,
+   "text": "Nicki Minaj's real name is Onika Maraj.",
+   "y": 1290
+  },
+  {
+   "t0": 6.381,
+   "t1": 7.653,
+   "text": "Her Korean name is",
+   "y": 1290
+  },
+  {
+   "t0": 7.782,
+   "t1": 8.615,
+   "text": "문온유",
+   "y": 1290
+  },
+  {
+   "t0": 8.811,
+   "t1": 11.498,
+   "text": "In Korea, the last name comes first.",
+   "y": 1290
+  },
+  {
+   "t0": 11.518,
+   "t1": 13.437,
+   "text": "So 문 is the last name,",
+   "y": 1290
+  },
+  {
+   "t0": 13.457,
+   "t1": 15.378,
+   "text": "and 온유 is the first.",
+   "y": 1290
+  },
+  {
+   "t0": 15.97,
+   "t1": 17.199,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 17.546,
+   "t1": 19.375,
+   "text": "someone warm who excels.",
+   "y": 1290
+  },
+  {
+   "t0": 20.931,
+   "t1": 22.799,
+   "text": "Let me show you why it means that.",
+   "y": 1440
+  },
+  {
+   "t0": 23.288,
+   "t1": 25.533,
+   "text": "The last name 문 means writing.",
+   "y": 1440
+  },
+  {
+   "t0": 26.163,
+   "t1": 29.151,
+   "text": "In the first name, 온 means warm,",
+   "y": 1440
+  },
+  {
+   "t0": 29.255,
+   "t1": 31.195,
+   "text": "and 유 means to excel.",
+   "y": 1440
+  },
+  {
+   "t0": 31.916,
+   "t1": 34.022,
+   "text": "Familiar too from the Beatitudes'",
+   "y": 1440
+  },
+  {
+   "t0": 34.042,
+   "t1": 36.337,
+   "text": "\"blessed are the meek,\" it's a warm,",
+   "y": 1440
+  },
+  {
+   "t0": 36.357,
+   "t1": 38.463,
+   "text": "beloved name whose kindness comes",
+   "y": 1440
+  },
+  {
+   "t0": 38.483,
+   "t1": 39.949,
+   "text": "through directly.",
+   "y": 1440
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.5,
+   "dur": 3.319592,
+   "v0": 0.0831519,
+   "koStarts": []
+  },
+  "result": {
+   "t": 3.9046329446868895,
+   "dur": 4.616735,
+   "v0": 0.0829705,
+   "koStarts": [
+    7.842183944686889
+   ]
+  },
+  "names": {
+   "t": 8.87136794468689,
+   "dur": 6.746122000000001,
+   "v0": 0.0,
+   "koStarts": [
+    11.87708194468689,
+    13.83953094468689
+   ]
+  },
+  "meaning": {
+   "t": 15.917489944686892,
+   "dur": 3.569796,
+   "v0": 0.112154,
+   "koStarts": [],
+   "hlAt": 17.606469944686893,
+   "hlDur": 1.4884400000000007
+  },
+  "say": {
+   "t": 7.842183944686889,
+   "dur": 0.679184,
+   "v0": 0.0,
+   "v1": 0.492472,
+   "koStarts": []
+  },
+  "back": {
+   "t": 20.99100008010864,
+   "dur": 19.091835,
+   "v0": 0.0,
+   "koStarts": [
+    24.18161208010864,
+    27.755081080108642,
+    29.708550080108644
+   ],
+   "hasSn": true,
+   "snDur": 1.0710660000000018,
+   "snRank": false,
+   "tail": [
+    {
+     "t": 31.975851080108644,
+     "dur": 7.693173,
+     "text": "Familiar too from the Beatitudes' \"blessed are the meek,\" it's a warm, beloved name whose kindness comes through directly."
+    }
+   ]
+  },
+  "why": {
+   "t": 41.194999885559085,
+   "dur": 7.732245,
+   "v0": 0.0,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.8329999446868896,
+  "layout": 3.690999984741211,
+  "unveil": 7.9709999561309814,
+  "back": 20.091000080108643,
+  "layout_back": 20.996000051498413,
+  "done": 40.58699989318848,
+  "outro": 40.99499988555908,
+  "saydur": 1.201633,
+  "type": 2.8329999446868896,
+  "submit": 2.8329999446868896,
+  "card": 2.78299994468689
+ }
+}
