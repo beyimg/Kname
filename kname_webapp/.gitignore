@@ -29,3 +29,10 @@ demo_audio/
 
 # ν΄λ΅λ“κ°€ λ…ΈνΈλ¶μ—μ„ μ•±μ„ κ°€μ Έκ° λ• μ“°λ” μ„μ‹ zip ν΄λ”
 _claude_transfer/
+
+# ΊρΉΠ΅¤Ελ°θ ΖΔΐΟ (ΏΓΈ®Αφ ΎΚ±β)
+.env
+.env.*
+*.pem
+k-name-generator-*.json
+stats.db
