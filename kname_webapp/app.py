@@ -2385,6 +2385,15 @@ def _inject_site():
         return {'site_url': '', 'site_host': ''}
 
 
+@app.route('/favicon.ico')
+def favicon():
+    # 구글은 /favicon.ico 와 <link rel="icon"> 둘 다 본다. 48px 배수·같은 호스트·크롤 허용이 조건(2026-10-24).
+    path = os.path.join(app.root_path, 'static', 'icons', 'favicon.ico')
+    resp = make_response(send_file(path, mimetype='image/x-icon', conditional=True))
+    resp.headers['Cache-Control'] = 'public, max-age=86400'
+    return resp
+
+
 @app.route('/robots.txt')
 def robots():
     # /admin·/status·/diag 는 검색에 걸릴 이유가 없다(토큰으로 막혀 있지만
