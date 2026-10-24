@@ -130,6 +130,7 @@ KO_SYL_MIN = 0.34                                                     # 한 글�
 KO_NAME_FX = {}                                                       # 결과 이름 소리 가공 없음. rubberband(속도·음높이)를 걸면 목소리 자체가 달라진다 — 민우님 2026-10-14: "TTS 목소리 그대로"
 KO_MATCH = False                                                      # 한국어 조각 음높이·크기 맞춤(rubberband+volume)도 끔 — 같은 이유. 켜면 ko_match_all 이 돈다
 KO_MATCH_PITCH = (0.85, 1.4)                                          # 음높이 배율 허용 범위
+NAME_GAIN = 1.10                                                      # "X's Korean name is ○○○" 의 한국 이름 소리만 10% 크게(민우님 2026-10-24). 다른 조각은 그대로
 KO_MATCH_GAIN = (0.5, 2.5)                                            # 소리 크기 배율 허용 범위
 KO_WORD_STRETCH = 1.2                                                 # 두 글자 이상 한국어 조각(성/이름 소개의 '서하' 등) 길이 배수 — 결과 이름(fx)은 제외
 
@@ -444,7 +445,7 @@ def _ko_synthesize(sp, ndir):
                 print(f'  ko [{text}] {ln * stretch:.2f}s ← {sp["full"]} 전체 발음의 {int(sp["idx"]) + 1}번째 글자')
                 return final
     takes = [f.format(p=frame, t=text) for f in (KO_FRAMES_SYL if len(re.findall(r'[가-힣]', text)) == 1 else KO_FRAMES)]
-    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text + f'|s{KO_SYL_STRETCH}|m{KO_SYL_MIN}|w{1.0 if sp.get("fx") else KO_WORD_STRETCH}|x{sp.get("stretch")}|g06|v2|asr2').encode('utf-8')).hexdigest()[:16] + '.mp3')
+    final = os.path.join(ndir, 'ko_' + hashlib.sha1(('|'.join(takes) + text + f'|s{KO_SYL_STRETCH}|m{KO_SYL_MIN}|w{1.0 if sp.get("fx") else KO_WORD_STRETCH}|x{sp.get("stretch")}|g06|v2|asr3').encode('utf-8')).hexdigest()[:16] + '.mp3')
     if os.path.exists(final):
         return final
     n_syl = max(1, len(re.findall(r'[가-힣]', text)))
@@ -510,9 +511,11 @@ def _ko_synthesize(sp, ndir):
                 continue
             if bad:
                 print(f'  (테이크 감점 — {text} 가 {"/".join(heard)} 로 들림) {os.path.basename(c[1])}')
+                _penalized.add(c[1])
             kept.append((c[0] + 40 * bad, c[1], c[2], c[3]))
         kept.sort()
         return kept
+    _penalized = set()
 
     cands = candidates(fetch(takes))
     if cands and n_syl == 1:                                   # 듣기 검사는 낱글자만 — 두 글자 이상은 연음(박예린→바계린) 때문에 인식 결과가 글자와 다른 것이 정상
@@ -520,6 +523,11 @@ def _ko_synthesize(sp, ndir):
         if good is not None and not good:
             print(f'  {text}: 기본 테이크 {len(cands)}개가 전부 듣기 검사에 떨어짐 — 틀 {len(KO_FRAMES_SYL_MORE)}개 더 받는다')
             good = heard_ok(candidates(fetch([f.format(p=frame, t=text) for f in KO_FRAMES_SYL_MORE])))
+        elif good and all(c[1] in _penalized for c in good):
+            # 남은 테이크가 전부 '한 번은 틀리게 들린' 것뿐 — 깨끗한 테이크를 찾아 틀을 더 받아 합친다(2026-10-23, Whitney 의 휘)
+            print(f'  {text}: 통과한 테이크 {len(good)}개가 모두 감점 — 틀 {len(KO_FRAMES_SYL_MORE)}개 더 받아 합친다')
+            more = heard_ok(candidates(fetch([f.format(p=frame, t=text) for f in KO_FRAMES_SYL_MORE]))) or []
+            good = sorted(good + more)
         if good:
             cands = good
         elif good is not None:
@@ -924,7 +932,7 @@ def _sentence(t):
 _VERBS = set("""is are was were be been has have had does do did can could will would may might should must
 come meet give bring make leave stay shine sparkle carry join suggest evoke hold lend signal become blend sit keep add get put
 speak sing mean stand fit wear look seem live grow glow convey capture combine unite invite lean settle rest pull push gather
-glide bounce brim travel cross chime recall read flow bloom carry""".split())   # 명사로도 흔한 말(sound·feel·ring·name·balance·picture·match·echo·place·call·mark)은 뺐다 — "a warm sound" 를 동사로 오인했다(Trevor)
+glide bounce brim travel cross chime recall read flow bloom carry became grew rose surged turned remained run""".split())   # 명사로도 흔한 말(sound·feel·ring·name·balance·picture·match·echo·place·call·mark)은 뺐다 — "a warm sound" 를 동사로 오인했다(Trevor)
 
 
 def _has_verb(t):
@@ -959,21 +967,26 @@ def _closing_from_dash(last, dirty):
         return flat if (not dirty(flat) and 4 <= len(flat.split()) <= 26 and _has_verb(flat)) else None
     head, _, tail = last.rpartition('\u2014')
     head = head.strip().rstrip(' ;,:')
-    tail = tail.strip().rstrip('.').strip()
+    tail = re.sub(r'\s*\([^)]*\)\s*$', '', tail.strip().rstrip('.').strip()).rstrip('.').strip()   # 끝의 괄호 보충("… impression (also familiar to coders …)")은 뗀다(이백준)
     if tail and not dirty(tail):
         m2 = re.match(r'(.+?) for (an? .+ (?:impression|feel|air|touch)(?: with [^,]+)?)$', tail)
         if m2:
             if re.fullmatch(r"[A-Za-z\-]+ and [A-Za-z\-]+", m2.group(1)):                # "wisdom and radiance" 처럼 명사 둘일 때만 주어로
                 return f'{m2.group(1)} come together for {m2.group(2)}.'
             return f'All in all, it leaves {m2.group(2)}.'                         # "Two favorites uniting for …" 처럼 모양을 모르는 앞부분은 버린다
-        if re.match(r"an? [a-z][a-z,' \-]* (impression|feel|air|touch|ring)( with [^,]+)?$", tail):
+        if re.match(r"an? [a-z][a-z,' \-]* (impression|feel|air|touch|ring)( with [^,]+)?(, [a-z][^.]*)?$", tail):   # 뒤에 ", two characters of ability side by side" 같은 동격구가 붙어도 된다(한재준)
             return f'All in all, it leaves {tail}.'
-    if head and not dirty(head) and 4 <= len(head.split()) <= 24 and _has_verb(head):
-        return head
+        if re.match(r"an? [a-z][a-z,'\u2019 \-]*\bname$", tail):                                   # "… — a spirited, dependable name" (Dallas 대건) → 문장으로
+            return f"All in all, it's {tail}."
+    if head and not dirty(head) and 4 <= len(head.split()) <= 24:
+        if _has_verb(head):
+            return head
+        if re.match(r"An? [a-z][a-z,'\u2019 \-]*\bname$", head):                      # "A warm, classic boy's name — …" → 문장으로(정재승)
+            return f"All in all, it's {head[0].lower()}{head[1:]}."
     return None
 
 
-def meaning_tail(text, ms=None):
+def meaning_tail(text, ms=None, given=None, given_rom=None):
     """뒷면 설명문(meaning_en)에서 영상 뒷면 끝에 읽을 두 문장(민우님 2026-10-17): 글자별 뜻을 말한 뒤
     ① 그림 문장 "It pictures someone wise who stands tall like a mountain." ② 문단 마지막의 분위기 문장
     ("Wisdom and height meet in a polished, quintessentially modern name."). 가운데의 유행·친척 이름·유명인 문장은 읽지 않는다.
@@ -1015,8 +1028,12 @@ def meaning_tail(text, ms=None):
     # ② 마지막 분위기 문장 — 반드시 **완전한 문장**이어야 한다(민우님 2026-10-21: 문법 오류 절대 금지).
     #    대시 뒤 꼬리("… — sound and sense as one, with a …")는 대개 동사 없는 명사구라 "All in all, " 만 붙여 읽으면 문장이 안 된다
     #    (Cardi B 안빛나). 모양을 아는 꼬리만 정해진 틀에 넣고, 모르는 모양이면 대시 앞쪽(문장일 때)을 쓰고, 그것도 안 되면 그림 문장(①)으로.
-    last = sents[-1] if len(sents) >= 2 else None
-    if last:
+    # 마지막 문장이 못 쓰는 것(한글·유행 얘기·동사 없는 조각)이면 그 앞 문장들을 거꾸로 본다(2026-10-23, Sophia 안수아:
+    # 끝 문장 "As "-a" endings surged …, 수아 became …" 대신 "With no final consonants, it flows softly — …" 를 읽는다).
+    # 첫 문장(한자 풀이)과 그림 문장은 제외.
+    for last in ([] if len(sents) < 2 else ([sents[-1]] if len(sents) == 2 else list(reversed(sents[2:])))):
+        if last != sents[-1] and re.search(r'\brecalls?\b|\bsinger\b|\bactor\b|\bfamous\b|\balso\b|\bnamesake\b', last):
+            continue                                                                   # 앞 문장으로 올라갈 때 유명인·인물 언급 문장은 건너뛴다(Austin·Johan·Dallas)
         if dirty(last) or ('\u2014' in last and (len(last.split()) > 20 or re.search(r'impression[.!]?$', last))):
             spoken = _closing_from_dash(last, dirty) if '\u2014' in last else None
         elif '\u2014' in last:
@@ -1033,14 +1050,24 @@ def meaning_tail(text, ms=None):
         if spoken and not _has_verb(spoken):
             m3 = re.match(r"An? ([a-z, \-]*?\bname) (with|of|full of|that|which) (.+?)\.?$", spoken.strip())   # "A name with dependable, traditional gravity." (Gustavo·Keith·Kyle) / "A cozy, timeless name that feels genuinely tender." (Coral)
             m4 = re.match(r"([A-Z][a-z\-]+ and [a-z\-]+) in easy balance(?:,? (an? .+?))?\.?$", spoken.strip())   # "Wisdom and starlight in easy balance(, a modern name)." (Addie·Cash)
+            m5 = re.match(r"An? ([a-z][a-z,'\u2019 \-]*\bname)\.?$", spoken.strip())   # "A tender, distinctive name." (Olivia 오온비) → 문장으로
+            if m5 and (len(m5.group(1).split()) > 5 or any(w.endswith('s') and not w.endswith(('\u2019s', "'s")) for w in m5.group(1).split()[:-1])):
+                m5 = None                                                                   # "A pure, serene feel runs through the whole name." 처럼 동사가 숨은 문장은 건드리지 않는다(Christiana)
+            _an = lambda ph: ('an ' if ph[:1].lower() in 'aeiou' else 'a ') + ph           # 관사 일치: "an open, confident name"(Cameron), "an intelligent, tidy name"(Nasir)
+            m6 = re.match(r"([A-Z][a-z\-]+ and [a-z\-]+) in (an? [a-z][a-z,'\u2019 \-]*\bname)\.?$", spoken.strip())   # "Brightness and virtue in a clever, dependable name." (Austin·Johan) → "… meet in …"
             if m3:
-                spoken = f"All in all, it's a {m3.group(1)} {m3.group(2)} {m3.group(3)}."
+                spoken = f"All in all, it's {_an(m3.group(1))} {m3.group(2)} {m3.group(3)}."
+            elif m5:
+                spoken = f"All in all, it's {_an(m5.group(1))}."
+            elif m6:
+                spoken = f"{m6.group(1)} meet in {m6.group(2)}."
             elif m4:
                 spoken = f"{m4.group(1)} sit in easy balance" + (f" in {m4.group(2)}." if m4.group(2) else '.')
             else:
                 spoken = None                                                      # 그 밖의 동사 없는 조각("Flowing with no final consonants, refined and graceful.")은 읽지 않고 ①로
         if spoken and len(spoken.split()) >= 4:
             out.append({'text': _sentence(spoken), 'hl': last})
+            break
     if not out and pic:
         out.append(pic)
     return out
@@ -1135,7 +1162,7 @@ def build_lines(d, first, last, args):
         nm = m.group(1).strip().rstrip('.,;') if m else None
         back += ["And the first name", dict(ko(given_ko, prev='이름은', stretch=KO_WORD_STRETCH), nohl=True),
                  f"is a pure Korean word that means {nm}." if nm else "is a pure Korean word, not from Chinese characters."]
-    back += [{'text': x['text'], 'mtail': True, 'hl': x.get('hl')} for x in meaning_tail(d.get('meaning_en') or '', ms_l if ms else None)]   # "It pictures …" 문장 + 마지막 분위기 문장(민우님 2026-10-17). hl: 뒷면 설명문에서 형광펜 그을 원문 문장
+    back += [{'text': x['text'], 'mtail': True, 'hl': x.get('hl')} for x in meaning_tail(d.get('meaning_en') or '', ms_l if ms else None, d.get('given'), d.get('given_rom'))]   # "It pictures …" 문장 + 마지막 분위기 문장(민우님 2026-10-17). hl: 뒷면 설명문에서 형광펜 그을 원문 문장
     if args.back_tail:
         back.append(args.back_tail)
     lines['back'] = back
@@ -1444,6 +1471,12 @@ def main():
             print(f'대본을 썼습니다: {args.script} — 고친 뒤 같은 명령을 다시 실행하면 그 대본으로 영상을 만듭니다.')
             return
         doc = json.load(open(args.script, encoding='utf-8'))
+        if doc.get('stage_name') and not args.stage_name:
+            # 대본의 예명을 명령줄 대신 쓴다 — lines 가 없는 대본(2026-10-21)은 코드 문구를 쓰므로 여기서 다시 만들어야 훅·결과에 예명이 들어간다
+            args.stage_name = doc['stage_name']
+            lines = build_lines(d, first, last, args)
+            if script['hook'].get('media') and not doc.get('hook_caption'):
+                script['hook']['media']['caption'] = f"{args.stage_name}'s Korean name?"
         if doc.get('lines'):
             # 대본에 있는 장면만 덮어쓰고, 없는 장면은 코드(build_lines)의 현재 문구를 쓴다(2026-10-17) — 장면을 빼려면 null 로.
             keep = {k: v for k, v in doc['lines'].items() if v not in ('', [])}
@@ -1608,7 +1641,8 @@ def main():
             k += 1
             cmd += ['-i', part['file']]
             at = int(max(0, part['t']) * 1000)
-            fc += f'[{k}:a]aformat=sample_rates=44100:channel_layouts=stereo,adelay={at}|{at}[a{k}];'
+            vol = f',volume={NAME_GAIN:.3f},alimiter=limit=0.97' if (key == 'result' and part.get('ko') and NAME_GAIN != 1) else ''   # 결과 장면의 한국 이름 조각만
+            fc += f'[{k}:a]aformat=sample_rates=44100:channel_layouts=stereo{vol},adelay={at}|{at}[a{k}];'
             mix.append(f'[a{k}]')
     fc += f'{"".join(mix)}amix=inputs={len(mix)}:normalize=0:dropout_transition=0,apad[a]'
     cmd += ['-filter_complex', fc, '-map', '[a]', '-t', f'{n / FPS:.3f}', '-c:a', 'aac', '-b:a', '160k', '-ar', '44100', mix_path]
