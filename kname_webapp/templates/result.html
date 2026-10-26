@@ -36,9 +36,12 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='notoserifkr.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% if request.args.get('tl') %}
+<style id="ktl">.face-front .translit-line{opacity:0;transform:translateY(10px);transition:opacity .42s ease-out,transform .42s ease-out}.face-front .translit-line.kshow{opacity:1;transform:none}</style>
+{% endif %}
 {% if request.args.get('veil') %}
 <!-- 영상용(/demo): 이름 글자를 처음엔 보이지 않게. 페이지가 그려지기 전에 들어가야 첫 프레임에 이름이 비치지 않는다(2026-10-15, Selena 편에서 비침) -->
-<style id="kveil">.face-front .kn-col,.face-front .romanized{opacity:0;transform:translateY(10px);transition:opacity .42s ease-out,transform .42s ease-out}.face-front .kn-col.kshow,.face-front .romanized.kshow{opacity:1;transform:none}</style>
+<style id="kveil">.face-front .kn-col,.face-front .romanized,.face-front .listen-big{opacity:0;transform:translateY(10px);transition:opacity .42s ease-out,transform .42s ease-out}.face-front .kn-col.kshow,.face-front .romanized.kshow,.face-front .listen-big.kshow{opacity:1;transform:none}</style>
 {% endif %}
 </head>
 <body>
@@ -67,11 +70,17 @@
     })();
     </script>
 
+    {% set listen_icon %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4z"/><path d="M15.5 9.2a3.6 3.6 0 0 1 0 5.6"/><path d="M18 6.8a7 7 0 0 1 0 10.4"/></svg>{% endset %}
     <div class="face face-front"><div id="shareCard">
       <div class="inset-border"></div>
       <div class="content">
-        <div class="eyebrow">Your Korean Name</div>
         <div class="orig-name">{{ d.input }}</div>
+        {% if d.translit_full %}
+        {# 외국 이름을 소리대로 쓴 것(셀레나 고메즈) — 한국 이름 위에 먼저(2026-10-25) #}
+        <div class="eyebrow eyebrow-tl">How your name is written</div>
+        <div class="translit-line"><span class="translit-kr">{{ d.translit_full }}</span><button type="button" class="listen no-share" data-say="{{ d.translit_full }}" aria-label="Hear it">{{ listen_icon }}</button></div>
+        {% endif %}
+        <div class="eyebrow eyebrow-kn">Your Korean Name</div>
         <div class="kr-name">
           {% for s in d.syllables %}
           <span class="kn-col">
@@ -80,6 +89,7 @@
             <span class="kn-rom">{{ s.rom }}</span>
           </span>
           {% endfor %}
+          <button type="button" class="listen listen-big no-share" data-say="{{ d.full_hangul }}" aria-label="Hear pronunciation">{{ listen_icon }}</button>
         </div>
         <div class="romanized">{{ d.full_rom }}</div>
         <div class="divider"></div>
@@ -414,11 +424,11 @@ window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
     ttsBtn.style.display = 'none';
   }
 
-  function useBrowserVoice(done){
+  function useBrowserVoice(done, text){
     if('speechSynthesis' in window) window.speechSynthesis.cancel();
     if(!koVoice) koVoice = pickKoreanVoice();
     if(!koVoice){ toast('No Korean voice on this device'); done(); return; }
-    var u = new SpeechSynthesisUtterance(krName);
+    var u = new SpeechSynthesisUtterance(text || krName);
     u.voice = koVoice;
     u.lang  = koVoice.lang || 'ko-KR';
     u.rate  = 0.85;
@@ -439,24 +449,34 @@ window.AUDIO = { full: {{ (d.audio.full or '')|tojson }} };
     }
   }
 
-  ttsBtn.addEventListener('click', function(){
-    ttsBtn.disabled = true;
-    var done = function(){ ttsBtn.disabled = false; };
-    toast('\u{1F50A} ' + krName);
-
+  var audioCache = {};                                  // 글자 → Audio (이름·음차 둘 다)
+  if(fullAudio) audioCache[krName] = fullAudio;
+  function sayText(text, done){
+    toast('\u{1F50A} ' + text);
     // 이미 만들어진 파일이 있으면 바로 재생
-    if(fullAudio){ playFile(fullAudio, done); return; }
-
-    // 없으면 서버에 생성을 요청한다. 페이지 로딩과 분리돼 있어
-    // 카드 자체는 이미 떠 있는 상태다.
-    fetch('/api/tts?name=' + encodeURIComponent(krName))
+    if(audioCache[text]){ playFile(audioCache[text], done); return; }
+    // 없으면 서버에 생성을 요청한다. 페이지 로딩과 분리돼 있어 카드 자체는 이미 떠 있는 상태다.
+    fetch('/api/tts?name=' + encodeURIComponent(text))
       .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
       .then(function(d){
         if(!d || !d.url) return Promise.reject();
-        fullAudio = new Audio(d.url);
-        playFile(fullAudio, done);
+        audioCache[text] = new Audio(d.url);
+        playFile(audioCache[text], done);
       })
-      .catch(function(){ useBrowserVoice(done); });
+      .catch(function(){ useBrowserVoice(done, text); });
+  }
+  ttsBtn.addEventListener('click', function(){
+    ttsBtn.disabled = true;
+    sayText(krName, function(){ ttsBtn.disabled = false; });
+  });
+  // 카드 앞면의 작은 듣기 아이콘(음차·한국 이름 옆, 2026-10-25). 카드 뒤집기 탭과 겹치지 않게 전파를 막는다
+  Array.prototype.forEach.call(document.querySelectorAll('.listen'), function(b){
+    b.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      if(b.classList.contains('on')) return;
+      b.classList.add('on');
+      sayText(b.getAttribute('data-say'), function(){ b.classList.remove('on'); });
+    });
   });
 
   renderConversionReason(document.getElementById('reasonBody'), window.REASON);

@@ -74,8 +74,8 @@
     if(CFG.veil && CFG.veil.length && path.indexOf('/n/') === 0 && !doc.getElementById('kveil')){   // (서버가 이미 넣었으면 건너뜀)
       // 이름은 처음에 없다가 글자마다 발음에 맞춰 떠오르며 나타난다(2026-10-11). 로마자 줄은 마지막 글자와 함께.
       var vs = doc.createElement('style'); vs.id = 'kveil';
-      vs.textContent = '.face-front .kn-col,.face-front .romanized{opacity:0;transform:translateY(10px);transition:opacity .42s ease-out,transform .42s ease-out}' +
-                       '.face-front .kn-col.kshow,.face-front .romanized.kshow{opacity:1;transform:none}';
+      vs.textContent = '.face-front .kn-col,.face-front .romanized,.face-front .listen-big{opacity:0;transform:translateY(10px);transition:opacity .42s ease-out,transform .42s ease-out}' +
+                       '.face-front .kn-col.kshow,.face-front .romanized.kshow,.face-front .listen-big.kshow{opacity:1;transform:none}';
       doc.head.appendChild(vs);
     }
   }
@@ -206,7 +206,7 @@
       var parts0 = item.name.split(' '), f0 = parts0[0], l0 = parts0.slice(1).join(' ');
       var pd = waitLoad('/n/');
       // veil=1: 결과 페이지가 처음부터 이름을 숨긴 채 그려진다(폴링으로 스타일을 넣으면 첫 프레임에 이름이 비칠 수 있다)
-      stage.src = '/n/' + encodeURIComponent(f0) + (l0 ? '/' + encodeURIComponent(l0) : '') + '?g=' + item.g + ((CFG.veil && CFG.veil.length) ? '&veil=1' : '');
+      stage.src = '/n/' + encodeURIComponent(f0) + (l0 ? '/' + encodeURIComponent(l0) : '') + '?g=' + item.g + ((CFG.veil && CFG.veil.length) ? '&veil=1' : '') + (CFG.tlat > 0 ? '&tl=1' : '');
       return pd.then(function(){ return afterResult(item); });
     }
     var p = waitLoad('/');
@@ -263,13 +263,16 @@
       mark('result', item.name);
       // 뒤집혀 들어오는 0.7s 가 끝난 뒤 글자 위치를 잰다(오버레이용)
       setTimeout(function(){ try { mark('layout', item.name, layoutOf(stage.contentDocument)); } catch(e){} }, 850);
+      if(CFG.tlat > 0){                                                   // 음차 줄(셀레나 고메스)은 그 말을 할 때 나타난다(2026-10-25)
+        setTimeout(function(){ try { var tl = stage.contentDocument.querySelector('.face-front .translit-line'); if(tl) tl.classList.add('kshow'); mark('tl', item.name); } catch(e){} }, CFG.tlat * 1000);
+      }
       if(CFG.veil && CFG.veil.length){                                    // 글자마다 제 시각에 나타난다
         var cols = stage.contentDocument.querySelectorAll('.face-front .kn-col'), rom = stage.contentDocument.querySelector('.face-front .romanized');
         CFG.veil.forEach(function(sec, i){
           setTimeout(function(){
             try {
               if(cols[i]) cols[i].classList.add('kshow');
-              if(i === CFG.veil.length - 1){ for(var j = 0; j < cols.length; j++) cols[j].classList.add('kshow'); if(rom) rom.classList.add('kshow'); mark('unveil', item.name); }
+              if(i === CFG.veil.length - 1){ for(var j = 0; j < cols.length; j++) cols[j].classList.add('kshow'); if(rom) rom.classList.add('kshow'); var lb = stage.contentDocument.querySelector('.face-front .listen-big'); if(lb) lb.classList.add('kshow'); mark('unveil', item.name); }
             } catch(e){}
           }, sec * 1000);
         });
@@ -301,6 +304,58 @@
       setTimeout(function(){ try { mark('layout_back', item.name, layoutBack(stage.contentDocument)); } catch(e){} }, 900);
       if(CFG.backend) return sleep(CFG.back * 1000);   // 뒷면에서 그대로 끝낸다(앞면으로 안 돌아감)
       return sleep(CFG.back * 1000).then(function(){ fl.click(); mark('front', item.name); return sleep(900); });
+    }).then(function(){
+      if(!(CFG.tease > 0)) return;
+      // 맛보기(짧은 판, 2026-10-24): 앞면 →(뒤집기)→ 뒷면 →(넘기기)→ 이유 ① →(넘기기)→ 이유 ② →(넘기기)→ 앞면.
+      // 컷마다 tease 초 머물고, 컷 사이는 flip 초짜리 뒤집기 효과(민우님: 컷 사이에 카드가 뒤집히는 효과).
+      var doc = stage.contentDocument, win = stage.contentWindow, fl = doc.getElementById('flipper'), body = doc.body;
+      var flip = CFG.flip > 0 ? CFG.flip : 0.001, half = flip * 500;
+      var st = doc.createElement('style');                            // 카드 자체 뒤집기(앞↔뒤)는 flip 초로
+      st.textContent = '.flipper{transition-duration:' + flip + 's!important}.face{transition-delay:' + (flip / 2) + 's!important}';
+      doc.head.appendChild(st);
+      var sec = doc.querySelector('.reason-section'), steps = doc.querySelectorAll('.cr-step');
+      var jump = function(el){ if(!el) return; win.scrollTo({ top: el.getBoundingClientRect().top + win.scrollY - 12, behavior: 'instant' }); };
+      var origin = function(){ return '50% ' + (win.scrollY + win.innerHeight / 2) + 'px'; };
+      var turn = function(change){                                    // 종이 넘기듯: 90° 까지 돌리고 → 내용 바꿈 → -90° 에서 0° 로
+        body.style.transformOrigin = origin();
+        body.style.transition = 'transform ' + half + 'ms ease-in';
+        body.style.transform = 'perspective(1400px) rotateY(90deg)';
+        return sleep(half).then(function(){
+          change();
+          body.style.transition = 'none'; body.style.transformOrigin = origin();
+          body.style.transform = 'perspective(1400px) rotateY(-90deg)';
+          void body.offsetWidth;
+          body.style.transition = 'transform ' + half + 'ms ease-out';
+          body.style.transform = 'perspective(1400px) rotateY(0deg)';
+          return sleep(half);
+        }).then(function(){ body.style.transition = ''; body.style.transform = ''; });
+      };
+      fl.click(); mark('back', item.name);                             // ① 앞면 → 뒷면(카드 뒤집기)
+      return sleep(flip * 1000 + CFG.tease * 1000).then(function(){
+        if(!sec) return;
+        return turn(function(){                                       // ② 뒷면 → 이유 ①
+          var s2 = steps[1] || steps[steps.length - 1], want = win.innerHeight - 24;
+          var h1 = s2 ? (s2.getBoundingClientRect().bottom - sec.getBoundingClientRect().top) : 0;
+          var scale = h1 > 0 ? Math.min(1, want / h1) : 1;
+          if(scale < 1){ sec.style.transformOrigin = '50% 0'; sec.style.transform = 'scale(' + scale.toFixed(3) + ')'; }
+          jump(sec); mark('reason1', item.name);
+        }).then(function(){ return sleep(CFG.tease * 1000); });
+      }).then(function(){
+        if(steps.length <= 2) return;
+        return turn(function(){ jump(steps[2]); mark('reason2', item.name); })   // ③ 이유 ① → 이유 ②
+          .then(function(){ return sleep(CFG.tease * 1000); });
+      }).then(function(){
+        return turn(function(){                                       // ④ → 앞면(맨 위로, 카드는 즉시 앞면)
+          if(sec) sec.style.transform = '';
+          var st2 = doc.createElement('style'); st2.textContent = '.flipper,.face{transition:none!important}'; doc.head.appendChild(st2);
+          win.scrollTo({ top: 0, behavior: 'instant' }); fl.click(); void fl.offsetWidth;
+          setTimeout(function(){ try { doc.head.removeChild(st2); } catch(e){} }, 50);
+          mark('front', item.name);
+        });
+      }).then(function(){
+        setTimeout(function(){ try { doc.head.removeChild(st); } catch(e){} }, 1500);
+        return sleep(CFG.teasehold * 1000);
+      });
     }).then(function(){
       if(CFG.reason <= 0) return;
       // 변환 이유 카드로 내려간다 — 두 화면: ① 제목부터 2단계 'We carried…' 문장까지,
@@ -344,7 +399,7 @@
     var seq = sleep(1200);                               // 녹화 시작 직후 손이 화면에서 빠질 시간
     seq = seq.then(function(){ return showCard(CFG.intro, CFG.card_s); });
     CFG.names.forEach(function(item){ seq = seq.then(function(){ return runOne(item); }); });
-    seq = seq.then(function(){ mark('outro'); return showCard(CFG.outro, 0, true); });
+    seq = seq.then(function(){ mark('outro'); window.__kdemoEnd = true; return showCard(CFG.outro, 0, true); });   // __kdemoEnd: 녹화기가 끝을 아는 신호(아웃트로 문구가 없을 때도)
     // 끝나면 아웃트로 문구(없으면 마지막 결과 카드)가 그대로 남는다 — 여기서 녹화를 끈다.
   }, { once: true });
 })();

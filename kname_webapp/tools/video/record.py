@@ -85,6 +85,7 @@ TEMPO_BY_SCENE = {'input': 1.1, 'hook': 1.0, 'result': 1.0}           # 장면�
 EN_VOICE = os.environ.get('KNAME_EN_VOICE', 'danbi')          # 기본: 한국어와 같은 목소리(민우님 결정 2026-10-04)
 ENGINE = 'google'                                                      # 서버가 알려준다: google | elevenlabs
 GAP = 0.12                                                            # (구버전 호환)
+SHORT_WHY = "Curious what each syllable means, and why this name? The full story is on the website. Link in the caption, and try your name too!"   # 짧은 판 마무리(2026-10-24): 결과 페이지 링크는 게시물 본문에
 CAP_Y = {'back': 1440}                                                            # 장면 → 자막 상단 y(px). 기본 1290
 GAP_IN, GAP_COMMA, GAP_END = 0.08, 0.2, 0.42                          # 문장 안 조각 사이 / 쉼표·대시 뒤 / 문장이 끝난 뒤 쉼(초)
 GAP_ELLIPSIS = 0.2                                                    # "…is…" 처럼 뜸 들이는 조각 뒤(이름 공개 직전). 0.7 → 0.35 → 0.2 (2026-10-14)
@@ -1115,6 +1116,40 @@ def phrase_split(text, min_words=8):
     return [a if a.endswith(',') else a + ',', b]
 
 
+def short_result(d, full_en, stage=''):
+    """짧은 판 결과 장면(2026-10-25): 외국 이름을 한국어로 쓴 것(음차)을 먼저 말하고, 그걸 한국식 이름으로 바꾼 결과를 말한다.
+    음차 조각은 tl=True — 글자 떠오르기·음절 밑줄·소리 키움은 한국 이름 조각에만 건다."""
+    tl = dict(ko(d['translit_full'], prev='이 사람의 이름을 한국어로 쓰면'), tl=True, end=True) if d.get('translit_full') else None
+    kn = ko(d['full_hangul'], prev='이 사람의 한국 이름은', fx=KO_NAME_FX)
+    if not tl:
+        return ([f"{stage}'s real name is {full_en}."] if stage else []) + [{'text': f"{(stage and 'The') or full_en + chr(39) + 's'} Korean name is", 'pause': GAP_ELLIPSIS}, kn]
+    if stage:
+        return [f"{stage}'s real name is {full_en}.", {'text': "Written in Korean, that's", 'pause': 0.15}, tl, {'text': "And turned into a Korean name, it becomes", 'pause': GAP_ELLIPSIS}, kn]
+    return [{'text': f"{full_en}'s name, written in Korean, is", 'pause': 0.15}, tl, {'text': "And turned into a Korean name, it becomes", 'pause': GAP_ELLIPSIS}, kn]
+
+
+def short_names(d, first, last):
+    """짧은 판 성/이름 장면: "Selena became 세나, and Gomez became 고." — 이름 먼저, 성 나중(민우님 2026-10-25)."""
+    n_s = len(d['surname'] or '') if d.get('surname') else 0
+    g = dict(ko(d['given'], prev='이름은'), pause=0.2)
+    if not n_s:
+        g['end'] = True
+        return [f"{first} became", g]
+    sn = dict(ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0, stretch=KO_WORD_STRETCH), end=True)
+    return [f"{first} became", g, f"and {last.strip()} became", sn]
+
+
+def short_repeat(lines):
+    """짧은 판(2026-10-24): 이름을 공개한 뒤 "One more time?" 하고 한 번 더 읽는다. result 에 한국어 조각이 하나뿐일 때만."""
+    res = lines.get('result')
+    if isinstance(res, list):
+        kos = [p for p in res if isinstance(p, dict) and p.get('lang')]
+        if len(kos) == 1:
+            again = dict(kos[0]); kos[0]['end'] = True                     # 첫 이름 뒤는 문장 끝(긴 쉼, 자막 줄 바꿈)
+            lines['result'] = res + [{'text': 'One more time?', 'mood': 'bright', 'pause': 0.15}, again]
+    return lines
+
+
 def build_lines(d, first, last, args):
     """장면별 나레이션(2026-10-03 대본). 한국어 글자는 같은 목소리가 한국어 문맥으로 읽는다(ko)."""
     global _ROM_D
@@ -1166,6 +1201,15 @@ def build_lines(d, first, last, args):
     if args.back_tail:
         back.append(args.back_tail)
     lines['back'] = back
+    if getattr(args, 'short', False):                                  # 짧은 판: 뒷면 설명은 빼고, 마지막은 '본문 링크 참고' 한마디
+        lines.pop('back', None)
+        lines['result'] = short_result(d, full_en, stage)              # "X's name, written in Korean, is 셀레나 고메스. And turned into a Korean name, it becomes 고세나."(민우님 2026-10-25)
+        if getattr(args, 'became', False):
+            lines['names'] = short_names(d, first, last)               # "Selena became 세나, and Gomez became 고."(옵션)
+        else:
+            lines.pop('names', None)
+        lines['why'] = {'text': args.why_line or SHORT_WHY, 'mood': 'bright'}
+        return short_repeat(lines) if args.repeat_name else lines
     lines['why'] = {'text': args.why_line or "Curious why this name? Check the link in bio to see how it was chosen, and try your own name too. Thank you!", 'mood': 'bright'}   # mood=bright: 밝고 활기찬 테이크를 고른다. 댓글 유도는 접음(민우님 2026-10-11: 자기 이름을 댓글에 달 사람은 없다)
     return lines
 
@@ -1312,8 +1356,9 @@ async def record(name, sex_key, P, workdir):
     q = {'names': f'{name}:{sex_key}', 'hold': P['hold'], 'sayat': P['sayat'], 'saydur': f'{P["saydur"]:.2f}',
          'back': P['back'], 'reason': P['reason'], 'reason2': P['reason2'], 'rviews': P['rviews'], 'type': P['type'],
          'filled': P['filled'], 'typesec': P['typesec'], 'typepre': P['typepre'], 'backend': 1 if P.get('backend') else 0,
-         'say': 0, 'gap': 0.4, 'intro': f'{name}?', 'card': P['hook'], 'outro': 'What’s your name?', 'zoom': 3,
-         'direct': 1 if P.get('direct') else 0, 'veil': ','.join(f'{v:.3f}' for v in (P.get('veil') or []))}
+         'say': 0, 'gap': 0.4, 'intro': f'{name}?', 'card': P['hook'], 'outro': '' if P.get('tease') else 'What’s your name?', 'zoom': 3,   # 짧은 판은 앞면 카드로 끝난다(문구 없음)
+         'direct': 1 if P.get('direct') else 0, 'veil': ','.join(f'{v:.3f}' for v in (P.get('veil') or [])),
+         'tease': P.get('tease', 0), 'teasehold': P.get('teasehold', 0), 'flip': P.get('flip', 0.35), 'tlat': f"{P.get('tlat', 0):.3f}"}
     url = f'{BASE_URL}/demo?' + urllib.parse.urlencode(q)
     events, frames = [], []
     fdir = os.path.join(workdir, 'cap'); os.makedirs(fdir, exist_ok=True)
@@ -1337,10 +1382,10 @@ async def record(name, sex_key, P, workdir):
         await cdp.send('Page.startScreencast', {'format': 'jpeg', 'quality': 92, 'maxWidth': 1080, 'maxHeight': 1920, 'everyNthFrame': 1})
         await asyncio.sleep(0.5)
         await pg.click('#overlay')
-        est = 1.2 + P['hook'] + P['typepre'] / 1000 + max(P['typesec'], len(name) * P['type'] / 1000 + P['filled']) + 2 + P['hold'] + P['back'] + 1.6 + P['reason'] + P['reason2'] + 1.4 + 0.4 + 3 + P['tail']
+        est = 1.2 + P['hook'] + P['typepre'] / 1000 + max(P['typesec'], len(name) * P['type'] / 1000 + P['filled']) + 2 + P['hold'] + P['back'] + 1.6 + P['reason'] + P['reason2'] + 1.4 + 0.4 + 3 + P['tail'] + 4 * (P.get('tease', 0) + P.get('flip', 0)) + P.get('teasehold', 0)
         try:
-            await pg.wait_for_function("document.getElementById('card').style.display==='flex' && "
-                                       "document.getElementById('card').textContent.indexOf('What')===0",
+            await pg.wait_for_function("window.__kdemoEnd === true || (document.getElementById('card').style.display==='flex' && "
+                                       "document.getElementById('card').textContent.indexOf('What')===0)",
                                        timeout=(est + 20) * 1000)
             await asyncio.sleep(P['tail'])
         except Exception:
@@ -1439,6 +1484,11 @@ def main():
     ap.add_argument('--outro-big', default=''); ap.add_argument('--outro-sub', default='')
     ap.add_argument('--why-line', default='', help='마지막 화면 나레이션'); ap.add_argument('--why-secs', type=float, default=3.0)
     ap.add_argument('--back-tail', default='', help='뒷면 끝에 덧붙일 한마디(기본 없음)')
+    ap.add_argument('--short', action='store_true', help='짧은 판(2026-10-24): 훅 → 이름 → 한 줄 뜻 → 맛보기(뒷면·이유 화면을 --tease 초씩 컷) → 앞면에서 마무리 나레이션. 성/이름·뒷면 설명 없음')
+    ap.add_argument('--tease', type=float, default=1.0, help='짧은 판 맛보기 컷 하나의 초')
+    ap.add_argument('--became', action='store_true', help='짧은 판: 이름 뒤에 "Selena became 세나, and Gomez became 고." 장면을 넣는다(기본 없음)')
+    ap.add_argument('--repeat-name', action='store_true', help='짧은 판: 이름 공개 뒤 "One more time?" 하고 한 번 더 읽기(기본 없음 — 민우님 2026-10-24)')
+    ap.add_argument('--flip', type=float, default=0.35, help='짧은 판 맛보기 컷 사이 뒤집기 효과 초')
     ap.add_argument('--filled', type=float, default=0.5, help='이름을 다 입력한 화면을 제출 전에 보여주는 초(로딩 느낌)')
     ap.add_argument('--type', type=int, default=70)
     ap.add_argument('--tail', type=float, default=1.2)
@@ -1451,6 +1501,8 @@ def main():
         return pull(name, sex_key)
     if not args.out:
         sys.exit('--out 이 필요합니다')
+    if args.short and not os.path.basename(args.out).startswith('short_'):   # 짧은 판 파일명은 short_ 로 시작(민우님 2026-10-25)
+        args.out = os.path.join(os.path.dirname(args.out), 'short_' + os.path.basename(args.out))
 
     probe_engine()
     script, d, first, last = build_script(name, SEX.get(sex_key, '여'), args)
@@ -1489,6 +1541,20 @@ def main():
                             v[i] = {'text': re.sub(r'\s*(…|\.\.\.)\s*$', '', p), 'pause': GAP_ELLIPSIS}
                             print(f'  (대본 [{k}] 말줄임표 제거: {v[i]["text"]!r} + 뜸 {GAP_ELLIPSIS}s)')
             lines = keep
+            if args.short:                                        # 짧은 판: 긴 판 대본을 그대로 써도 성/이름·뒷면은 빼고, 옛 'link in bio' 마무리는 짧은 판 문구로
+                lines.pop('names', None); lines.pop('back', None)
+                w = lines.get('why'); wt = (w.get('text') if isinstance(w, dict) else w) or ''
+                if not args.why_line and (not wt or 'link in bio' in wt.lower()):
+                    lines['why'] = {'text': SHORT_WHY, 'mood': 'bright'}
+                if args.repeat_name:
+                    short_repeat(lines)
+                if not any(isinstance(p, dict) and p.get('tl') for p in (doc['lines'].get('result') or []) if isinstance(doc['lines'].get('result'), list)):
+                    lines['result'] = short_result(d, f'{first} {last}'.strip(), (args.stage_name or '').strip())   # 긴 판 대본의 결과 문장은 짧은 판 문장(음차 → 이름)으로
+                if args.became:
+                    if doc['lines'].get('names') in (None, '', []) or 'last name comes first' in json.dumps(doc['lines'].get('names'), ensure_ascii=False):
+                        lines['names'] = short_names(d, first, last)  # 긴 판 대본의 성/이름 장면은 짧은 판 문장으로
+                else:
+                    lines.pop('names', None)
         args.hook_media = doc.get('hook_media') or args.hook_media
         args.en_voice = args.en_voice or doc.get('en_voice') or ''
         if isinstance(doc.get('tempo_scene'), dict):
@@ -1512,6 +1578,8 @@ def main():
     if not args.tempo:
         args.tempo = 0.85 if not EN_VOICES.get(EN_VOICE.lower(), EN_VOICE) else 1.0
     tempo_by = dict(TEMPO_BY_SCENE)
+    if args.short:
+        tempo_by['why'] = 1.0                                     # 짧은 판 마무리는 원속도(훅과 같게) — 전체 길이를 줄인다
     for kv in args.tempo_scene:
         k, _, v = kv.partition('=')
         if v:
@@ -1520,12 +1588,12 @@ def main():
     N = fetch_narration(lines, tempo=args.tempo, takes=args.takes, tempo_by=tempo_by)
     nd = {k: v['dur'] for k, v in N.items()}
     # 이름 발음 = result 의 한국어 세그먼트
-    say_part = next((p for p, sp in zip(N['result']['parts'], lines['result']) if isinstance(sp, dict)), N['result']['parts'][-1])
+    say_part = next((p for p, sp in zip(N['result']['parts'], lines['result']) if isinstance(sp, dict) and sp.get('lang') and not sp.get('tl')), N['result']['parts'][-1])
     saydur = say_part[1]
 
     # 장면 길이 = 나레이션 길이
     direct = 'input' not in lines                                     # 입력 장면 없는 대본(2026-10-08): 훅 → 결과 카드로 바로. 예명이면 입력 장면에서 본명 소개(2026-10-13)
-    HOOK_SILENT, RESULT_AT, INPUT_AT = 0.5, 0.2, 0.1                  # 훅 무음(초) / 카드가 뜬 뒤 나레이션 시작  (2026-10-12: 결과까지 기다림 절반으로)
+    HOOK_SILENT, RESULT_AT, INPUT_AT = 0.0, 0.2, 0.1                  # 훅 무음 없음(민우님 2026-10-24: 첫 프레임부터 글자·소리) / 카드가 뜬 뒤 나레이션 시작
     if 'hook' in N:
         # 훅 사진은 첫 마디("What's X's Korean name?")까지만. "Let's find out!" 은 다음 카드가 뜨는 위로 이어진다(기다림을 절반으로, 2026-10-12).
         first_part = N['hook']['parts'][0][1] if N['hook'].get('parts') else nd.get('hook', 0)
@@ -1544,24 +1612,32 @@ def main():
         typepre = max(0.3, INPUT_AT + nd['input'] - typing - 0.2)     # "let's type that in" 과 함께 타이핑 끝나게
         r_at = 0.5                                                    # 결과 카드는 0.7s 돌아 들어온다 — 그 뒤에 나레이션
     # 이름 글자가 나타나는 시각(결과 카드 기준): result 나레이션 속 한국어 조각의 소리 구간을 글자 수로 나눈 자리(오버레이의 음절 밑줄과 같은 계산)
-    veil = []
+    veil, tlat = [], 0
     if True:
         tt, gaps = r_at, N['result'].get('gaps') or []
         for j, ((path, dd, v0, v1), sp) in enumerate(zip(N['result']['parts'], lines['result'])):
-            if isinstance(sp, dict) and sp.get('lang'):
+            if isinstance(sp, dict) and sp.get('lang') and sp.get('tl'):
+                tlat = max(0.05, tt + v0 - 0.20)                      # 음차 줄은 그 말을 하기 0.2s 전에 떠오른다
+            elif isinstance(sp, dict) and sp.get('lang'):
                 n_syl = max(1, len(re.findall(r'[가-힣]', sp['text']))); slot = (v1 - v0) / n_syl
                 veil = [max(0.0, tt + v0 + i * slot - 0.20) for i in range(n_syl)]   # 글자는 소리보다 0.2s 먼저 떠오른다(0.42s 전환이라 소리 때 또렷해진다)
                 break
             tt += dd + (gaps[j] if j < len(gaps) else 0)
     sayat = r_at + nd['result'] + 1.0                                 # (발음은 result 안에 있다 — 데모의 발음 자리는 비워 둔다)
     t_names = r_at + nd['result'] + 0.35
-    t_meaning = t_names + nd.get('names', 0) + 0.3
+    t_meaning = t_names + (nd['names'] + 0.3 if 'names' in nd else 0)
     hold = t_meaning + nd.get('meaning', 0) + 0.6
-    back = 0.9 + nd['back'] + 0.5
+    back = (0.9 + nd['back'] + 0.5) if 'back' in nd else 0
     P = {'hook': hook, 'typepre': int(typepre * 1000), 'typesec': 0, 'sayat': -1, 'saydur': 0.01,
-         'hold': hold, 'back': back, 'reason': 0, 'reason2': 0, 'rviews': 1, 'backend': 1,
+         'hold': hold, 'back': back, 'reason': 0, 'reason2': 0, 'rviews': 1, 'backend': 1 if back else 0,
          'type': args.type, 'filled': args.filled, 'tail': max(args.why_secs, nd['why'] + 0.5),
-         'direct': direct, 'veil': veil}
+         'direct': direct, 'veil': veil, 'tlat': tlat}
+    if args.short:                                                    # 짧은 판: 뒷면·이유 화면을 tease 초씩 컷으로 보이고 앞면으로. 마무리 나레이션은 맛보기 시작과 함께
+        P['tease'] = args.tease; P['flip'] = args.flip
+        P['teasehold'] = max(0.5, nd['why'] - 4 * (args.tease + args.flip)) + 1.2   # 맛보기(뒤집기 4번 + 컷 3번 + 앞면 복귀) 뒤, 나레이션이 끝나고 앞면에 1.2초 더
+        script['flip'] = args.flip
+        P['tail'] = 0.2
+        script['tease'] = True
     script['sticky'] = False; script['reveal'] = True                 # 포스트잇은 접음(2026-10-11) — 글자가 발음에 맞춰 나타난다
     if direct:
         script['ep'] = ''                                             # 회차 필은 입력 장면용
@@ -1586,6 +1662,7 @@ def main():
             parts.append({'t': tt, 'dur': dd, 'file': path, 'v0': v0, 'v1': v1, 'ko': isinstance(sp, dict) and bool(sp.get('lang')),
                           'nohl': isinstance(sp, dict) and bool(sp.get('nohl')), 'end': isinstance(sp, dict) and bool(sp.get('end')),
                           'pause': isinstance(sp, dict) and sp.get('pause') is not None, 'mtail': isinstance(sp, dict) and bool(sp.get('mtail')), 'hl': (sp.get('hl') if isinstance(sp, dict) else None),
+                          'tl': isinstance(sp, dict) and bool(sp.get('tl')),
                           'text': (sp.get('text', '') if isinstance(sp, dict) else sp)})
             tt += dd + (gaps[j] if j < len(gaps) else 0)
         c = {'t': t, 'dur': nd[k], 'v0': N[k]['v0'], 'parts': parts,
@@ -1598,8 +1675,12 @@ def main():
     put('hook', HOOK_SILENT)                                          # 훅: 사진 위 1초 무음 뒤 한마디
     put('input', T['card'] + INPUT_AT)
     put('result', R + r_at); put('names', R + t_names); put('meaning', R + t_meaning)
+    if args.short and 'names' in cues and d.get('surname'):           # 짧은 판은 이름을 먼저 말하지만, 오버레이 브레이스는 [성, 이름] 순이다
+        ps = [p for p in cues['names']['parts'] if p['ko'] and not p.get('nohl')]
+        sn = [p['t'] + p['v0'] for p in ps if p['text'] == d['surname']]; gv = [p['t'] + p['v0'] for p in ps if p['text'] != d['surname']]
+        cues['names']['koStarts'] = sn + gv
     if 'result' in cues:                                              # 음절 밑줄: 이름 발음 구간
-        kp = next((p for p in cues['result']['parts'] if p['ko']), None)
+        kp = next((p for p in cues['result']['parts'] if p['ko'] and not p.get('tl')), None)   # 음차 조각(tl)은 이름 발음이 아니다
         if kp:
             cues['say'] = {'t': kp['t'], 'dur': kp['dur'], 'v0': kp['v0'], 'v1': kp['v1'], 'parts': [], 'koStarts': []}
     if 'meaning' in cues:                                             # 형광펜: 뜻 문장을 말하는 순간
@@ -1622,9 +1703,13 @@ def main():
             cues['back']['snDur'] = max(1.0, (b_['t'] + b_['v1']) - (a_['t'] + a_['v0']))
             cues['back']['snRank'] = any('most common' in bp[j]['text'] for j in range(ko_i[0], end_i + 1))   # 순위 문장을 읽으면 카드의 그 문장도 칠한다(2026-10-17)
         cues['back']['tail'] = [{'t': p_['t'] + p_['v0'], 'dur': max(0.5, p_['v1'] - p_['v0']), 'text': p_.get('hl') or p_['text']} for p_ in bp if p_.get('mtail') and (p_.get('hl') or p_['text'])]   # 설명문 문장 형광펜(2026-10-17): 원문 문장(hl)에 긋는다
-    put('why', T['outro'] + 0.2)
+    if args.short:
+        put('why', T['back'])                                         # 맛보기(뒷면 컷)와 함께 시작
+        T['outro'] = total + 100                                      # 전면 아웃트로 카드 없음 — 앞면 카드에서 끝난다
+    else:
+        put('why', T['outro'] + 0.2)
     script['backKeys'] = []
-    script['captions'] = [] if args.no_captions else caption_lines(cues, skip=('why', 'hook'))   # 훅 캡션 카드가 이미 글을 보여준다
+    script['captions'] = [] if args.no_captions else caption_lines(cues, skip=('hook',) if args.short else ('why', 'hook'))   # 훅 캡션 카드가 이미 글을 보여준다; 짧은 판은 마무리 말도 자막으로
     for cp in script['captions']:                                      # 장면별 자막 높이(화면 속 내용을 덜 가리는 자리)
         cp['y'] = CAP_Y.get(cp.pop('scene'), 1290)
 
@@ -1641,7 +1726,7 @@ def main():
             k += 1
             cmd += ['-i', part['file']]
             at = int(max(0, part['t']) * 1000)
-            vol = f',volume={NAME_GAIN:.3f},alimiter=limit=0.97' if (key == 'result' and part.get('ko') and NAME_GAIN != 1) else ''   # 결과 장면의 한국 이름 조각만
+            vol = f',volume={NAME_GAIN:.3f},alimiter=limit=0.97' if (key == 'result' and part.get('ko') and not part.get('tl') and NAME_GAIN != 1) else ''   # 결과 장면의 한국 이름 조각만(음차 제외)
             fc += f'[{k}:a]aformat=sample_rates=44100:channel_layouts=stereo{vol},adelay={at}|{at}[a{k}];'
             mix.append(f'[a{k}]')
     fc += f'{"".join(mix)}amix=inputs={len(mix)}:normalize=0:dropout_transition=0,apad[a]'

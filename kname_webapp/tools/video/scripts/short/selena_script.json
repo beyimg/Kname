@@ -1,0 +1,15 @@
+{
+ "name": "Selena Gomez:f",
+ "stage_name": "",
+ "hook_media": "/home/claude/work/photos/selena.jpg",
+ "hook_credit": "Photo: Frank Sun · CC BY-SA 4.0 · Wikimedia Commons",
+ "en_voice": "danbi",
+ "tempo_scene": {"input": 1.1, "hook": 1.0, "result": 1.0},
+ "hook_caption": "Selena Gomez's Korean name?",
+ "lines": {
+  "hook": ["What's Selena Gomez's Korean name?", {"text": "Let's find out!", "mood": "bright"}],
+  "result": [{"text": "Selena's Korean name is", "pause": 0.2},
+             {"text": "고세나", "lang": "ko-KR", "voice": "ko-KR-Chirp3-HD-Aoede", "rom": "Ko-Se-Na", "frame": "이 사람의 한국 이름은"}],
+  "meaning": ["And it has a meaning:", "someone beautiful through the years."]
+ }
+}

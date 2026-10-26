@@ -1539,6 +1539,7 @@ def convert_name(first_en, last_en, sex, allow_llm=True):
         'last_en': last_en.strip().title(),
         'sex': sex,
         'translit': first_tr,
+        'translit_full': first_tr if no_surname else f'{first_tr} {last_tr}',   # 외국 이름을 소리대로 쓴 것(이름 성 순서): 셀레나 고메즈 — 카드 앞면 맨 위(2026-10-25)
         'given': given,
         'given_rom': given_rom,
         'hanja': hanja,
@@ -2025,6 +2026,10 @@ def demo_page():
         'gap': _num('gap', 0.6, 0, 20),            # 이름 사이 쉬는 초 (자막을 얹을 때는 길게)
         'reason': _num('reason', 0, 0, 30),        # 변환 이유 첫 화면 초. 0 이면 생략
         'reason2': _num('reason2', 0, 0, 30),      # 변환 이유 둘째 화면 초(0 이면 reason 과 같게)
+        'tease': _num('tease', 0, 0, 5),           # 맛보기(영상 짧은 판, 2026-10-24): 앞면 뒤에 뒷면→이유①→이유② 를 이 초씩 끊어 보이고 앞면으로. 0 이면 없음
+        'teasehold': _num('teasehold', 0, 0, 60),  # 맛보기 뒤 앞면에 머무는 초
+        'flip': _num('flip', 0.35, 0, 3),          # 맛보기 컷 사이 뒤집기 효과 초
+        'tlat': _num('tlat', 0, 0, 40),            # 결과 카드가 뜬 뒤 음차 줄(셀레나 고메스)을 보이는 초(0 이면 처음부터)
         'intro': (request.args.get('intro') or '')[:80],
         'outro': (request.args.get('outro') or '')[:80],
         'card_s': _num('card', 2.0, 0.5, 12),       # 인트로·아웃트로 문구 초

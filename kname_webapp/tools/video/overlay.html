@@ -389,7 +389,7 @@
       if(v > 0){
         var p = clamp((t + 1) / (hookEnd + 1));
         $('hmImg').style.transform = 'scale(' + (1 + .09 * p) + ')';
-        words($('hmCap'), t, .12, .07, 26);                                 // 캡션은 바로, 나레이션은 1초 뒤(무음 비트)
+        words($('hmCap'), t, -9, 0, 0);                                     // 캡션은 첫 프레임부터 완성된 채로(민우님 2026-10-24: 떠오르는 연출 없음)
         sig.push('hm', q(v), q(p), q(t));
       }
     } else {
@@ -403,6 +403,7 @@
     // ── 앞면 그림
     var frontEnd = (T.back || (T.result + 60)) - .05;
     v = vis(t, T.result + .8, frontEnd, .01, .2);
+    if(S.tease && T.front !== undefined) v = Math.max(v, vis(t, T.front + (S.flip || 0) / 2 + .3, T.front + 120, .01, .2));   // 맛보기 뒤 앞면으로 돌아오면 형광펜도 그대로(짧은 판). 넘기기 반 바퀴 + 화면 지연 ~0.2s
     setLayer($('drawF'), v); $('hF').style.opacity = v; hsig.push('F', q(v));
     if(v > 0){
       sig.push('F', q(v));
