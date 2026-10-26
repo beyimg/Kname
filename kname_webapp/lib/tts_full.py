@@ -75,7 +75,7 @@ PITCH = None
 # 이름 하나만 던지면 끝이 올라가기 쉬워 마침표로 마무리한다.
 FLATTEN_TONE = True
 
-_SAFE = re.compile(r'^[가-힣]{2,8}$')
+_SAFE = re.compile(r'^[가-힣]{1,12}( [가-힣]{1,12}){0,2}$')   # 한국 이름(고세나) 또는 음차(셀레나 고메스, 띄어쓰기 허용 — 카드 앞면 듣기 아이콘, 2026-10-26)
 
 
 class FullNameTTS:
@@ -116,10 +116,10 @@ class FullNameTTS:
         return self._client
 
     def _path(self, name: str) -> str:
-        return os.path.join(self.out_dir, self.tag, f'{name}.mp3')
+        return os.path.join(self.out_dir, self.tag, f"{name.replace(' ', '_')}.mp3")   # 띄어쓰기는 파일명에서 _ 로
 
     def _url(self, name: str) -> str:
-        return f'/static/audio/full/{self.tag}/{name}.mp3'
+        return f"/static/audio/full/{self.tag}/{name.replace(' ', '_')}.mp3"
 
     def _synthesize(self, name: str) -> bytes:
         client, tts = self._get_client()

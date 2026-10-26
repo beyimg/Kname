@@ -1,0 +1,13 @@
+{
+ "name": "Sabrina Carpenter:f",
+ "stage_name": "",
+ "hook_media": "/home/claude/work/photos/sabrina.jpg",
+ "hook_credit": "Photo: Justin Higuchi · CC BY 2.0 · Wikimedia Commons",
+ "en_voice": "danbi",
+ "tempo_scene": {
+  "input": 1.1,
+  "hook": 1.0,
+  "result": 1.0
+ },
+ "hook_caption": "Sabrina Carpenter's Korean name?"
+}

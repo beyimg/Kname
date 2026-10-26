@@ -1,0 +1,257 @@
+{
+ "lines": {
+  "hook": [
+   "What's Joseph Zada's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   {
+    "text": "Joseph Zada's name, written in Korean, is",
+    "pause": 0.15
+   },
+   {
+    "text": "조지프 자다",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jo-Ji-Peu Ja-Da",
+    "frame": "이 사람의 이름을 한국어로 쓰면",
+    "tl": true,
+    "end": true
+   },
+   {
+    "text": "And turned into a Korean name, it becomes",
+    "pause": 0.2
+   },
+   {
+    "text": "장종진",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jang-Jong-Jin",
+    "frame": "이 사람의 한국 이름은",
+    "end": true
+   },
+   {
+    "text": "The first name",
+    "pause": 0.08
+   },
+   {
+    "text": "조지프",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jo-Ji-Peu",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "종진",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jong-Jin",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.2,
+    "end": false
+   },
+   {
+    "text": "and the last name",
+    "pause": 0.08
+   },
+   {
+    "text": "자다",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ja-Da",
+    "frame": "성은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "장",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Jang",
+    "frame": "성은",
+    "stretch": 1.2,
+    "tl": true,
+    "end": true
+   }
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone well-grounded who shines like a star."
+  ],
+  "why": {
+   "text": "Curious what each syllable means, and why this name? The full story is on the website. Link in the caption, and try your name too!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 3.696,
+   "t1": 6.201,
+   "text": "Joseph Zada's name, written in Korean, is",
+   "y": 1290
+  },
+  {
+   "t0": 6.301,
+   "t1": 7.566,
+   "text": "조지프 자다.",
+   "y": 1290
+  },
+  {
+   "t0": 7.818,
+   "t1": 10.576,
+   "text": "And turned into a Korean name, it becomes",
+   "y": 1290
+  },
+  {
+   "t0": 10.604,
+   "t1": 11.752,
+   "text": "장종진.",
+   "y": 1290
+  },
+  {
+   "t0": 11.991,
+   "t1": 12.965,
+   "text": "The first name",
+   "y": 1290
+  },
+  {
+   "t0": 12.985,
+   "t1": 13.777,
+   "text": "조지프",
+   "y": 1290
+  },
+  {
+   "t0": 13.797,
+   "t1": 15.075,
+   "text": "becomes 종진",
+   "y": 1290
+  },
+  {
+   "t0": 15.095,
+   "t1": 16.07,
+   "text": "and the last name",
+   "y": 1290
+  },
+  {
+   "t0": 16.09,
+   "t1": 16.75,
+   "text": "자다",
+   "y": 1290
+  },
+  {
+   "t0": 16.77,
+   "t1": 18.032,
+   "text": "becomes 장.",
+   "y": 1290
+  },
+  {
+   "t0": 18.318,
+   "t1": 19.582,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 20.013,
+   "t1": 22.583,
+   "text": "someone well-grounded who shines like a star.",
+   "y": 1290
+  },
+  {
+   "t0": 23.49,
+   "t1": 25.446,
+   "text": "Curious what each syllable means,",
+   "y": 1290
+  },
+  {
+   "t0": 25.466,
+   "t1": 26.55,
+   "text": "and why this name?",
+   "y": 1290
+  },
+  {
+   "t0": 26.57,
+   "t1": 28.525,
+   "text": "The full story is on the website.",
+   "y": 1290
+  },
+  {
+   "t0": 28.545,
+   "t1": 29.746,
+   "text": "Link in the caption,",
+   "y": 1290
+  },
+  {
+   "t0": 29.766,
+   "t1": 31.442,
+   "text": "and try your name too!",
+   "y": 1290
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.0,
+   "dur": 3.18898,
+   "v0": 0.0977778,
+   "koStarts": []
+  },
+  "result": {
+   "t": 3.755530910354614,
+   "dur": 14.173673,
+   "v0": 0.0,
+   "koStarts": [
+    6.361040910354614,
+    10.664305910354614,
+    13.045122910354614,
+    14.302265910354615,
+    16.149612910354616,
+    17.328387910354618
+   ]
+  },
+  "meaning": {
+   "t": 18.279203910354614,
+   "dur": 4.562449,
+   "v0": 0.0985034,
+   "koStarts": [],
+   "hlAt": 20.072672910354612,
+   "hlDur": 2.2299299999999995
+  },
+  "say": {
+   "t": 10.664305910354614,
+   "dur": 0.966531,
+   "v0": 0.0,
+   "v1": 0.807415,
+   "koStarts": []
+  },
+  "why": {
+   "t": 23.45199990272522,
+   "dur": 8.124082,
+   "v0": 0.0978005,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.9189999103546143,
+  "layout": 3.7719998359680176,
+  "tl": 6.164000034332275,
+  "unveil": 11.010999917984009,
+  "back": 23.45199990272522,
+  "reason1": 24.98099994659424,
+  "reason2": 26.346999883651733,
+  "front": 27.71299982070923,
+  "done": 31.82699990272522,
+  "outro": 132.43499994277954,
+  "saydur": 0.966531,
+  "type": 2.9189999103546143,
+  "submit": 2.9189999103546143,
+  "card": 2.8689999103546144
+ }
+}

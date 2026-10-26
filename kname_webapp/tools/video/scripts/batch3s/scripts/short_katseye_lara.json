@@ -1,0 +1,257 @@
+{
+ "lines": {
+  "hook": [
+   "What's KATSEYE Lara's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   {
+    "text": "Lara Raj's name, written in Korean, is",
+    "pause": 0.15
+   },
+   {
+    "text": "라라 라지",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ra-Ra Ra-Ji",
+    "frame": "이 사람의 이름을 한국어로 쓰면",
+    "tl": true,
+    "end": true
+   },
+   {
+    "text": "And turned into a Korean name, it becomes",
+    "pause": 0.2
+   },
+   {
+    "text": "안나라",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ahn-Na-Ra",
+    "frame": "이 사람의 한국 이름은",
+    "end": true
+   },
+   {
+    "text": "The first name",
+    "pause": 0.08
+   },
+   {
+    "text": "라라",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ra-Ra",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "나라",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Na-Ra",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.2,
+    "end": false
+   },
+   {
+    "text": "and the last name",
+    "pause": 0.08
+   },
+   {
+    "text": "라지",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ra-Ji",
+    "frame": "성은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "안",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ahn",
+    "frame": "성은",
+    "stretch": 1.2,
+    "tl": true,
+    "end": true
+   }
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone unfolding as lovely as silk."
+  ],
+  "why": {
+   "text": "Curious what each syllable means, and why this name? The full story is on the website. Link in the caption, and try your name too!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 3.202,
+   "t1": 5.461,
+   "text": "Lara Raj's name, written in Korean, is",
+   "y": 1290
+  },
+  {
+   "t0": 5.572,
+   "t1": 6.818,
+   "text": "라라 라지.",
+   "y": 1290
+  },
+  {
+   "t0": 7.063,
+   "t1": 9.273,
+   "text": "And turned into a Korean name, it becomes",
+   "y": 1290
+  },
+  {
+   "t0": 9.379,
+   "t1": 10.352,
+   "text": "안나라.",
+   "y": 1290
+  },
+  {
+   "t0": 10.609,
+   "t1": 11.583,
+   "text": "The first name",
+   "y": 1290
+  },
+  {
+   "t0": 11.603,
+   "t1": 12.238,
+   "text": "라라",
+   "y": 1290
+  },
+  {
+   "t0": 12.258,
+   "t1": 13.497,
+   "text": "becomes 나라",
+   "y": 1290
+  },
+  {
+   "t0": 13.648,
+   "t1": 14.695,
+   "text": "and the last name",
+   "y": 1290
+  },
+  {
+   "t0": 14.812,
+   "t1": 15.421,
+   "text": "라지",
+   "y": 1290
+  },
+  {
+   "t0": 15.441,
+   "t1": 16.649,
+   "text": "becomes 안.",
+   "y": 1290
+  },
+  {
+   "t0": 16.837,
+   "t1": 18.219,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 18.578,
+   "t1": 21.1,
+   "text": "someone unfolding as lovely as silk.",
+   "y": 1290
+  },
+  {
+   "t0": 22.107,
+   "t1": 24.063,
+   "text": "Curious what each syllable means,",
+   "y": 1290
+  },
+  {
+   "t0": 24.083,
+   "t1": 25.167,
+   "text": "and why this name?",
+   "y": 1290
+  },
+  {
+   "t0": 25.187,
+   "t1": 27.142,
+   "text": "The full story is on the website.",
+   "y": 1290
+  },
+  {
+   "t0": 27.162,
+   "t1": 28.363,
+   "text": "Link in the caption,",
+   "y": 1290
+  },
+  {
+   "t0": 28.383,
+   "t1": 30.059,
+   "text": "and try your name too!",
+   "y": 1290
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.0,
+   "dur": 3.18898,
+   "v0": 0.0838095,
+   "koStarts": []
+  },
+  "result": {
+   "t": 3.261530952316284,
+   "dur": 13.285510000000002,
+   "v0": 0.0,
+   "koStarts": [
+    5.631938952316284,
+    9.438876952316285,
+    11.662958952316286,
+    12.841734952316285,
+    14.871938952316285,
+    16.024591952316285
+   ]
+  },
+  "meaning": {
+   "t": 16.897040952316285,
+   "dur": 4.562448,
+   "v0": 0.0,
+   "koStarts": [],
+   "hlAt": 18.638264952316284,
+   "hlDur": 2.181840000000001
+  },
+  "say": {
+   "t": 9.438876952316285,
+   "dur": 0.809796,
+   "v0": 0.0,
+   "v1": 0.633084,
+   "koStarts": []
+  },
+  "why": {
+   "t": 22.069000005722046,
+   "dur": 8.124082,
+   "v0": 0.0978005,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.424999952316284,
+  "layout": 3.2779998779296875,
+  "tl": 5.436999797821045,
+  "unveil": 9.668999910354614,
+  "back": 22.069000005722046,
+  "reason1": 23.597999811172485,
+  "reason2": 24.96499991416931,
+  "front": 26.325999975204468,
+  "done": 30.436999797821045,
+  "outro": 131.04499983787537,
+  "saydur": 0.809796,
+  "type": 2.424999952316284,
+  "submit": 2.424999952316284,
+  "card": 2.3749999523162844
+ }
+}

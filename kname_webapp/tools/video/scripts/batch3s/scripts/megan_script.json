@@ -1,0 +1,22 @@
+{
+ "name": "Megan Skiendiel:f",
+ "stage_name": "",
+ "hook_media": "/home/claude/work/photos/megan.jpg",
+ "hook_credit": "Photo: David Lee · CC BY 4.0 · Wikimedia Commons",
+ "en_voice": "danbi",
+ "tempo_scene": {
+  "input": 1.1,
+  "hook": 1.0,
+  "result": 1.0
+ },
+ "hook_caption": "KATSEYE Megan's Korean name?",
+ "lines": {
+  "hook": [
+   "What's KATSEYE Megan's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ]
+ }
+}

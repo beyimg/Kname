@@ -1,0 +1,257 @@
+{
+ "lines": {
+  "hook": [
+   "What's Olivia Rodrigo's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   {
+    "text": "Olivia Rodrigo's name, written in Korean, is",
+    "pause": 0.15
+   },
+   {
+    "text": "올리비아 로드리고",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ol-Ri-Bi-A Ro-Deu-Ri-Go",
+    "frame": "이 사람의 이름을 한국어로 쓰면",
+    "tl": true,
+    "end": true
+   },
+   {
+    "text": "And turned into a Korean name, it becomes",
+    "pause": 0.2
+   },
+   {
+    "text": "오온비",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Oh-On-Bi",
+    "frame": "이 사람의 한국 이름은",
+    "end": true
+   },
+   {
+    "text": "The first name",
+    "pause": 0.08
+   },
+   {
+    "text": "올리비아",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ol-Ri-Bi-A",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "온비",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "On-Bi",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.2,
+    "end": false
+   },
+   {
+    "text": "and the last name",
+    "pause": 0.08
+   },
+   {
+    "text": "로드리고",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ro-Deu-Ri-Go",
+    "frame": "성은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "오",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Oh",
+    "frame": "성은",
+    "stretch": 1.2,
+    "tl": true,
+    "end": true
+   }
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "a warm and great person."
+  ],
+  "why": {
+   "text": "Curious what each syllable means, and why this name? The full story is on the website. Link in the caption, and try your name too!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 3.567,
+   "t1": 5.933,
+   "text": "Olivia Rodrigo's name, written in Korean, is",
+   "y": 1290
+  },
+  {
+   "t0": 5.953,
+   "t1": 7.577,
+   "text": "올리비아 로드리고.",
+   "y": 1290
+  },
+  {
+   "t0": 7.964,
+   "t1": 10.099,
+   "text": "And turned into a Korean name, it becomes",
+   "y": 1290
+  },
+  {
+   "t0": 10.257,
+   "t1": 11.158,
+   "text": "오온비.",
+   "y": 1290
+  },
+  {
+   "t0": 11.5,
+   "t1": 12.488,
+   "text": "The first name",
+   "y": 1290
+  },
+  {
+   "t0": 12.585,
+   "t1": 13.481,
+   "text": "올리비아",
+   "y": 1290
+  },
+  {
+   "t0": 13.501,
+   "t1": 14.789,
+   "text": "becomes 온비",
+   "y": 1290
+  },
+  {
+   "t0": 14.919,
+   "t1": 15.957,
+   "text": "and the last name",
+   "y": 1290
+  },
+  {
+   "t0": 15.977,
+   "t1": 16.847,
+   "text": "로드리고",
+   "y": 1290
+  },
+  {
+   "t0": 16.867,
+   "t1": 18.092,
+   "text": "becomes 오.",
+   "y": 1290
+  },
+  {
+   "t0": 18.351,
+   "t1": 19.583,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 19.691,
+   "t1": 21.46,
+   "text": "a warm and great person.",
+   "y": 1290
+  },
+  {
+   "t0": 22.28,
+   "t1": 24.236,
+   "text": "Curious what each syllable means,",
+   "y": 1290
+  },
+  {
+   "t0": 24.256,
+   "t1": 25.34,
+   "text": "and why this name?",
+   "y": 1290
+  },
+  {
+   "t0": 25.36,
+   "t1": 27.315,
+   "text": "The full story is on the website.",
+   "y": 1290
+  },
+  {
+   "t0": 27.335,
+   "t1": 28.536,
+   "text": "Link in the caption,",
+   "y": 1290
+  },
+  {
+   "t0": 28.556,
+   "t1": 30.232,
+   "text": "and try your name too!",
+   "y": 1290
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.0,
+   "dur": 3.4240820000000003,
+   "v0": 0.0843991,
+   "koStarts": []
+  },
+  "result": {
+   "t": 3.53853090272522,
+   "dur": 14.434898,
+   "v0": 0.0879819,
+   "koStarts": [
+    6.01342890272522,
+    10.31669390272522,
+    12.645265902725221,
+    14.05914290272522,
+    16.03710190272522,
+    17.50322490272522
+   ]
+  },
+  "meaning": {
+   "t": 18.32342890272522,
+   "dur": 3.308571,
+   "v0": 0.0872562,
+   "koStarts": [],
+   "hlAt": 19.75118390272522,
+   "hlDur": 1.428889999999999
+  },
+  "say": {
+   "t": 10.31669390272522,
+   "dur": 0.731429,
+   "v0": 0.0,
+   "v1": 0.561769,
+   "koStarts": []
+  },
+  "why": {
+   "t": 22.241999864578247,
+   "dur": 8.124082,
+   "v0": 0.0978005,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.7019999027252197,
+  "layout": 3.560999870300293,
+  "tl": 5.816999912261963,
+  "unveil": 10.496999740600586,
+  "back": 22.241999864578247,
+  "reason1": 23.769999742507935,
+  "reason2": 25.13699984550476,
+  "front": 26.50599980354309,
+  "done": 30.62499976158142,
+  "outro": 131.23299980163574,
+  "saydur": 0.731429,
+  "type": 2.7019999027252197,
+  "submit": 2.7019999027252197,
+  "card": 2.65199990272522
+ }
+}

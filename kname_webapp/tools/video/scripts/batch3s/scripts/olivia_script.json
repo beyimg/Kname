@@ -1,0 +1,13 @@
+{
+ "name": "Olivia Rodrigo:f",
+ "stage_name": "",
+ "hook_media": "/home/claude/work/photos/olivia.jpg",
+ "hook_credit": "Photo: White House staff · Public domain · Wikimedia Commons",
+ "en_voice": "danbi",
+ "tempo_scene": {
+  "input": 1.1,
+  "hook": 1.0,
+  "result": 1.0
+ },
+ "hook_caption": "Olivia Rodrigo's Korean name?"
+}

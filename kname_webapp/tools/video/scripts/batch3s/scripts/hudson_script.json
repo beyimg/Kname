@@ -1,0 +1,13 @@
+{
+ "name": "Hudson Williams:m",
+ "stage_name": "",
+ "hook_media": "/home/claude/work/photos/hudson.jpg",
+ "hook_credit": "Photo: Gabriel Hutchinson · CC BY-SA 4.0 · Wikimedia Commons",
+ "en_voice": "danbi",
+ "tempo_scene": {
+  "input": 1.1,
+  "hook": 1.0,
+  "result": 1.0
+ },
+ "hook_caption": "Hudson Williams's Korean name?"
+}

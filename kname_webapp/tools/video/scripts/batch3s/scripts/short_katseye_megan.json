@@ -1,0 +1,257 @@
+{
+ "lines": {
+  "hook": [
+   "What's KATSEYE Megan's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   {
+    "text": "Megan Skiendiel's name, written in Korean, is",
+    "pause": 0.15
+   },
+   {
+    "text": "메건 스키엔디엘",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Me-Geon Seu-Ki-En-Di-El",
+    "frame": "이 사람의 이름을 한국어로 쓰면",
+    "tl": true,
+    "end": true
+   },
+   {
+    "text": "And turned into a Korean name, it becomes",
+    "pause": 0.2
+   },
+   {
+    "text": "서민정",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seo-Min-Jeong",
+    "frame": "이 사람의 한국 이름은",
+    "end": true
+   },
+   {
+    "text": "The first name",
+    "pause": 0.08
+   },
+   {
+    "text": "메건",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Me-Geon",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "민정",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Min-Jeong",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.2,
+    "end": false
+   },
+   {
+    "text": "and the last name",
+    "pause": 0.08
+   },
+   {
+    "text": "스키엔디엘",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seu-Ki-En-Di-El",
+    "frame": "성은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "서",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seo",
+    "frame": "성은",
+    "stretch": 1.2,
+    "tl": true,
+    "end": true
+   }
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone sky-wide and clear as crystal."
+  ],
+  "why": {
+   "text": "Curious what each syllable means, and why this name? The full story is on the website. Link in the caption, and try your name too!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 3.403,
+   "t1": 5.946,
+   "text": "Megan Skiendiel's name, written in Korean, is",
+   "y": 1290
+  },
+  {
+   "t0": 6.06,
+   "t1": 7.547,
+   "text": "메건 스키엔디엘.",
+   "y": 1290
+  },
+  {
+   "t0": 7.9,
+   "t1": 10.129,
+   "text": "And turned into a Korean name, it becomes",
+   "y": 1290
+  },
+  {
+   "t0": 10.285,
+   "t1": 11.324,
+   "text": "서민정.",
+   "y": 1290
+  },
+  {
+   "t0": 11.567,
+   "t1": 12.458,
+   "text": "The first name",
+   "y": 1290
+  },
+  {
+   "t0": 12.614,
+   "t1": 13.327,
+   "text": "메건",
+   "y": 1290
+  },
+  {
+   "t0": 13.347,
+   "t1": 14.658,
+   "text": "becomes 민정",
+   "y": 1290
+  },
+  {
+   "t0": 14.821,
+   "t1": 15.914,
+   "text": "and the last name",
+   "y": 1290
+  },
+  {
+   "t0": 15.979,
+   "t1": 17.032,
+   "text": "스키엔디엘",
+   "y": 1290
+  },
+  {
+   "t0": 17.052,
+   "t1": 18.256,
+   "text": "becomes 서.",
+   "y": 1290
+  },
+  {
+   "t0": 18.535,
+   "t1": 19.983,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 20.373,
+   "t1": 22.933,
+   "text": "someone sky-wide and clear as crystal.",
+   "y": 1290
+  },
+  {
+   "t0": 23.794,
+   "t1": 25.75,
+   "text": "Curious what each syllable means,",
+   "y": 1290
+  },
+  {
+   "t0": 25.77,
+   "t1": 26.854,
+   "text": "and why this name?",
+   "y": 1290
+  },
+  {
+   "t0": 26.874,
+   "t1": 28.829,
+   "text": "The full story is on the website.",
+   "y": 1290
+  },
+  {
+   "t0": 28.849,
+   "t1": 30.05,
+   "text": "Link in the caption,",
+   "y": 1290
+  },
+  {
+   "t0": 30.07,
+   "t1": 31.746,
+   "text": "and try your name too!",
+   "y": 1290
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.0,
+   "dur": 3.371837,
+   "v0": 0.0,
+   "koStarts": []
+  },
+  "result": {
+   "t": 3.4625309275207523,
+   "dur": 14.696124000000001,
+   "v0": 0.0,
+   "koStarts": [
+    6.120285927520753,
+    10.345183927520754,
+    12.673755927520753,
+    13.930898927520753,
+    16.039470927520753,
+    17.636205927520752
+   ]
+  },
+  "meaning": {
+   "t": 18.50865492752075,
+   "dur": 4.640817,
+   "v0": 0.0864626,
+   "koStarts": [],
+   "hlAt": 20.43273692752075,
+   "hlDur": 2.2198899999999995
+  },
+  "say": {
+   "t": 10.345183927520754,
+   "dur": 0.862041,
+   "v0": 0.0,
+   "v1": 0.698549,
+   "koStarts": []
+  },
+  "why": {
+   "t": 23.75599980354309,
+   "dur": 8.124082,
+   "v0": 0.0978005,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.625999927520752,
+  "layout": 3.4839999675750732,
+  "tl": 5.931999921798706,
+  "unveil": 10.621999979019165,
+  "back": 23.75599980354309,
+  "reason1": 25.283999919891357,
+  "reason2": 26.650999784469604,
+  "front": 28.01199984550476,
+  "done": 32.12299990653992,
+  "outro": 132.73099994659424,
+  "saydur": 0.862041,
+  "type": 2.625999927520752,
+  "submit": 2.625999927520752,
+  "card": 2.575999927520752
+ }
+}

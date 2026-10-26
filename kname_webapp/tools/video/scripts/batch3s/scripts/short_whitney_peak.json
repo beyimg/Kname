@@ -1,0 +1,257 @@
+{
+ "lines": {
+  "hook": [
+   "What's Whitney Peak's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   {
+    "text": "Whitney Peak's name, written in Korean, is",
+    "pause": 0.15
+   },
+   {
+    "text": "휘트니 픽",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Hwi-Teu-Ni Pik",
+    "frame": "이 사람의 이름을 한국어로 쓰면",
+    "tl": true,
+    "end": true
+   },
+   {
+    "text": "And turned into a Korean name, it becomes",
+    "pause": 0.2
+   },
+   {
+    "text": "박휘서",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Park-Hwi-Seo",
+    "frame": "이 사람의 한국 이름은",
+    "end": true
+   },
+   {
+    "text": "The first name",
+    "pause": 0.08
+   },
+   {
+    "text": "휘트니",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Hwi-Teu-Ni",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "휘서",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Hwi-Seo",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.2,
+    "end": false
+   },
+   {
+    "text": "and the last name",
+    "pause": 0.08
+   },
+   {
+    "text": "픽",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Pik",
+    "frame": "성은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "박",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Park",
+    "frame": "성은",
+    "stretch": 1.2,
+    "tl": true,
+    "end": true
+   }
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone radiant as sunlight and blessed."
+  ],
+  "why": {
+   "text": "Curious what each syllable means, and why this name? The full story is on the website. Link in the caption, and try your name too!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 3.185,
+   "t1": 5.37,
+   "text": "Whitney Peak's name, written in Korean, is",
+   "y": 1290
+  },
+  {
+   "t0": 5.418,
+   "t1": 6.464,
+   "text": "휘트니 픽.",
+   "y": 1290
+  },
+  {
+   "t0": 6.789,
+   "t1": 9.426,
+   "text": "And turned into a Korean name, it becomes",
+   "y": 1290
+  },
+  {
+   "t0": 9.59,
+   "t1": 10.662,
+   "text": "박휘서.",
+   "y": 1290
+  },
+  {
+   "t0": 10.831,
+   "t1": 11.817,
+   "text": "The first name",
+   "y": 1290
+  },
+  {
+   "t0": 11.893,
+   "t1": 12.684,
+   "text": "휘트니",
+   "y": 1290
+  },
+  {
+   "t0": 12.704,
+   "t1": 14.046,
+   "text": "becomes 휘서",
+   "y": 1290
+  },
+  {
+   "t0": 14.081,
+   "t1": 15.275,
+   "text": "and the last name",
+   "y": 1290
+  },
+  {
+   "t0": 15.363,
+   "t1": 16.076,
+   "text": "픽",
+   "y": 1290
+  },
+  {
+   "t0": 16.096,
+   "t1": 17.192,
+   "text": "becomes 박.",
+   "y": 1290
+  },
+  {
+   "t0": 17.388,
+   "t1": 18.773,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 19.129,
+   "t1": 21.796,
+   "text": "someone radiant as sunlight and blessed.",
+   "y": 1290
+  },
+  {
+   "t0": 22.658,
+   "t1": 24.614,
+   "text": "Curious what each syllable means,",
+   "y": 1290
+  },
+  {
+   "t0": 24.634,
+   "t1": 25.718,
+   "text": "and why this name?",
+   "y": 1290
+  },
+  {
+   "t0": 25.738,
+   "t1": 27.693,
+   "text": "The full story is on the website.",
+   "y": 1290
+  },
+  {
+   "t0": 27.713,
+   "t1": 28.914,
+   "text": "Link in the caption,",
+   "y": 1290
+  },
+  {
+   "t0": 28.934,
+   "t1": 30.61,
+   "text": "and try your name too!",
+   "y": 1290
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.0,
+   "dur": 3.0061229999999997,
+   "v0": 0.0817914,
+   "koStarts": []
+  },
+  "result": {
+   "t": 3.1595309542236323,
+   "dur": 13.938572,
+   "v0": 0.0854422,
+   "koStarts": [
+    5.477693954223632,
+    9.650346954223632,
+    11.952795954223634,
+    13.340551954223635,
+    15.423000954223633,
+    16.601775954223633
+   ]
+  },
+  "meaning": {
+   "t": 17.448102954223632,
+   "dur": 4.562448,
+   "v0": 0.0,
+   "koStarts": [],
+   "hlAt": 19.18932695422363,
+   "hlDur": 2.3268699999999995
+  },
+  "say": {
+   "t": 9.650346954223632,
+   "dur": 0.731429,
+   "v0": 0.0,
+   "v1": 0.731429,
+   "koStarts": []
+  },
+  "why": {
+   "t": 22.619999885559082,
+   "dur": 8.124082,
+   "v0": 0.0978005,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.322999954223633,
+  "layout": 3.178999900817871,
+  "tl": 5.2829999923706055,
+  "unveil": 9.950999975204468,
+  "back": 22.619999885559082,
+  "reason1": 24.146999835968018,
+  "reason2": 25.52299976348877,
+  "front": 26.899999856948853,
+  "done": 31.01099991798401,
+  "outro": 131.61899995803833,
+  "saydur": 0.731429,
+  "type": 2.322999954223633,
+  "submit": 2.322999954223633,
+  "card": 2.272999954223633
+ }
+}

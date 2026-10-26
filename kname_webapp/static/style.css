@@ -178,7 +178,7 @@ html,body{
 /* 앞면 맨 위: 외국 이름을 소리대로 쓴 것(셀레나 고메즈) → 그 아래 한국 이름. 여백은 전보다 좁게(2026-10-25) */
 .eyebrow-tl{margin-top:28px;}
 .translit-line{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:9px;}
-.translit-kr{font-family:var(--kr);font-size:24px;color:var(--ink);line-height:1.2;font-weight:400;letter-spacing:0.5px;}
+.translit-kr{font-family:var(--kr);font-size:24px;color:var(--ink);line-height:1.2;font-weight:400;letter-spacing:0.5px;white-space:nowrap;}   /* 길면 JS 가 글자를 줄인다 */
 .eyebrow-kn{margin-top:36px;}
 /* 듣기 아이콘: 테두리만, 단색, 글자의 1/4 크기(큰 이름 56px → 14px). 탭 영역은 넉넉하게 */
 .listen{appearance:none;-webkit-appearance:none;background:transparent;border:0;padding:6px;margin:-6px;cursor:pointer;color:var(--ink-faint);display:inline-flex;align-items:center;justify-content:center;line-height:0;transition:color .2s;}
@@ -327,6 +327,7 @@ html,body{
    한국 이름 안내 인트로 (입력 페이지, 변환 폼 위)
    ============================================================ */
 .intro{width:100%;display:flex;flex-direction:column;gap:11px;}
+.intro-below{margin-top:14px;}   /* 입력 칸 아래로 내린 안내(2026-10-26) */
 .intro-head{font-size:10.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--ink-faint);font-family:var(--sans);font-weight:500;text-align:center;margin-bottom:1px;}
 
 .intro-card{

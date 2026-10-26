@@ -1,0 +1,263 @@
+{
+ "lines": {
+  "hook": [
+   "What's Sabrina Carpenter's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   {
+    "text": "Sabrina Carpenter's name, written in Korean, is",
+    "pause": 0.15
+   },
+   {
+    "text": "서브리나 카펜터",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seo-Beu-Ri-Na Ka-Pen-Teo",
+    "frame": "이 사람의 이름을 한국어로 쓰면",
+    "tl": true,
+    "end": true
+   },
+   {
+    "text": "And turned into a Korean name, it becomes",
+    "pause": 0.2
+   },
+   {
+    "text": "김서린",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Kim-Seo-Rin",
+    "frame": "이 사람의 한국 이름은",
+    "end": true
+   },
+   {
+    "text": "The first name",
+    "pause": 0.08
+   },
+   {
+    "text": "서브리나",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seo-Beu-Ri-Na",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "서린",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seo-Rin",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.2,
+    "end": false
+   },
+   {
+    "text": "and the last name",
+    "pause": 0.08
+   },
+   {
+    "text": "카펜터",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ka-Pen-Teo",
+    "frame": "성은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "김",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Kim",
+    "frame": "성은",
+    "stretch": 1.2,
+    "tl": true,
+    "end": true
+   }
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone auspicious with jade-like radiance."
+  ],
+  "why": {
+   "text": "Curious what each syllable means, and why this name? The full story is on the website. Link in the caption, and try your name too!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 3.49,
+   "t1": 5.289,
+   "text": "Sabrina Carpenter's name, written in",
+   "y": 1290
+  },
+  {
+   "t0": 5.309,
+   "t1": 6.19,
+   "text": "Korean, is",
+   "y": 1290
+  },
+  {
+   "t0": 6.33,
+   "t1": 7.874,
+   "text": "서브리나 카펜터.",
+   "y": 1290
+  },
+  {
+   "t0": 8.246,
+   "t1": 10.753,
+   "text": "And turned into a Korean name, it becomes",
+   "y": 1290
+  },
+  {
+   "t0": 10.921,
+   "t1": 11.85,
+   "text": "김서린.",
+   "y": 1290
+  },
+  {
+   "t0": 12.098,
+   "t1": 13.165,
+   "text": "The first name",
+   "y": 1290
+  },
+  {
+   "t0": 13.249,
+   "t1": 14.25,
+   "text": "서브리나",
+   "y": 1290
+  },
+  {
+   "t0": 14.27,
+   "t1": 15.356,
+   "text": "becomes 서린",
+   "y": 1290
+  },
+  {
+   "t0": 15.386,
+   "t1": 16.528,
+   "text": "and the last name",
+   "y": 1290
+  },
+  {
+   "t0": 16.563,
+   "t1": 17.406,
+   "text": "카펜터",
+   "y": 1290
+  },
+  {
+   "t0": 17.426,
+   "t1": 18.58,
+   "text": "becomes 김.",
+   "y": 1290
+  },
+  {
+   "t0": 18.771,
+   "t1": 20.104,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 20.355,
+   "t1": 23.204,
+   "text": "someone auspicious with jade-like radiance.",
+   "y": 1290
+  },
+  {
+   "t0": 24.088,
+   "t1": 26.044,
+   "text": "Curious what each syllable means,",
+   "y": 1290
+  },
+  {
+   "t0": 26.064,
+   "t1": 27.148,
+   "text": "and why this name?",
+   "y": 1290
+  },
+  {
+   "t0": 27.168,
+   "t1": 29.123,
+   "text": "The full story is on the website.",
+   "y": 1290
+  },
+  {
+   "t0": 29.143,
+   "t1": 30.344,
+   "text": "Link in the caption,",
+   "y": 1290
+  },
+  {
+   "t0": 30.364,
+   "t1": 32.04,
+   "text": "and try your name too!",
+   "y": 1290
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.0,
+   "dur": 3.4763270000000004,
+   "v0": 0.0,
+   "koStarts": []
+  },
+  "result": {
+   "t": 3.549531059127808,
+   "dur": 14.931223,
+   "v0": 0.0,
+   "koStarts": [
+    6.390143059127808,
+    10.980755059127809,
+    13.309326059127809,
+    14.77544805912781,
+    16.62279505912781,
+    18.01055005912781
+   ]
+  },
+  "meaning": {
+   "t": 18.83075405912781,
+   "dur": 4.614694,
+   "v0": 0.0,
+   "koStarts": [],
+   "hlAt": 20.415244059127808,
+   "hlDur": 2.5091800000000006
+  },
+  "say": {
+   "t": 10.980755059127809,
+   "dur": 0.757551,
+   "v0": 0.0,
+   "v1": 0.589002,
+   "koStarts": []
+  },
+  "why": {
+   "t": 24.049999952316284,
+   "dur": 8.124082,
+   "v0": 0.0978005,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.7130000591278076,
+  "layout": 3.569999933242798,
+  "tl": 6.194000005722046,
+  "unveil": 11.180000066757202,
+  "back": 24.049999952316284,
+  "reason1": 25.57800006866455,
+  "reason2": 26.949000120162964,
+  "front": 28.31599998474121,
+  "done": 32.426000118255615,
+  "outro": 133.03400015830994,
+  "saydur": 0.757551,
+  "type": 2.7130000591278076,
+  "submit": 2.7130000591278076,
+  "card": 2.663000059127808
+ }
+}

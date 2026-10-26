@@ -1117,15 +1117,33 @@ def phrase_split(text, min_words=8):
 
 
 def short_result(d, full_en, stage=''):
-    """짧은 판 결과 장면(2026-10-25): 외국 이름을 한국어로 쓴 것(음차)을 먼저 말하고, 그걸 한국식 이름으로 바꾼 결과를 말한다.
-    음차 조각은 tl=True — 글자 떠오르기·음절 밑줄·소리 키움은 한국 이름 조각에만 건다."""
-    tl = dict(ko(d['translit_full'], prev='이 사람의 이름을 한국어로 쓰면'), tl=True, end=True) if d.get('translit_full') else None
+    """결과 장면(2026-10-25/26, 긴 판·짧은 판 공통): 외국 이름을 한국어로 쓴 것(음차) → 이름/성이 각각 무엇이 되는지 → 한국식 이름.
+    "Selena Gomez's name, written in Korean, is 셀레나 고메스. And turned into a Korean name, it becomes 고세나.
+     The first name 셀레나 becomes 세나, and the last name 고메스 becomes 고."  tl=True 조각은 '이름 발음'이 아니다(글자 떠오르기·밑줄·소리 키움 제외)."""
     kn = ko(d['full_hangul'], prev='이 사람의 한국 이름은', fx=KO_NAME_FX)
-    if not tl:
+    tf = d.get('translit_full') or ''
+    if not tf:
         return ([f"{stage}'s real name is {full_en}."] if stage else []) + [{'text': f"{(stage and 'The') or full_en + chr(39) + 's'} Korean name is", 'pause': GAP_ELLIPSIS}, kn]
+    tl = dict(ko(tf, prev='이 사람의 이름을 한국어로 쓰면'), tl=True, end=True)
+    n_s = len(d['surname'] or '') if d.get('surname') else 0
+    first_tr = d.get('translit') or tf.split(' ')[0]
+    last_tr = tf[len(first_tr):].strip() if n_s and tf.startswith(first_tr) else ''
+    # 이름/성이 각각 무엇이 되는지(민우님 2026-10-26)
+    piece = [{'text': 'The first name', 'pause': GAP_IN}, dict(ko(first_tr, prev='이름은'), tl=True, pause=GAP_IN), 'becomes',
+             dict(ko(d['given'], prev='이름은'), tl=True, pause=GAP_COMMA if last_tr else None, end=not last_tr)]
+    if last_tr:
+        piece += [{'text': 'and the last name', 'pause': GAP_IN}, dict(ko(last_tr, prev='성은'), tl=True, pause=GAP_IN), 'becomes',
+                  dict(ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0, stretch=KO_WORD_STRETCH), tl=True, end=True)]
+    piece = [p for p in piece]
+    for p in piece:
+        if isinstance(p, dict) and p.get('pause') is None:
+            p.pop('pause', None)
+    kn_end = dict(kn, end=True)                                        # 이름 뒤에 문장이 이어지므로 문장 끝 쉼
+    tail = [{'text': "And turned into a Korean name, it becomes", 'pause': GAP_ELLIPSIS}, kn_end]
+    # 이름/성 설명은 이름 공개 뒤에(민우님 2026-10-26)
     if stage:
-        return [f"{stage}'s real name is {full_en}.", {'text': "Written in Korean, that's", 'pause': 0.15}, tl, {'text': "And turned into a Korean name, it becomes", 'pause': GAP_ELLIPSIS}, kn]
-    return [{'text': f"{full_en}'s name, written in Korean, is", 'pause': 0.15}, tl, {'text': "And turned into a Korean name, it becomes", 'pause': GAP_ELLIPSIS}, kn]
+        return [f"{stage}'s real name is {full_en}.", {'text': "Written in Korean, that's", 'pause': 0.15}, tl] + tail + piece
+    return [{'text': f"{full_en}'s name, written in Korean, is", 'pause': 0.15}, tl] + tail + piece
 
 
 def short_names(d, first, last):
@@ -1167,9 +1185,8 @@ def build_lines(d, first, last, args):
     lines['hook'] = [f"What's {who}'s Korean name?", {'text': "Let's find out!", 'mood': 'bright'}]   # 마지막 한마디는 신나게(민우님 2026-10-12)
     # 예명이면 결과 화면에서 본명을 먼저 소개한다(입력 장면은 없앰 — 시간 단축, 민우님 2026-10-14)
     pron = {'f': 'Her', 'm': 'His'}.get(getattr(args, 'sex_key', 'f'), 'The')
-    is_line = {'text': f"{pron if stage else first + chr(39) + 's'} Korean name is", 'pause': GAP_ELLIPSIS}   # 말줄임표 없이(2026-10-16: "…" 뒤에 TTS 가 잡소리를 붙인다) — 뜸은 pause 로
-    lines['result'] = ([f"{stage}'s real name is {full_en}.", is_line] if stage else [is_line]) + \
-                      [ko(d['full_hangul'], prev='이 사람의 한국 이름은', fx=KO_NAME_FX)]   # 짧게(2026-10-14): "The Korean name for X is…" → "X's Korean name is"
+    # (옛 결과 문장 "X's Korean name is" 는 short_result 가 음차 없는 이름에서만 쓴다)
+    lines['result'] = short_result(d, full_en, stage)                  # 긴 판도 같은 결과 문장(민우님 2026-10-26): 음차(셀레나 고메스) → 한국 이름(고세나)
     if n_s:
         lines['names'] = ["In Korea, the last name comes first. So", ko(d['surname'], prev='성은', full=d['full_hangul'], idx=0, stretch=KO_WORD_STRETCH),
                           'is the last name, and', ko(given_ko, prev='이름은'), 'is the first.']
@@ -1203,7 +1220,6 @@ def build_lines(d, first, last, args):
     lines['back'] = back
     if getattr(args, 'short', False):                                  # 짧은 판: 뒷면 설명은 빼고, 마지막은 '본문 링크 참고' 한마디
         lines.pop('back', None)
-        lines['result'] = short_result(d, full_en, stage)              # "X's name, written in Korean, is 셀레나 고메스. And turned into a Korean name, it becomes 고세나."(민우님 2026-10-25)
         if getattr(args, 'became', False):
             lines['names'] = short_names(d, first, last)               # "Selena became 세나, and Gomez became 고."(옵션)
         else:
@@ -1541,6 +1557,8 @@ def main():
                             v[i] = {'text': re.sub(r'\s*(…|\.\.\.)\s*$', '', p), 'pause': GAP_ELLIPSIS}
                             print(f'  (대본 [{k}] 말줄임표 제거: {v[i]["text"]!r} + 뜸 {GAP_ELLIPSIS}s)')
             lines = keep
+            if not any(isinstance(p, dict) and p.get('tl') for p in (lines.get('result') or []) if isinstance(lines.get('result'), list)):
+                lines['result'] = short_result(d, f'{first} {last}'.strip(), (args.stage_name or '').strip())   # 옛 대본의 결과 문장은 새 카드 문장(음차 → 이름)으로(2026-10-26)
             if args.short:                                        # 짧은 판: 긴 판 대본을 그대로 써도 성/이름·뒷면은 빼고, 옛 'link in bio' 마무리는 짧은 판 문구로
                 lines.pop('names', None); lines.pop('back', None)
                 w = lines.get('why'); wt = (w.get('text') if isinstance(w, dict) else w) or ''
@@ -1548,8 +1566,6 @@ def main():
                     lines['why'] = {'text': SHORT_WHY, 'mood': 'bright'}
                 if args.repeat_name:
                     short_repeat(lines)
-                if not any(isinstance(p, dict) and p.get('tl') for p in (doc['lines'].get('result') or []) if isinstance(doc['lines'].get('result'), list)):
-                    lines['result'] = short_result(d, f'{first} {last}'.strip(), (args.stage_name or '').strip())   # 긴 판 대본의 결과 문장은 짧은 판 문장(음차 → 이름)으로
                 if args.became:
                     if doc['lines'].get('names') in (None, '', []) or 'last name comes first' in json.dumps(doc['lines'].get('names'), ensure_ascii=False):
                         lines['names'] = short_names(d, first, last)  # 긴 판 대본의 성/이름 장면은 짧은 판 문장으로
@@ -1617,7 +1633,8 @@ def main():
         tt, gaps = r_at, N['result'].get('gaps') or []
         for j, ((path, dd, v0, v1), sp) in enumerate(zip(N['result']['parts'], lines['result'])):
             if isinstance(sp, dict) and sp.get('lang') and sp.get('tl'):
-                tlat = max(0.05, tt + v0 - 0.20)                      # 음차 줄은 그 말을 하기 0.2s 전에 떠오른다
+                if not tlat:
+                    tlat = max(0.05, tt + v0 - 0.20)                  # 음차 줄은 그 말(첫 tl 조각)을 하기 0.2s 전에 떠오른다
             elif isinstance(sp, dict) and sp.get('lang'):
                 n_syl = max(1, len(re.findall(r'[가-힣]', sp['text']))); slot = (v1 - v0) / n_syl
                 veil = [max(0.0, tt + v0 + i * slot - 0.20) for i in range(n_syl)]   # 글자는 소리보다 0.2s 먼저 떠오른다(0.42s 전환이라 소리 때 또렷해진다)

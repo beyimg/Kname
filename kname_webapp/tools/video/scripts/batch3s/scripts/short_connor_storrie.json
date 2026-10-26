@@ -1,0 +1,257 @@
+{
+ "lines": {
+  "hook": [
+   "What's Connor Storrie's Korean name?",
+   {
+    "text": "Let's find out!",
+    "mood": "bright"
+   }
+  ],
+  "result": [
+   {
+    "text": "Connor Storrie's name, written in Korean, is",
+    "pause": 0.15
+   },
+   {
+    "text": "코너 스토리",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ko-Neo Seu-To-Ri",
+    "frame": "이 사람의 이름을 한국어로 쓰면",
+    "tl": true,
+    "end": true
+   },
+   {
+    "text": "And turned into a Korean name, it becomes",
+    "pause": 0.2
+   },
+   {
+    "text": "서건하",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seo-Geon-Ha",
+    "frame": "이 사람의 한국 이름은",
+    "end": true
+   },
+   {
+    "text": "The first name",
+    "pause": 0.08
+   },
+   {
+    "text": "코너",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Ko-Neo",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "건하",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Geon-Ha",
+    "frame": "이름은",
+    "tl": true,
+    "pause": 0.2,
+    "end": false
+   },
+   {
+    "text": "and the last name",
+    "pause": 0.08
+   },
+   {
+    "text": "스토리",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seu-To-Ri",
+    "frame": "성은",
+    "tl": true,
+    "pause": 0.08
+   },
+   "becomes",
+   {
+    "text": "서",
+    "lang": "ko-KR",
+    "voice": "ko-KR-Chirp3-HD-Aoede",
+    "rom": "Seo",
+    "frame": "성은",
+    "stretch": 1.2,
+    "tl": true,
+    "end": true
+   }
+  ],
+  "meaning": [
+   "And it has a meaning:",
+   "someone earnest and pure as a lotus."
+  ],
+  "why": {
+   "text": "Curious what each syllable means, and why this name? The full story is on the website. Link in the caption, and try your name too!",
+   "mood": "bright"
+  }
+ },
+ "captions": [
+  {
+   "t0": 3.145,
+   "t1": 5.662,
+   "text": "Connor Storrie's name, written in Korean, is",
+   "y": 1290
+  },
+  {
+   "t0": 5.802,
+   "t1": 6.962,
+   "text": "코너 스토리.",
+   "y": 1290
+  },
+  {
+   "t0": 7.354,
+   "t1": 9.861,
+   "text": "And turned into a Korean name, it becomes",
+   "y": 1290
+  },
+  {
+   "t0": 10.001,
+   "t1": 10.883,
+   "text": "서건하.",
+   "y": 1290
+  },
+  {
+   "t0": 11.126,
+   "t1": 12.262,
+   "text": "The first name",
+   "y": 1290
+  },
+  {
+   "t0": 12.304,
+   "t1": 12.86,
+   "text": "코너",
+   "y": 1290
+  },
+  {
+   "t0": 12.88,
+   "t1": 14.159,
+   "text": "becomes 건하",
+   "y": 1290
+  },
+  {
+   "t0": 14.179,
+   "t1": 15.424,
+   "text": "and the last name",
+   "y": 1290
+  },
+  {
+   "t0": 15.539,
+   "t1": 16.33,
+   "text": "스토리",
+   "y": 1290
+  },
+  {
+   "t0": 16.35,
+   "t1": 17.554,
+   "text": "becomes 서.",
+   "y": 1290
+  },
+  {
+   "t0": 17.747,
+   "t1": 19.121,
+   "text": "And it has a meaning:",
+   "y": 1290
+  },
+  {
+   "t0": 19.227,
+   "t1": 22.179,
+   "text": "someone earnest and pure as a lotus.",
+   "y": 1290
+  },
+  {
+   "t0": 22.544,
+   "t1": 24.5,
+   "text": "Curious what each syllable means,",
+   "y": 1290
+  },
+  {
+   "t0": 24.52,
+   "t1": 25.604,
+   "text": "and why this name?",
+   "y": 1290
+  },
+  {
+   "t0": 25.624,
+   "t1": 27.579,
+   "text": "The full story is on the website.",
+   "y": 1290
+  },
+  {
+   "t0": 27.599,
+   "t1": 28.8,
+   "text": "Link in the caption,",
+   "y": 1290
+  },
+  {
+   "t0": 28.82,
+   "t1": 30.496,
+   "text": "and try your name too!",
+   "y": 1290
+  }
+ ],
+ "cues": {
+  "hook": {
+   "t": 0.0,
+   "dur": 3.0844899999999997,
+   "v0": 0.0822449,
+   "koStarts": []
+  },
+  "result": {
+   "t": 3.2045307920989985,
+   "dur": 14.252041000000002,
+   "v0": 0.0,
+   "koStarts": [
+    5.862285792098998,
+    10.061060792098997,
+    12.363509792098998,
+    13.437795792098997,
+    15.598611792098996,
+    16.934122792098997
+   ]
+  },
+  "meaning": {
+   "t": 17.806571792099,
+   "dur": 4.092245,
+   "v0": 0.0,
+   "koStarts": [],
+   "hlAt": 19.286571792099,
+   "hlDur": 2.6122450000000015
+  },
+  "say": {
+   "t": 10.061060792098997,
+   "dur": 0.705306,
+   "v0": 0.0,
+   "v1": 0.542109,
+   "koStarts": []
+  },
+  "why": {
+   "t": 22.50599980354309,
+   "dur": 8.124082,
+   "v0": 0.0978005,
+   "koStarts": []
+  }
+ },
+ "T": {
+  "start": -0.9000000953674316,
+  "result": 2.367999792098999,
+  "layout": 3.2259998321533203,
+  "tl": 5.672999858856201,
+  "unveil": 10.233999967575073,
+  "back": 22.50599980354309,
+  "reason1": 24.033999919891357,
+  "reason2": 25.401999950408936,
+  "front": 26.769999980926514,
+  "done": 30.872999906539917,
+  "outro": 131.48099994659424,
+  "saydur": 0.705306,
+  "type": 2.367999792098999,
+  "submit": 2.367999792098999,
+  "card": 2.317999792098999
+ }
+}

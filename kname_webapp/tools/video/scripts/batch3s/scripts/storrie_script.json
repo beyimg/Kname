@@ -1,0 +1,13 @@
+{
+ "name": "Connor Storrie:m",
+ "stage_name": "",
+ "hook_media": "/home/claude/work/photos/storrie.jpg",
+ "hook_credit": "Photo: Tara Taralynn (TKA201) · CC BY-SA 4.0 · Wikimedia Commons",
+ "en_voice": "danbi",
+ "tempo_scene": {
+  "input": 1.1,
+  "hook": 1.0,
+  "result": 1.0
+ },
+ "hook_caption": "Connor Storrie's Korean name?"
+}
